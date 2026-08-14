@@ -1,71 +1,71 @@
 {
   "fixtures": [
     {
-      "fixture_id": "synthetic-fixture-sha256-a6fbbf207217604760ed0e6f17ec6a8a2c4776e33a6f04ce827a0237edb60415",
+      "fixture_id": "synthetic-fixture-sha256-0d086fe28d2c58524fd54ce13df9046967b8c96ed8f189e30691dcbcd9a3ccf3",
       "relative_path": "fixtures/sensor-map-dev-001.json",
       "scenario": "straight",
       "seed": 10000,
-      "sha256": "c1731591526093ddc5c014c64fc28592022ee726b63c289d91544f60517899e3",
+      "sha256": "a55c16c5179efe45790ac5ab30239c941afe167b6ee5af8bb697a2ea5656d21a",
       "synthetic_family_id": "sensor-map-dev-001"
     },
     {
-      "fixture_id": "synthetic-fixture-sha256-25fccb81b00be2dac6289c714c77acc1e148a45139027f7a9e57ccfbe20e2ea8",
+      "fixture_id": "synthetic-fixture-sha256-21f975573c964bb190d97bc653d99e834876befaf78bf6f930319448e18ea1aa",
       "relative_path": "fixtures/sensor-map-dev-002.json",
       "scenario": "constant_radius_turn",
       "seed": 10001,
-      "sha256": "914861db00197ea47e911dede6c30a967c9e879e3685347b02594f3aa54e53bb",
+      "sha256": "bb8f5940b0771b5c89ff5e25760d2e8cc2566dab1875363b9c4679187bc298b6",
       "synthetic_family_id": "sensor-map-dev-002"
     },
     {
-      "fixture_id": "synthetic-fixture-sha256-d37762036969b85eec7153bf70c469834ddea65117cacc815615070a90a2fd96",
+      "fixture_id": "synthetic-fixture-sha256-b23d69bdf39f94b3b3a979846c0bbe5fab54577dfa875448280587ea9995cd09",
       "relative_path": "fixtures/sensor-map-dev-003.json",
       "scenario": "stop_start",
       "seed": 10002,
-      "sha256": "ae531978175c8df5daffcc1dd07cab8b9e0d9c645d06d60604c8f2ab1b4d006a",
+      "sha256": "d25d491b699a502a89465de3d696d5aafacad641cd3ff6e7ab94050fa2df8dae",
       "synthetic_family_id": "sensor-map-dev-003"
     },
     {
-      "fixture_id": "synthetic-fixture-sha256-a84efd8721837cc0070bb0a2191b54e83e49cd3533000cd9c047432b3d4ac11b",
+      "fixture_id": "synthetic-fixture-sha256-09ac2cc13438d9b11b4336c02426901bc54a1af7906ab5082be67170d35dd0df",
       "relative_path": "fixtures/sensor-map-dev-004.json",
       "scenario": "parallel_roads",
       "seed": 10003,
-      "sha256": "3f1bd14dc15dfeb4eebfb0b3c21b1bc10b45b89fa78d359a6d4c938b1afa8304",
+      "sha256": "8702d7e933276145c4e9de2f9f23f0657e06afae76fec8e5d371f58b8807852b",
       "synthetic_family_id": "sensor-map-dev-004"
     },
     {
-      "fixture_id": "synthetic-fixture-sha256-3fabee9330352b0459511a77a8fb53f40e9a53fa8969d8381c84a8f6569a1730",
+      "fixture_id": "synthetic-fixture-sha256-2f5d6f3ad3de7a566db5216e4e283f0a4e4f8ee003271ec7a737dbb069dc4c75",
       "relative_path": "fixtures/sensor-map-dev-005.json",
       "scenario": "ramp",
       "seed": 10004,
-      "sha256": "50aab97753c147a6a7536ab89134caa7f26479cbe9198839e434b7f065bc7aec",
+      "sha256": "a731c0167de63f35e71576535ad64bbf6d08e3f1f2f5523754b517bf70965109",
       "synthetic_family_id": "sensor-map-dev-005"
     },
     {
-      "fixture_id": "synthetic-fixture-sha256-cabf97c8c8847325170b2e57b7036d2564373db26227f75600b870ce6a643f4d",
+      "fixture_id": "synthetic-fixture-sha256-c74c8352bcfe17b469db68556d9c515d9d87315ed3d429e171d5c244ac05b539",
       "relative_path": "fixtures/sensor-map-dev-006.json",
       "scenario": "overpass",
       "seed": 10005,
-      "sha256": "45b5e834429749a9b87303635fa95bc82fd9593104830f2449779c4643ec97ba",
+      "sha256": "3fdfea0962d62a57144dd2b2b1bae946c4328bd6b19e01d3b70522ed7f4e52bd",
       "synthetic_family_id": "sensor-map-dev-006"
     },
     {
-      "fixture_id": "synthetic-fixture-sha256-26b85981bdabbe21fd8606c453e9f3744ded52c7487745a0dc8c51c8bb535ef0",
+      "fixture_id": "synthetic-fixture-sha256-dc270005af029326dcef30f1da3f236cd7a94d488f431f1d83b332ed9150ba69",
       "relative_path": "fixtures/sensor-map-dev-007.json",
       "scenario": "off_map_connection",
       "seed": 10006,
-      "sha256": "fb48bfcd9c328e6d085852047670d4143f2be0aae3703a7fb6857ff8cfb06282",
+      "sha256": "63993ed1e6c0dc8b1970c39e85bab0733ecc456b24e683243bad03ad42b30266",
       "synthetic_family_id": "sensor-map-dev-007"
     },
     {
-      "fixture_id": "synthetic-fixture-sha256-0d3b9a45b982d7ae9e60936d771132bb2c94f1d5490654e648de174d6615cecb",
+      "fixture_id": "synthetic-fixture-sha256-6f42da4e1bd6762453fde37befe4e3854be695dba14a16c00a380702ceae5d5a",
       "relative_path": "fixtures/sensor-map-dev-008.json",
       "scenario": "stationary",
       "seed": 10007,
-      "sha256": "862364240fee6e92b094210cc96c19c204a33b3353862dcebc7382f06c060751",
+      "sha256": "e0ae400576cced01bae934d205c1219af8256dfa5698f2dda0762004cbc4f262",
       "synthetic_family_id": "sensor-map-dev-008"
     }
   ],
-  "generator_version": "1.0.0",
+  "generator_version": "1.0.1",
   "partition": "development",
   "schema_version": "cartosentry.synthetic-fixture-set.v1",
   "split_manifest_sha256": "ed028d3a7b4062edca754e095a040843a63b8ca45aeb059018dff0b353021aaf"

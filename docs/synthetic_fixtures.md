@@ -35,7 +35,7 @@ uv run python scripts/generate_synthetic_fixtures.py
 uv run python scripts/generate_synthetic_fixtures.py --check
 ```
 
-Each fixture records generator version `1.0.0`, its frozen synthetic family identifier, its seed, analytic truth, and a content-derived fixture identifier.
+Each fixture records generator version `1.0.1`, its frozen synthetic family identifier, its seed, analytic truth, and a content-derived fixture identifier.
 The fixture-set manifest binds every file by SHA-256 and also binds the frozen split manifest by SHA-256.
 
 ## Determinism and limits

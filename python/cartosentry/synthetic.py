@@ -47,7 +47,7 @@ from .synthetic_models import (
     Vector3,
 )
 
-GENERATOR_VERSION: Final = "1.0.0"
+GENERATOR_VERSION: Final = "1.0.1"
 FIXTURE_SCHEMA_VERSION: Final = "cartosentry.synthetic-fixture.v1"
 FIXTURE_SET_SCHEMA_VERSION: Final = "cartosentry.synthetic-fixture-set.v1"
 CLOCK_ID: Final = "cartosentry-synthetic-clock"
@@ -192,7 +192,7 @@ def _scenario_graph(scenario: SyntheticScenario) -> DirectedRoadGraph:
         start = RoadNode(node_id="turn-start", position_m=(-10.0, 0.0, 0.0))
         bend = RoadNode(node_id="turn-bend", position_m=(-5.0, 0.0, 0.0))
         exit_node = RoadNode(node_id="turn-exit", position_m=(0.0, 5.0, 0.0))
-        end = RoadNode(node_id="turn-end", position_m=(8.0, 5.0, 0.0))
+        end = RoadNode(node_id="turn-end", position_m=(0.0, 13.0, 0.0))
         curve = tuple(
             _vector(
                 -5.0 + 5.0 * math.cos(-math.pi / 2.0 + index * math.pi / 16.0),
@@ -341,7 +341,7 @@ def _pose_at(scenario: SyntheticScenario, time_ns: int) -> _Pose:
                 MotionState.MOVING,
             )
         return _Pose(
-            _vector(5.0 * (seconds - curve_end), 5.0, 0.0),
+            _vector(0.0, 5.0 + 5.0 * (seconds - curve_end), 0.0),
             math.pi / 2.0,
             "turn-departure",
             MotionState.MOVING,

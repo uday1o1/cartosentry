@@ -297,7 +297,7 @@ class SyntheticTruth(ContractModel):
 class SyntheticFixture(ContractModel):
     schema_version: Literal["cartosentry.synthetic-fixture.v1"]
     fixture_id: StableId
-    generator_version: Literal["1.0.0"]
+    generator_version: Literal["1.0.1"]
     seed: NonnegativeInt
     synthetic_family_id: Identifier
     partition: Literal["development"]
@@ -399,7 +399,7 @@ class FixtureFileRecord(ContractModel):
 
 class FixtureSetManifest(ContractModel):
     schema_version: Literal["cartosentry.synthetic-fixture-set.v1"]
-    generator_version: Literal["1.0.0"]
+    generator_version: Literal["1.0.1"]
     partition: Literal["development"]
     split_manifest_sha256: Sha256
     fixtures: tuple[FixtureFileRecord, ...]
