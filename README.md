@@ -52,6 +52,15 @@ uv run cartosentry score-road-candidates \
 
 The [road-candidate scoring contract](docs/road_matching.md) documents the frozen model charter, uncertainty handling, directed emissions and transitions, impossible-transition semantics, and current limitations.
 
+The deterministic offline decoder and its complete synthetic topology gate can be exercised without public data with:
+
+```console
+uv run cartosentry qualify-road-matching \
+  --output output/m5-3-road-matching.json
+```
+
+The command covers unambiguous directed paths, deliberate ambiguity, off-map behavior across 12 distinct missing-edge topology fixtures, stationary suppression, and cluster-bootstrap acceptance against a separately frozen truth artifact.
+
 The current versioned artifact contracts, deterministic identifiers, portable export rules, and validation commands are documented in `docs/artifact_schemas.md`.
 Representative portable artifacts and their JSON Schemas are committed under `schemas`.
 

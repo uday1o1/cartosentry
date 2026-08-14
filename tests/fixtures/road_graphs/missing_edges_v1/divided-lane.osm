@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="cartosentry-test">
+  <bounds minlat="43.7060000" minlon="-79.5000000" maxlat="43.7090000" maxlon="-79.4960000"/>
+  <node id="1" lat="43.7070000" lon="-79.4990000"/>
+  <node id="2" lat="43.7070000" lon="-79.4970000"/>
+  <node id="3" lat="43.7072000" lon="-79.4970000"/>
+  <node id="4" lat="43.7072000" lon="-79.4990000"/>
+  <way id="260"><nd ref="1"/><nd ref="2"/><tag k="highway" v="primary"/><tag k="oneway" v="yes"/></way>
+  <way id="261"><nd ref="3"/><nd ref="4"/><tag k="highway" v="primary"/><tag k="oneway" v="yes"/></way>
+</osm>

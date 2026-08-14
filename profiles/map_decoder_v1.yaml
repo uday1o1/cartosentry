@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "profile_id": "map-decoder-v1",
+  "profile_version": "1.0.0",
+  "freeze_state": "FROZEN_BEFORE_M5_3_ACCEPTANCE",
+  "hash_contract": "SHA-256 of canonical UTF-8 JSON with immutable_sha256 omitted",
+  "immutable_sha256": "78a1c554c2895748b9bef5810772c7788d36c3f01be47cb00accc9dd4c0e5991",
+  "authorities": {
+    "map_matching_profile_file_sha256": "b249c83942244b8a014b0946b7621adda7dd005cfb2757b85658b08243ec0760",
+    "map_matching_profile_immutable_sha256": "dc4da969cb9f9d85492be6ed7f44798dd48b6d0c935e656979c67a27b2c3b5f1",
+    "numerical_charter_file_sha256": "c993ee0db9ffec8ad7fa987cd64ab86516405d441e038d4dbfce00fdbaf25aec"
+  },
+  "parameter_charter": {
+    "decoding_mode": "OFFLINE_FULL_WINDOW",
+    "beam_width": 64,
+    "hypotheses_per_terminal_candidate": 2,
+    "beam_score_delta_log_likelihood": 50.0,
+    "ambiguity_path_separation_log_likelihood": 1.0,
+    "stationary_speed_threshold_mps": 0.5,
+    "stationary_position_tolerance_m": 1.0,
+    "stationary_minimum_observations": 2,
+    "maximum_sequence_observations": 100000,
+    "score_rounding_decimal_places": 12
+  }
+}

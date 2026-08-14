@@ -43,6 +43,7 @@ from cartosentry.manifest_boundaries import (
 from cartosentry.motion_alignment_qualification import qualify_motion_alignment
 from cartosentry.qualification import qualify_contracts
 from cartosentry.recovery import qualify_run_recovery, resume_registered_run
+from cartosentry.road_decoder_qualification import qualify_synthetic_road_matching
 from cartosentry.road_graph import (
     DirectedRoadGraph,
     import_osm_road_graph,
@@ -51,6 +52,7 @@ from cartosentry.road_graph import (
 )
 from cartosentry.road_graph_qualification import qualify_directed_road_graph
 from cartosentry.road_matching import (
+    ALGORITHM_BACKEND,
     CandidateState,
     RoadCandidate,
     best_emission_candidate,
@@ -275,6 +277,123 @@ def qualify_road_graph_command(
         raise typer.Exit(code=1)
 
 
+@app.command("qualify-road-matching")
+def qualify_road_matching_command(
+    graph_profile_path: Annotated[
+        Path,
+        typer.Option(
+            "--graph-profile",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen directed-road graph import profile.",
+        ),
+    ] = Path("profiles/graph_import_v1.yaml"),
+    matching_profile_path: Annotated[
+        Path,
+        typer.Option(
+            "--matching-profile",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen road-candidate and transition profile.",
+        ),
+    ] = Path("profiles/map_matching_v1.yaml"),
+    decoder_profile_path: Annotated[
+        Path,
+        typer.Option(
+            "--decoder-profile",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen offline map-decoder profile.",
+        ),
+    ] = Path("profiles/map_decoder_v1.yaml"),
+    gate_path: Annotated[
+        Path,
+        typer.Option(
+            "--gate",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen M5.3 synthetic qualification gate.",
+        ),
+    ] = Path("benchmarks/m5_3_map_matching_gate.yaml"),
+    truth_path: Annotated[
+        Path,
+        typer.Option(
+            "--truth",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen independent M5.3 scenario truth.",
+        ),
+    ] = Path("benchmarks/m5_3_map_matching_truth.yaml"),
+    numerical_charter_path: Annotated[
+        Path,
+        typer.Option(
+            "--numerical-charter",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen numerical acceptance authority.",
+        ),
+    ] = Path("benchmarks/numerical_charter.yaml"),
+    fixture_path: Annotated[
+        Path,
+        typer.Option(
+            "--fixture",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen independent road-topology fixture.",
+        ),
+    ] = Path("tests/fixtures/road_graphs/topology_v1.osm"),
+    output: Annotated[
+        Path | None,
+        typer.Option(
+            "--output",
+            file_okay=True,
+            dir_okay=False,
+            resolve_path=True,
+            help="Write the deterministic qualification report atomically.",
+        ),
+    ] = None,
+) -> None:
+    """Qualify offline road decoding on the frozen synthetic topology suite."""
+
+    try:
+        report = qualify_synthetic_road_matching(
+            graph_profile_path=graph_profile_path,
+            matching_profile_path=matching_profile_path,
+            decoder_profile_path=decoder_profile_path,
+            gate_path=gate_path,
+            truth_path=truth_path,
+            numerical_charter_path=numerical_charter_path,
+            fixture_path=fixture_path,
+        )
+        _write_report(report, output)
+    except (OSError, ValueError, ValidationError) as error:
+        typer.echo(f"Road-matching qualification failed: {error}", err=True)
+        raise typer.Exit(code=2) from error
+    if not report["accepted"]:
+        raise typer.Exit(code=1)
+
+
 @app.command("score-road-candidates")
 def score_road_candidates_command(
     graph_path: Annotated[
@@ -384,6 +503,7 @@ def score_road_candidates_command(
         _write_report(
             {
                 "schema_version": "cartosentry.road-candidate-report.v1",
+                "algorithm_backend": ALGORITHM_BACKEND,
                 "graph_id": graph.graph_id,
                 "profile_file_sha256": profile_file_sha256,
                 "profile_immutable_sha256": profile.immutable_sha256,
@@ -566,6 +686,7 @@ def score_road_transition_command(
         _write_report(
             {
                 "schema_version": "cartosentry.road-transition-report.v1",
+                "algorithm_backend": ALGORITHM_BACKEND,
                 "graph_id": graph.graph_id,
                 "profile_file_sha256": profile_file_sha256,
                 "profile_immutable_sha256": profile.immutable_sha256,

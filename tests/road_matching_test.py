@@ -21,6 +21,7 @@ from cartosentry.road_graph import (
     validate_graph_identity,
 )
 from cartosentry.road_matching import (
+    ALGORITHM_BACKEND,
     NEGATIVE_INFINITY,
     PROFILE_IMMUTABLE_SHA256,
     CandidateState,
@@ -972,6 +973,7 @@ def test_public_candidate_scoring_cli(tmp_path: Path, graph: DirectedRoadGraph) 
     assert result.exit_code == 0, result.output
     report = json.loads(output.read_text(encoding="utf-8"))
     assert report["schema_version"] == "cartosentry.road-candidate-report.v1"
+    assert report["algorithm_backend"] == ALGORITHM_BACKEND
     assert report["best_emission_state"] == "ON_ROAD"
     assert report["observation"]["source_observation_id"] == (
         f"observation-sha256-{'a' * 64}"
@@ -1026,6 +1028,7 @@ def test_public_transition_scoring_cli_reports_possible_and_impossible_paths(
     assert result.exit_code == 0, result.output
     report = json.loads(output.read_text(encoding="utf-8"))
     assert report["schema_version"] == "cartosentry.road-transition-report.v1"
+    assert report["algorithm_backend"] == ALGORITHM_BACKEND
     assert report["transition"]["possible"] is True
     assert report["transition"]["path_arc_ids"] == [
         from_arc.arc_id,

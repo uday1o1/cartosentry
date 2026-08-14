@@ -1,7 +1,15 @@
-# Road-candidate scoring
+# Directed road matching
 
-CartoSentry M5.2 generates directed road candidates and scores individual emissions and transitions without forcing every observation onto a road.
-Path decoding, ambiguity classification, interval output, and accuracy qualification belong to later milestones.
+CartoSentry generates directed road candidates and scores emissions and transitions without forcing every observation onto a road.
+M5.3 adds deterministic offline path decoding, explicit ambiguity evidence, stationary suppression, matched intervals, and a frozen synthetic qualification gate.
+
+## Native implementation boundary
+
+Candidate projection, emission scoring, directed transition search, transition scoring, beam-pruned Viterbi decoding, deterministic tie ranking, stationary classification, and interval construction run in C++20 batch kernels.
+The narrow pybind11 boundary releases the Python global interpreter lock while those kernels execute.
+Python authenticates profiles and portable inputs, composes batch payloads, validates returned evidence, constructs identity-bound artifacts, runs qualification statistics, and writes reports.
+Public reports identify this implementation as `C++20_NATIVE_BATCH_V1` so stored evidence cannot silently imply a different algorithm backend.
+Native decimal quantization uses nearest, ties-to-even rounding with an eight-ULP half-tie guard so declared precision is stable across the supported architectures.
 
 ## Frozen parameter charter
 
@@ -92,9 +100,59 @@ The transition command selects each emission winner by default.
 Use `--from-candidate` or `--to-candidate` with a reported directed arc ID or `OFF_MAP` to audit a specific candidate pair.
 The report preserves both observations, both selected candidates, every transition component, and the explicit impossible-transition representation.
 
+## Offline decoder
+
+`profiles/map_decoder_v1.yaml` is the self-hashed M5.3 decoder charter.
+It binds the exact M5.2 matching-profile file and immutable identity, plus the frozen numerical charter.
+The production baseline is labeled `OFFLINE_FULL_WINDOW` because it may use every observation in the supplied sequence.
+It does not claim causal behavior.
+
+The decoder uses linked backpointers and deterministic beam-pruned Viterbi search.
+The charter fixes a beam width of 64, two retained hypotheses per terminal candidate, a 50-log-likelihood beam delta, a 100,000-observation input budget, and score rounding to 12 decimal places.
+Impossible directed transitions are discarded and cannot enter the retained beam.
+Score ties are resolved by deterministic candidate-sequence ranks.
+
+The best complete path and the next retained complete path provide runner-up evidence.
+A path-separation value at or below the chartered threshold is labeled `AMBIGUOUS` wherever the two paths select different candidates.
+Ambiguous intervals retain their evidence but contribute zero usable coverage distance.
+
+Every matched point retains the source observation, chosen directed arc or off-map state, along-arc offset, stationary flag, confidence, and any differing runner-up candidate identity.
+Contiguous points with the same state, directed arc, stationary classification, and confidence become matched intervals.
+Intervals retain exact observation support and first and last typed timestamps.
+Off-map, ambiguous, and stationary intervals contribute zero usable distance.
+A stationary run requires at least two observations at or below 0.5 m/s whose positions remain within 1 m of the first point in the run.
+
+## Synthetic qualification
+
+`benchmarks/m5_3_map_matching_gate.yaml` freezes the M5.3 authorities, exact scenario subsets, numerical thresholds, bootstrap unit, seed, replicate count, confidence level, support requirement, and fail-closed treatment of degenerate resamples.
+The gate binds `benchmarks/m5_3_map_matching_truth.yaml` by exact file SHA-256.
+That independent truth artifact freezes each scenario family, source fixture identity, observation-specification identity, expected directed path, confidence class, stationary class, and metric eligibility before acceptance.
+The suite contains 28 synthetic families covering forward and reverse one-way travel, divided roads, a ramp merge, grade separation, parallel roads, a loop, a roundabout, a U-turn, sparse samples, GPS noise, a near-boundary stress case, a stopped vehicle, and 12 missing-edge off-map controls.
+The 12 missing-edge controls use distinct pinned OSM topology fixtures and distinct predeclared WGS84 paths rather than translated copies of one cluster.
+Twenty-five unambiguous scenarios have exact expected directed paths.
+The parallel-road midpoint and stopped-vehicle cases are required to remain explicitly ambiguous.
+
+Run the complete gate through the public CLI with:
+
+```console
+uv run cartosentry qualify-road-matching \
+  --output output/m5-3-road-matching.json
+```
+
+The verified local M5.3 run used 10,000 fixed-seed cluster-bootstrap replicates.
+Its synthetic directed-arc accuracy was 0.991870 with a one-sided lower 95 percent bound of 0.971429 against a 0.95 gate.
+Its synthetic off-map F1 was 0.995851 with a one-sided lower 95 percent bound of 0.985915 against a 0.90 gate.
+Off-map precision was 1.000000 and off-map recall was 0.991736.
+All 25 exact-path scenarios passed with aggregate path edit distance zero, so the tiny-path mismatch count was zero.
+Both ambiguity cases and all 26 confident controls were classified as frozen, and the stationary case suppressed usable distance.
+Both gated confidence intervals were nondegenerate, all 13 off-map-positive truth clusters were present, and every bootstrap metric had zero degenerate resamples.
+The canonical report is byte-identical on macOS ARM64 and pinned Linux x86-64 with SHA-256 `76a349e8fa4a7180a2c1939362947a8e6df709963c32c5a6fe0ace2dd28fed03`.
+These measurements apply only to the frozen hand-authored synthetic suite and are not public-route accuracy claims.
+
 ## Current limitations
 
-M5.2 scores one observation or one candidate transition at a time and does not claim a matched route.
-It does not yet use Viterbi decoding, beam pruning, path-separation confidence, stationary coverage suppression, or manual public-route adjudication.
+M5.3 has not yet completed manual public-route adjudication and makes no public-route accuracy or coverage claim.
+The current decoder is offline only and must not be used where future observations are unavailable or prohibited.
+The runner-up is the next path retained by the frozen beam, not an exhaustive posterior probability over every possible path.
 The graph and projection remain two-dimensional under the authenticated flattened-height policy from M5.1.
 The scorer enforces only the access and restriction semantics represented by the pinned graph-import profile and does not claim legal, safe, or current road access.

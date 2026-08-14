@@ -1,0 +1,694 @@
+{
+  "schema_version": 1,
+  "truth_id": "m5.3-map-matching-truth-v1",
+  "truth_version": "1.0.0",
+  "freeze_state": "FROZEN_BEFORE_M5_3_ACCEPTANCE",
+  "hash_contract": "SHA-256 of canonical UTF-8 JSON with immutable_sha256 omitted",
+  "immutable_sha256": "0f6050205d2715fc2dea264f04af3794f6e378e7e3f866893f43cfc60e04f8f4",
+  "scenarios": [
+    {
+      "scenario_id": "divided-east",
+      "synthetic_family_id": "synthetic-map-divided-east",
+      "suite": "PRIMARY_TOPOLOGY",
+      "fixture_object_key": "tests/fixtures/road_graphs/topology_v1.osm",
+      "fixture_sha256": "eda30cc433fae67cd95584d89e7d6de0f124aed4b396990b0b3da6c3489a4616",
+      "observation_spec_sha256": "99c2a0cd7cc6b03eaa094043e573c5a9e11896879086b7ee405cc23e44e76b34",
+      "expected_path_runs": [
+        {
+          "directed_arc_id": "osm-arc-sha256-f3ed340369c460e239dfc3bf34759233ef6525990ab08db8b5aea65d4bb55ab3",
+          "observation_count": 10
+        }
+      ],
+      "expected_confidence": "CONFIDENT",
+      "expected_stationary": false,
+      "exact_path_gate_eligible": true,
+      "directed_accuracy_eligible": true,
+      "missing_path": null
+    },
+    {
+      "scenario_id": "divided-west",
+      "synthetic_family_id": "synthetic-map-divided-west",
+      "suite": "PRIMARY_TOPOLOGY",
+      "fixture_object_key": "tests/fixtures/road_graphs/topology_v1.osm",
+      "fixture_sha256": "eda30cc433fae67cd95584d89e7d6de0f124aed4b396990b0b3da6c3489a4616",
+      "observation_spec_sha256": "80df2cbec159b7e678f24207f7b1d75ea49819a1467793baaa05109673223fd0",
+      "expected_path_runs": [
+        {
+          "directed_arc_id": "osm-arc-sha256-3fc2c66c8fac1dd02fa631514410eede4c3db8777a308851015fac7c0050db7c",
+          "observation_count": 10
+        }
+      ],
+      "expected_confidence": "CONFIDENT",
+      "expected_stationary": false,
+      "exact_path_gate_eligible": true,
+      "directed_accuracy_eligible": true,
+      "missing_path": null
+    },
+    {
+      "scenario_id": "forward-oneway",
+      "synthetic_family_id": "synthetic-map-forward-oneway",
+      "suite": "PRIMARY_TOPOLOGY",
+      "fixture_object_key": "tests/fixtures/road_graphs/topology_v1.osm",
+      "fixture_sha256": "eda30cc433fae67cd95584d89e7d6de0f124aed4b396990b0b3da6c3489a4616",
+      "observation_spec_sha256": "8a9b5d5df4a2283692a729ce1a532c96ae429c879cbbc331000f89b9a3d919b8",
+      "expected_path_runs": [
+        {
+          "directed_arc_id": "osm-arc-sha256-fbeac50337f5dbdef379be13282ce87f65af6eb19936a00c0aaf8549aca57b50",
+          "observation_count": 10
+        }
+      ],
+      "expected_confidence": "CONFIDENT",
+      "expected_stationary": false,
+      "exact_path_gate_eligible": true,
+      "directed_accuracy_eligible": true,
+      "missing_path": null
+    },
+    {
+      "scenario_id": "gps-boundary-stress",
+      "synthetic_family_id": "synthetic-map-gps-boundary-stress",
+      "suite": "PRIMARY_TOPOLOGY",
+      "fixture_object_key": "tests/fixtures/road_graphs/topology_v1.osm",
+      "fixture_sha256": "eda30cc433fae67cd95584d89e7d6de0f124aed4b396990b0b3da6c3489a4616",
+      "observation_spec_sha256": "8f7ee4913c2d03cd6d341da4617201d543bdffe21c520ec8acb68bca16c6de2a",
+      "expected_path_runs": [
+        {
+          "directed_arc_id": "osm-arc-sha256-95694a4fc593b765c24214c40cf37842f818f78b9247645131a472051beb60a3",
+          "observation_count": 1
+        },
+        {
+          "directed_arc_id": "OFF_MAP",
+          "observation_count": 1
+        }
+      ],
+      "expected_confidence": "CONFIDENT",
+      "expected_stationary": false,
+      "exact_path_gate_eligible": false,
+      "directed_accuracy_eligible": true,
+      "missing_path": null
+    },
+    {
+      "scenario_id": "gps-noise",
+      "synthetic_family_id": "synthetic-map-gps-noise",
+      "suite": "PRIMARY_TOPOLOGY",
+      "fixture_object_key": "tests/fixtures/road_graphs/topology_v1.osm",
+      "fixture_sha256": "eda30cc433fae67cd95584d89e7d6de0f124aed4b396990b0b3da6c3489a4616",
+      "observation_spec_sha256": "012ca9187c1e35ff68e77525d4f95a9b721a6052c08b8ecb8e50edff27ee4256",
+      "expected_path_runs": [
+        {
+          "directed_arc_id": "osm-arc-sha256-95694a4fc593b765c24214c40cf37842f818f78b9247645131a472051beb60a3",
+          "observation_count": 10
+        }
+      ],
+      "expected_confidence": "CONFIDENT",
+      "expected_stationary": false,
+      "exact_path_gate_eligible": true,
+      "directed_accuracy_eligible": true,
+      "missing_path": null
+    },
+    {
+      "scenario_id": "grade-separated-overpass",
+      "synthetic_family_id": "synthetic-map-grade-separated-overpass",
+      "suite": "PRIMARY_TOPOLOGY",
+      "fixture_object_key": "tests/fixtures/road_graphs/topology_v1.osm",
+      "fixture_sha256": "eda30cc433fae67cd95584d89e7d6de0f124aed4b396990b0b3da6c3489a4616",
+      "observation_spec_sha256": "4f9bdd5d641d37438d59c5c7bde462c3bce629827cbcf80de3a77830d791d385",
+      "expected_path_runs": [
+        {
+          "directed_arc_id": "osm-arc-sha256-9fbab93d2a0de3d6eed01fa8974aad9181984cf1eb419612b490bacb27ca4788",
+          "observation_count": 10
+        }
+      ],
+      "expected_confidence": "CONFIDENT",
+      "expected_stationary": false,
+      "exact_path_gate_eligible": true,
+      "directed_accuracy_eligible": true,
+      "missing_path": null
+    },
+    {
+      "scenario_id": "grade-separated-underpass",
+      "synthetic_family_id": "synthetic-map-grade-separated-underpass",
+      "suite": "PRIMARY_TOPOLOGY",
+      "fixture_object_key": "tests/fixtures/road_graphs/topology_v1.osm",
+      "fixture_sha256": "eda30cc433fae67cd95584d89e7d6de0f124aed4b396990b0b3da6c3489a4616",
+      "observation_spec_sha256": "a531f195d64fda1d8d1dcfa3be20e6b8aaa7c4c9096220e84c591ae78f5f0778",
+      "expected_path_runs": [
+        {
+          "directed_arc_id": "osm-arc-sha256-2f56cf5b2d3162b638fba172606330825914ca954bd82981787d0056cec261e2",
+          "observation_count": 10
+        }
+      ],
+      "expected_confidence": "CONFIDENT",
+      "expected_stationary": false,
+      "exact_path_gate_eligible": true,
+      "directed_accuracy_eligible": true,
+      "missing_path": null
+    },
+    {
+      "scenario_id": "missing-edge-offmap-00",
+      "synthetic_family_id": "missing-edge-gap-continuation",
+      "suite": "MISSING_EDGE_TOPOLOGY",
+      "fixture_object_key": "tests/fixtures/road_graphs/missing_edges_v1/gap-continuation.osm",
+      "fixture_sha256": "57800a1604eb564c9b417d6812cb13dfd676c3fe3fec5dac6783c3d1015d5c49",
+      "observation_spec_sha256": "8235807fc7318c7b87be32059a39310ea215e93782f705df8602d4a98307c5a3",
+      "expected_path_runs": [
+        {
+          "directed_arc_id": "OFF_MAP",
+          "observation_count": 10
+        }
+      ],
+      "expected_confidence": "CONFIDENT",
+      "expected_stationary": false,
+      "exact_path_gate_eligible": true,
+      "directed_accuracy_eligible": false,
+      "missing_path": {
+        "start_wgs84_e7": {
+          "latitude_e7": 437005000,
+          "longitude_e7": -794966000
+        },
+        "end_wgs84_e7": {
+          "latitude_e7": 437005000,
+          "longitude_e7": -794954000
+        },
+        "observation_count": 10,
+        "speed_mps": 8.0
+      }
+    },
+    {
+      "scenario_id": "missing-edge-offmap-01",
+      "synthetic_family_id": "missing-edge-parallel-carriageway",
+      "suite": "MISSING_EDGE_TOPOLOGY",
+      "fixture_object_key": "tests/fixtures/road_graphs/missing_edges_v1/parallel-carriageway.osm",
+      "fixture_sha256": "00c232370214e6e471747bde71eda29ee87334d776639739ae6ec42be19e668d",
+      "observation_spec_sha256": "5cbff1761b88736eae3db4161f5bc6af1f7b9181fa1feb3981704a8727f8d2d8",
+      "expected_path_runs": [
+        {
+          "directed_arc_id": "OFF_MAP",
+          "observation_count": 10
+        }
+      ],
+      "expected_confidence": "CONFIDENT",
+      "expected_stationary": false,
+      "exact_path_gate_eligible": true,
+      "directed_accuracy_eligible": false,
+      "missing_path": {
+        "start_wgs84_e7": {
+          "latitude_e7": 437016000,
+          "longitude_e7": -794958000
+        },
+        "end_wgs84_e7": {
+          "latitude_e7": 437016000,
+          "longitude_e7": -794946000
+        },
+        "observation_count": 10,
+        "speed_mps": 8.0
+      }
+    },
+    {
+      "scenario_id": "missing-edge-offmap-02",
+      "synthetic_family_id": "missing-edge-ramp-branch",
+      "suite": "MISSING_EDGE_TOPOLOGY",
+      "fixture_object_key": "tests/fixtures/road_graphs/missing_edges_v1/ramp-branch.osm",
+      "fixture_sha256": "df5990ce5a13ffc7dd85d67cb7a78ab81957c9a015ed57fc5ad1e88ff8a43563",
+      "observation_spec_sha256": "3307ba85713eda9c5f7084b7908169ad684852d1b39d2a49ff16d0ab3303a463",
+      "expected_path_runs": [
+        {
+          "directed_arc_id": "OFF_MAP",
+          "observation_count": 10
+        }
+      ],
+      "expected_confidence": "CONFIDENT",
+      "expected_stationary": false,
+      "exact_path_gate_eligible": true,
+      "directed_accuracy_eligible": false,
+      "missing_path": {
+        "start_wgs84_e7": {
+          "latitude_e7": 437052000,
+          "longitude_e7": -794975000
+        },
+        "end_wgs84_e7": {
+          "latitude_e7": 437062000,
+          "longitude_e7": -794975000
+        },
+        "observation_count": 10,
+        "speed_mps": 8.0
+      }
+    },
+    {
+      "scenario_id": "missing-edge-offmap-03",
+      "synthetic_family_id": "missing-edge-roundabout-exit",
+      "suite": "MISSING_EDGE_TOPOLOGY",
+      "fixture_object_key": "tests/fixtures/road_graphs/missing_edges_v1/roundabout-exit.osm",
+      "fixture_sha256": "595e8d00c6eb4dae38909e29578328a3a165edc20dbbab8f3bb834903131360f",
+      "observation_spec_sha256": "41c58fc2b82643f98acbccae7de75605fd89b7370c54fb981ad544a95fe175f1",
+      "expected_path_runs": [
+        {
+          "directed_arc_id": "OFF_MAP",
+          "observation_count": 10
+        }
+      ],
+      "expected_confidence": "CONFIDENT",
+      "expected_stationary": false,
+      "exact_path_gate_eligible": true,
+      "directed_accuracy_eligible": false,
+      "missing_path": {
+        "start_wgs84_e7": {
+          "latitude_e7": 437050000,
+          "longitude_e7": -794958000
+        },
+        "end_wgs84_e7": {
+          "latitude_e7": 437050000,
+          "longitude_e7": -794948000
+        },
+        "observation_count": 10,
+        "speed_mps": 8.0
+      }
+    },
+    {
+      "scenario_id": "missing-edge-offmap-04",
+      "synthetic_family_id": "missing-edge-t-junction-stem",
+      "suite": "MISSING_EDGE_TOPOLOGY",
+      "fixture_object_key": "tests/fixtures/road_graphs/missing_edges_v1/t-junction-stem.osm",
+      "fixture_sha256": "8cc610248abf581c8200caebf79664774bc5e256cf7eb277bfb18ac3a9f1b7cc",
+      "observation_spec_sha256": "570465f2b7f81c51f62e3b68cacad5c9390ee80279451c63f3dfe22dd57f5ae2",
+      "expected_path_runs": [
+        {
+          "directed_arc_id": "OFF_MAP",
+          "observation_count": 10
+        }
+      ],
+      "expected_confidence": "CONFIDENT",
+      "expected_stationary": false,
+      "exact_path_gate_eligible": true,
+      "directed_accuracy_eligible": false,
+      "missing_path": {
+        "start_wgs84_e7": {
+          "latitude_e7": 437080000,
+          "longitude_e7": -794975000
+        },
+        "end_wgs84_e7": {
+          "latitude_e7": 437090000,
+          "longitude_e7": -794975000
+        },
+        "observation_count": 10,
+        "speed_mps": 8.0
+      }
+    },
+    {
+      "scenario_id": "missing-edge-offmap-05",
+      "synthetic_family_id": "missing-edge-grade-crossing",
+      "suite": "MISSING_EDGE_TOPOLOGY",
+      "fixture_object_key": "tests/fixtures/road_graphs/missing_edges_v1/grade-crossing.osm",
+      "fixture_sha256": "9388afadbe36700a3be01a851a87808a48518e87698be43d1ba8a43045a03945",
+      "observation_spec_sha256": "1cbf34c9b4588e58df1a305a7f7495f029c1474fa46e14612b7a8295968022d8",
+      "expected_path_runs": [
+        {
+          "directed_arc_id": "OFF_MAP",
+          "observation_count": 10
+        }
+      ],
+      "expected_confidence": "CONFIDENT",
+      "expected_stationary": false,
+      "exact_path_gate_eligible": true,
+      "directed_accuracy_eligible": false,
+      "missing_path": {
+        "start_wgs84_e7": {
+          "latitude_e7": 437045000,
+          "longitude_e7": -794975000
+        },
+        "end_wgs84_e7": {
+          "latitude_e7": 437055000,
+          "longitude_e7": -794975000
+        },
+        "observation_count": 10,
+        "speed_mps": 8.0
+      }
+    },
+    {
+      "scenario_id": "missing-edge-offmap-06",
+      "synthetic_family_id": "missing-edge-divided-lane",
+      "suite": "MISSING_EDGE_TOPOLOGY",
+      "fixture_object_key": "tests/fixtures/road_graphs/missing_edges_v1/divided-lane.osm",
+      "fixture_sha256": "3f02393363b88b4ab71af55720cbbd96a8b8da8104490e1d0f4c2196819e9916",
+      "observation_spec_sha256": "247e39717b28a71d44f2dfe966d2aeaf6de78eedb8a5149003c3052106708695",
+      "expected_path_runs": [
+        {
+          "directed_arc_id": "OFF_MAP",
+          "observation_count": 10
+        }
+      ],
+      "expected_confidence": "CONFIDENT",
+      "expected_stationary": false,
+      "exact_path_gate_eligible": true,
+      "directed_accuracy_eligible": false,
+      "missing_path": {
+        "start_wgs84_e7": {
+          "latitude_e7": 437071000,
+          "longitude_e7": -794958000
+        },
+        "end_wgs84_e7": {
+          "latitude_e7": 437071000,
+          "longitude_e7": -794946000
+        },
+        "observation_count": 10,
+        "speed_mps": 8.0
+      }
+    },
+    {
+      "scenario_id": "missing-edge-offmap-07",
+      "synthetic_family_id": "missing-edge-culdesac-extension",
+      "suite": "MISSING_EDGE_TOPOLOGY",
+      "fixture_object_key": "tests/fixtures/road_graphs/missing_edges_v1/culdesac-extension.osm",
+      "fixture_sha256": "20a93847e118234e4a5aa52a8564964f5474c2824c495652f20c859010219cff",
+      "observation_spec_sha256": "ef1f8ea2eebd9ce67ef7542413e2cb2021763d13c9519b013221e639be4f606a",
+      "expected_path_runs": [
+        {
+          "directed_arc_id": "OFF_MAP",
+          "observation_count": 10
+        }
+      ],
+      "expected_confidence": "CONFIDENT",
+      "expected_stationary": false,
+      "exact_path_gate_eligible": true,
+      "directed_accuracy_eligible": false,
+      "missing_path": {
+        "start_wgs84_e7": {
+          "latitude_e7": 437080000,
+          "longitude_e7": -794960000
+        },
+        "end_wgs84_e7": {
+          "latitude_e7": 437080000,
+          "longitude_e7": -794948000
+        },
+        "observation_count": 10,
+        "speed_mps": 8.0
+      }
+    },
+    {
+      "scenario_id": "missing-edge-offmap-08",
+      "synthetic_family_id": "missing-edge-service-spur",
+      "suite": "MISSING_EDGE_TOPOLOGY",
+      "fixture_object_key": "tests/fixtures/road_graphs/missing_edges_v1/service-spur.osm",
+      "fixture_sha256": "b2872c92aef4a8656a9b4d394372eeb6447405b0a0961179627405f85eab0f27",
+      "observation_spec_sha256": "3382b479ad87006305b5fd87470db7533ae50c2dc7914165e7c01c7481729196",
+      "expected_path_runs": [
+        {
+          "directed_arc_id": "OFF_MAP",
+          "observation_count": 10
+        }
+      ],
+      "expected_confidence": "CONFIDENT",
+      "expected_stationary": false,
+      "exact_path_gate_eligible": true,
+      "directed_accuracy_eligible": false,
+      "missing_path": {
+        "start_wgs84_e7": {
+          "latitude_e7": 437115000,
+          "longitude_e7": -794975000
+        },
+        "end_wgs84_e7": {
+          "latitude_e7": 437125000,
+          "longitude_e7": -794975000
+        },
+        "observation_count": 10,
+        "speed_mps": 8.0
+      }
+    },
+    {
+      "scenario_id": "missing-edge-offmap-09",
+      "synthetic_family_id": "missing-edge-reverse-oneway-pair",
+      "suite": "MISSING_EDGE_TOPOLOGY",
+      "fixture_object_key": "tests/fixtures/road_graphs/missing_edges_v1/reverse-oneway-pair.osm",
+      "fixture_sha256": "b7e5ff5cb1d1446ee5c6f42c1ab1538521e33a3794e37405020248f6a10cb3bd",
+      "observation_spec_sha256": "ad9e14ac7eff304b68d72b018cb193c56d62531549df7b5ffa74ebae67bf85ef",
+      "expected_path_runs": [
+        {
+          "directed_arc_id": "OFF_MAP",
+          "observation_count": 10
+        }
+      ],
+      "expected_confidence": "CONFIDENT",
+      "expected_stationary": false,
+      "exact_path_gate_eligible": true,
+      "directed_accuracy_eligible": false,
+      "missing_path": {
+        "start_wgs84_e7": {
+          "latitude_e7": 437110000,
+          "longitude_e7": -794990000
+        },
+        "end_wgs84_e7": {
+          "latitude_e7": 437110000,
+          "longitude_e7": -794970000
+        },
+        "observation_count": 10,
+        "speed_mps": 8.0
+      }
+    },
+    {
+      "scenario_id": "missing-edge-offmap-10",
+      "synthetic_family_id": "missing-edge-curved-connector",
+      "suite": "MISSING_EDGE_TOPOLOGY",
+      "fixture_object_key": "tests/fixtures/road_graphs/missing_edges_v1/curved-connector.osm",
+      "fixture_sha256": "0021af697d3e41a209a540947d296026e0275bbf31ee3a815cbfffc9776ce037",
+      "observation_spec_sha256": "b2bb73b6133c8193a189654aa7d30666bc5f9ac4dc7c551fd50efd3dd5b830bc",
+      "expected_path_runs": [
+        {
+          "directed_arc_id": "OFF_MAP",
+          "observation_count": 10
+        }
+      ],
+      "expected_confidence": "CONFIDENT",
+      "expected_stationary": false,
+      "exact_path_gate_eligible": true,
+      "directed_accuracy_eligible": false,
+      "missing_path": {
+        "start_wgs84_e7": {
+          "latitude_e7": 437115000,
+          "longitude_e7": -794948000
+        },
+        "end_wgs84_e7": {
+          "latitude_e7": 437115000,
+          "longitude_e7": -794936000
+        },
+        "observation_count": 10,
+        "speed_mps": 8.0
+      }
+    },
+    {
+      "scenario_id": "missing-edge-offmap-11",
+      "synthetic_family_id": "missing-edge-grid-diagonal",
+      "suite": "MISSING_EDGE_TOPOLOGY",
+      "fixture_object_key": "tests/fixtures/road_graphs/missing_edges_v1/grid-diagonal.osm",
+      "fixture_sha256": "abc4de7275eee81025660e91be7ba6e2e52c912bb7f95261af66d8e902c5062c",
+      "observation_spec_sha256": "b60bf05762377903f3f4517d1f05d4b0eee56d79168e79332dc2c2107f02a317",
+      "expected_path_runs": [
+        {
+          "directed_arc_id": "OFF_MAP",
+          "observation_count": 10
+        }
+      ],
+      "expected_confidence": "CONFIDENT",
+      "expected_stationary": false,
+      "exact_path_gate_eligible": true,
+      "directed_accuracy_eligible": false,
+      "missing_path": {
+        "start_wgs84_e7": {
+          "latitude_e7": 437120000,
+          "longitude_e7": -794958000
+        },
+        "end_wgs84_e7": {
+          "latitude_e7": 437140000,
+          "longitude_e7": -794958000
+        },
+        "observation_count": 10,
+        "speed_mps": 8.0
+      }
+    },
+    {
+      "scenario_id": "one-way-loop",
+      "synthetic_family_id": "synthetic-map-one-way-loop",
+      "suite": "PRIMARY_TOPOLOGY",
+      "fixture_object_key": "tests/fixtures/road_graphs/topology_v1.osm",
+      "fixture_sha256": "eda30cc433fae67cd95584d89e7d6de0f124aed4b396990b0b3da6c3489a4616",
+      "observation_spec_sha256": "99907ad93de98ca995e17442d3a8623551c19585ea986f1392eae67044d75643",
+      "expected_path_runs": [
+        {
+          "directed_arc_id": "osm-arc-sha256-9ec95d5cfcb238783df7c20a90ac1a74c03338fd0096d2b8c212a3c52d4a1093",
+          "observation_count": 5
+        },
+        {
+          "directed_arc_id": "osm-arc-sha256-1b9c19056ead45192c0d1c628708c64563c1a9117359ebbfc0059c63533856d2",
+          "observation_count": 5
+        }
+      ],
+      "expected_confidence": "CONFIDENT",
+      "expected_stationary": false,
+      "exact_path_gate_eligible": true,
+      "directed_accuracy_eligible": true,
+      "missing_path": null
+    },
+    {
+      "scenario_id": "parallel-ambiguous",
+      "synthetic_family_id": "synthetic-map-parallel-ambiguous",
+      "suite": "PRIMARY_TOPOLOGY",
+      "fixture_object_key": "tests/fixtures/road_graphs/topology_v1.osm",
+      "fixture_sha256": "eda30cc433fae67cd95584d89e7d6de0f124aed4b396990b0b3da6c3489a4616",
+      "observation_spec_sha256": "590d589925a6d4633de3ca5a60c57a652d9c1af93b8b44c90dff4164c967015e",
+      "expected_path_runs": [
+        {
+          "directed_arc_id": "osm-arc-sha256-95694a4fc593b765c24214c40cf37842f818f78b9247645131a472051beb60a3",
+          "observation_count": 10
+        }
+      ],
+      "expected_confidence": "AMBIGUOUS",
+      "expected_stationary": false,
+      "exact_path_gate_eligible": false,
+      "directed_accuracy_eligible": false,
+      "missing_path": null
+    },
+    {
+      "scenario_id": "parallel-south-control",
+      "synthetic_family_id": "synthetic-map-parallel-south-control",
+      "suite": "PRIMARY_TOPOLOGY",
+      "fixture_object_key": "tests/fixtures/road_graphs/topology_v1.osm",
+      "fixture_sha256": "eda30cc433fae67cd95584d89e7d6de0f124aed4b396990b0b3da6c3489a4616",
+      "observation_spec_sha256": "77efb6a0b49b304062c75033337680a596f7897ec1f7e46a5d26d57be50545ce",
+      "expected_path_runs": [
+        {
+          "directed_arc_id": "osm-arc-sha256-95694a4fc593b765c24214c40cf37842f818f78b9247645131a472051beb60a3",
+          "observation_count": 10
+        }
+      ],
+      "expected_confidence": "CONFIDENT",
+      "expected_stationary": false,
+      "exact_path_gate_eligible": true,
+      "directed_accuracy_eligible": true,
+      "missing_path": null
+    },
+    {
+      "scenario_id": "ramp-merge",
+      "synthetic_family_id": "synthetic-map-ramp-merge",
+      "suite": "PRIMARY_TOPOLOGY",
+      "fixture_object_key": "tests/fixtures/road_graphs/topology_v1.osm",
+      "fixture_sha256": "eda30cc433fae67cd95584d89e7d6de0f124aed4b396990b0b3da6c3489a4616",
+      "observation_spec_sha256": "ef7a410c11ec6c44cbae6f6ec2c283d82f7a99713bee0cbe44f5047887ec96bf",
+      "expected_path_runs": [
+        {
+          "directed_arc_id": "osm-arc-sha256-fb02f3ede920f8d34b2fbee3b1bb823b4f2dc746499ae2d61449e0e44efd5ac1",
+          "observation_count": 5
+        },
+        {
+          "directed_arc_id": "osm-arc-sha256-644c97fbb468da8769175d983263d713e99b7fa08677fadbb7ffb2431f2bb66b",
+          "observation_count": 5
+        }
+      ],
+      "expected_confidence": "CONFIDENT",
+      "expected_stationary": false,
+      "exact_path_gate_eligible": true,
+      "directed_accuracy_eligible": true,
+      "missing_path": null
+    },
+    {
+      "scenario_id": "reverse-oneway",
+      "synthetic_family_id": "synthetic-map-reverse-oneway",
+      "suite": "PRIMARY_TOPOLOGY",
+      "fixture_object_key": "tests/fixtures/road_graphs/topology_v1.osm",
+      "fixture_sha256": "eda30cc433fae67cd95584d89e7d6de0f124aed4b396990b0b3da6c3489a4616",
+      "observation_spec_sha256": "ac7e1f2ef4b5665a0079e1865cd5a7feed0bc45bc24476cf5733c131367a1c27",
+      "expected_path_runs": [
+        {
+          "directed_arc_id": "osm-arc-sha256-5b12c9cb254c486c038d54bde6442d05c606ecfcf36aaa58bd9c8b891c7c9a76",
+          "observation_count": 10
+        }
+      ],
+      "expected_confidence": "CONFIDENT",
+      "expected_stationary": false,
+      "exact_path_gate_eligible": true,
+      "directed_accuracy_eligible": true,
+      "missing_path": null
+    },
+    {
+      "scenario_id": "roundabout",
+      "synthetic_family_id": "synthetic-map-roundabout",
+      "suite": "PRIMARY_TOPOLOGY",
+      "fixture_object_key": "tests/fixtures/road_graphs/topology_v1.osm",
+      "fixture_sha256": "eda30cc433fae67cd95584d89e7d6de0f124aed4b396990b0b3da6c3489a4616",
+      "observation_spec_sha256": "40bc6053a2e58b3cbb5e6c3a099ebaecee04126af3568921bc984034e11ba382",
+      "expected_path_runs": [
+        {
+          "directed_arc_id": "osm-arc-sha256-1b9c19056ead45192c0d1c628708c64563c1a9117359ebbfc0059c63533856d2",
+          "observation_count": 5
+        },
+        {
+          "directed_arc_id": "osm-arc-sha256-9ec95d5cfcb238783df7c20a90ac1a74c03338fd0096d2b8c212a3c52d4a1093",
+          "observation_count": 5
+        }
+      ],
+      "expected_confidence": "CONFIDENT",
+      "expected_stationary": false,
+      "exact_path_gate_eligible": true,
+      "directed_accuracy_eligible": true,
+      "missing_path": null
+    },
+    {
+      "scenario_id": "sparse-observations",
+      "synthetic_family_id": "synthetic-map-sparse-observations",
+      "suite": "PRIMARY_TOPOLOGY",
+      "fixture_object_key": "tests/fixtures/road_graphs/topology_v1.osm",
+      "fixture_sha256": "eda30cc433fae67cd95584d89e7d6de0f124aed4b396990b0b3da6c3489a4616",
+      "observation_spec_sha256": "9782254428f6667a080b1c7b0df2bc9320c0067f205d2bc9d2a9bafa9f7f2b13",
+      "expected_path_runs": [
+        {
+          "directed_arc_id": "osm-arc-sha256-95694a4fc593b765c24214c40cf37842f818f78b9247645131a472051beb60a3",
+          "observation_count": 2
+        }
+      ],
+      "expected_confidence": "CONFIDENT",
+      "expected_stationary": false,
+      "exact_path_gate_eligible": true,
+      "directed_accuracy_eligible": true,
+      "missing_path": null
+    },
+    {
+      "scenario_id": "stopped-vehicle",
+      "synthetic_family_id": "synthetic-map-stopped-vehicle",
+      "suite": "PRIMARY_TOPOLOGY",
+      "fixture_object_key": "tests/fixtures/road_graphs/topology_v1.osm",
+      "fixture_sha256": "eda30cc433fae67cd95584d89e7d6de0f124aed4b396990b0b3da6c3489a4616",
+      "observation_spec_sha256": "a98449438e845dfb3b533645a102dfb98d6cea41d1716f7c4b9b69b085729e49",
+      "expected_path_runs": [
+        {
+          "directed_arc_id": "osm-arc-sha256-95694a4fc593b765c24214c40cf37842f818f78b9247645131a472051beb60a3",
+          "observation_count": 10
+        }
+      ],
+      "expected_confidence": "AMBIGUOUS",
+      "expected_stationary": true,
+      "exact_path_gate_eligible": false,
+      "directed_accuracy_eligible": false,
+      "missing_path": null
+    },
+    {
+      "scenario_id": "u-turn",
+      "synthetic_family_id": "synthetic-map-u-turn",
+      "suite": "PRIMARY_TOPOLOGY",
+      "fixture_object_key": "tests/fixtures/road_graphs/topology_v1.osm",
+      "fixture_sha256": "eda30cc433fae67cd95584d89e7d6de0f124aed4b396990b0b3da6c3489a4616",
+      "observation_spec_sha256": "fd8035bdd326d53e0cd6202b0187e8e4dab852b3c3e235dec8a5bb1f712f3cf8",
+      "expected_path_runs": [
+        {
+          "directed_arc_id": "osm-arc-sha256-95694a4fc593b765c24214c40cf37842f818f78b9247645131a472051beb60a3",
+          "observation_count": 5
+        },
+        {
+          "directed_arc_id": "osm-arc-sha256-b271fd841173ded5bf2a393b4cf22f09432512b3feaef4d3d31368bf856f5263",
+          "observation_count": 5
+        }
+      ],
+      "expected_confidence": "CONFIDENT",
+      "expected_stationary": false,
+      "exact_path_gate_eligible": true,
+      "directed_accuracy_eligible": true,
+      "missing_path": null
+    }
+  ]
+}
