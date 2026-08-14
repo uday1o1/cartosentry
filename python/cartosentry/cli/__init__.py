@@ -42,6 +42,8 @@ from cartosentry.manifest_boundaries import (
 from cartosentry.motion_alignment_qualification import qualify_motion_alignment
 from cartosentry.qualification import qualify_contracts
 from cartosentry.recovery import qualify_run_recovery, resume_registered_run
+from cartosentry.road_graph import import_osm_road_graph, load_graph_import_profile
+from cartosentry.road_graph_qualification import qualify_directed_road_graph
 from cartosentry.scheduler import qualify_scheduler
 from cartosentry.spikes import qualify_observability
 from cartosentry.synthetic import materialize_fixture_set, qualify_fixture_set
@@ -98,6 +100,163 @@ def _read_artifact(path: Path) -> str:
         return content.decode("utf-8")
     except UnicodeDecodeError as error:
         raise ValueError("artifact is not valid UTF-8") from error
+
+
+@app.command("import-road-graph")
+def import_road_graph_command(
+    source: Annotated[
+        Path,
+        typer.Argument(
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Manifest-pinned OpenStreetMap XML extract.",
+        ),
+    ],
+    output: Annotated[
+        Path,
+        typer.Option(
+            "--output",
+            file_okay=True,
+            dir_okay=False,
+            resolve_path=True,
+            help="Destination for the portable directed graph JSON.",
+        ),
+    ],
+    profile_path: Annotated[
+        Path,
+        typer.Option(
+            "--profile",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen graph import profile.",
+        ),
+    ] = Path("profiles/graph_import_v1.yaml"),
+) -> None:
+    """Import the pinned public OSM extract as a portable directed graph."""
+
+    try:
+        profile, profile_file_sha256 = load_graph_import_profile(profile_path)
+        graph = import_osm_road_graph(
+            source,
+            profile=profile,
+            profile_file_sha256=profile_file_sha256,
+            source_object_key=profile.authorities.public_object_key,
+            expected_source_sha256=profile.authorities.public_object_sha256,
+        )
+        _write_report(graph.model_dump(mode="json"), output)
+        _write_report(
+            {
+                "accepted": True,
+                "directed_arc_count": graph.statistics.directed_arc_count,
+                "graph_id": graph.graph_id,
+                "output_object_key": output.name,
+                "source_sha256": graph.source.source_sha256,
+            },
+            None,
+        )
+    except (OSError, ValueError, ValidationError) as error:
+        typer.echo(f"Road-graph import failed: {error}", err=True)
+        raise typer.Exit(code=2) from error
+
+
+@app.command("qualify-road-graph")
+def qualify_road_graph_command(
+    public_data_root: Annotated[
+        Path,
+        typer.Option(
+            "--public-data-root",
+            exists=True,
+            file_okay=False,
+            dir_okay=True,
+            readable=True,
+            resolve_path=True,
+            help="Root containing the manifest-pinned public objects.",
+        ),
+    ] = Path("data/public"),
+    profile_path: Annotated[
+        Path,
+        typer.Option(
+            "--profile",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen graph import profile.",
+        ),
+    ] = Path("profiles/graph_import_v1.yaml"),
+    gate_path: Annotated[
+        Path,
+        typer.Option(
+            "--gate",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen M5.1 acceptance gate.",
+        ),
+    ] = Path("benchmarks/m5_1_graph_gate.yaml"),
+    data_manifest: Annotated[
+        Path,
+        typer.Option(
+            "--data-manifest",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Manifest-bound public data authority.",
+        ),
+    ] = Path("benchmarks/data_manifest.yaml"),
+    fixture: Annotated[
+        Path,
+        typer.Option(
+            "--fixture",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen independent topology fixture.",
+        ),
+    ] = Path("tests/fixtures/road_graphs/topology_v1.osm"),
+    output: Annotated[
+        Path | None,
+        typer.Option(
+            "--output",
+            file_okay=True,
+            dir_okay=False,
+            resolve_path=True,
+            help="Write the machine-readable qualification report atomically.",
+        ),
+    ] = None,
+) -> None:
+    """Qualify deterministic graph import and real trajectory provenance."""
+
+    try:
+        report = qualify_directed_road_graph(
+            profile_path=profile_path,
+            gate_path=gate_path,
+            data_manifest_path=data_manifest,
+            fixture_path=fixture,
+            public_graph_path=(
+                public_data_root / "road_graphs/toronto-glen-shields-v1.osm"
+            ),
+            public_sequence_root=(public_data_root / "boreas-2021-09-02-11-42"),
+        )
+        _write_report(report, output)
+    except (OSError, ValueError, ValidationError) as error:
+        typer.echo(f"Road-graph qualification failed: {error}", err=True)
+        raise typer.Exit(code=2) from error
+    if not report["accepted"]:
+        raise typer.Exit(code=1)
 
 
 def _artifact_identifier(value: dict[str, object]) -> str:

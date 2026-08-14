@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="cartosentry-test">
+  <bounds minlat="43.7000000" minlon="-79.5000000" maxlat="43.7100000" maxlon="-79.4800000"/>
+  <node id="1" lat="43.7010000" lon="-79.4990000"/>
+  <node id="2" lat="43.7010000" lon="-79.4970000"/>
+  <node id="3" lat="43.7020000" lon="-79.4990000"/>
+  <node id="4" lat="43.7020000" lon="-79.4970000"/>
+  <node id="10" lat="43.7030000" lon="-79.4990000"/>
+  <node id="11" lat="43.7030000" lon="-79.4960000"/>
+  <node id="12" lat="43.7031000" lon="-79.4990000"/>
+  <node id="13" lat="43.7031000" lon="-79.4960000"/>
+  <node id="20" lat="43.7040000" lon="-79.4990000"/>
+  <node id="21" lat="43.7040000" lon="-79.4975000"/>
+  <node id="22" lat="43.7045000" lon="-79.4960000"/>
+  <node id="30" lat="43.7060000" lon="-79.4970000"/>
+  <node id="31" lat="43.7065000" lon="-79.4965000"/>
+  <node id="32" lat="43.7060000" lon="-79.4960000"/>
+  <node id="33" lat="43.7055000" lon="-79.4965000"/>
+  <node id="34" lat="43.7060000" lon="-79.4980000"/>
+  <node id="35" lat="43.7060000" lon="-79.4950000"/>
+  <node id="40" lat="43.7070000" lon="-79.4990000"/>
+  <node id="41" lat="43.7070000" lon="-79.4960000"/>
+  <node id="42" lat="43.7072000" lon="-79.4990000"/>
+  <node id="43" lat="43.7072000" lon="-79.4960000"/>
+  <node id="50" lat="43.7080000" lon="-79.4990000"/>
+  <node id="51" lat="43.7080000" lon="-79.4960000"/>
+  <node id="52" lat="43.7075000" lon="-79.4975000"/>
+  <node id="53" lat="43.7085000" lon="-79.4975000"/>
+  <node id="60" lat="43.7090000" lon="-79.4990000"/>
+  <node id="61" lat="43.7090000" lon="-79.4975000"/>
+  <node id="62" lat="43.7090000" lon="-79.4960000"/>
+  <node id="63" lat="43.7097000" lon="-79.4975000"/>
+
+  <way id="100">
+    <nd ref="1"/><nd ref="2"/>
+    <tag k="highway" v="residential"/><tag k="oneway" v="yes"/><tag k="name" v="Forward One Way"/>
+  </way>
+  <way id="101">
+    <nd ref="3"/><nd ref="4"/>
+    <tag k="highway" v="residential"/><tag k="oneway" v="-1"/><tag k="name" v="Reverse One Way"/>
+  </way>
+  <way id="110">
+    <nd ref="10"/><nd ref="11"/>
+    <tag k="highway" v="secondary"/><tag k="oneway" v="yes"/><tag k="name" v="Divided East"/>
+  </way>
+  <way id="111">
+    <nd ref="13"/><nd ref="12"/>
+    <tag k="highway" v="secondary"/><tag k="oneway" v="yes"/><tag k="name" v="Divided West"/>
+  </way>
+  <way id="120">
+    <nd ref="20"/><nd ref="21"/>
+    <tag k="highway" v="motorway"/><tag k="oneway" v="yes"/>
+  </way>
+  <way id="121">
+    <nd ref="21"/><nd ref="22"/>
+    <tag k="highway" v="motorway_link"/><tag k="oneway" v="yes"/><tag k="destination" v="Test Ramp"/>
+  </way>
+  <way id="130">
+    <nd ref="30"/><nd ref="31"/><nd ref="32"/><nd ref="33"/><nd ref="30"/>
+    <tag k="highway" v="residential"/><tag k="junction" v="roundabout"/>
+  </way>
+  <way id="131">
+    <nd ref="34"/><nd ref="30"/>
+    <tag k="highway" v="residential"/>
+  </way>
+  <way id="132">
+    <nd ref="32"/><nd ref="35"/>
+    <tag k="highway" v="residential"/>
+  </way>
+  <way id="140">
+    <nd ref="40"/><nd ref="41"/>
+    <tag k="highway" v="residential"/><tag k="name" v="Parallel South"/>
+  </way>
+  <way id="141">
+    <nd ref="42"/><nd ref="43"/>
+    <tag k="highway" v="residential"/><tag k="name" v="Parallel North"/>
+  </way>
+  <way id="150">
+    <nd ref="50"/><nd ref="51"/>
+    <tag k="highway" v="secondary"/><tag k="bridge" v="yes"/><tag k="layer" v="1"/>
+  </way>
+  <way id="151">
+    <nd ref="52"/><nd ref="53"/>
+    <tag k="highway" v="secondary"/><tag k="tunnel" v="yes"/><tag k="layer" v="-1"/>
+  </way>
+  <way id="160">
+    <nd ref="60"/><nd ref="61"/>
+    <tag k="highway" v="residential"/>
+  </way>
+  <way id="161">
+    <nd ref="61"/><nd ref="62"/>
+    <tag k="highway" v="residential"/>
+  </way>
+  <way id="162">
+    <nd ref="61"/><nd ref="63"/>
+    <tag k="highway" v="residential"/>
+  </way>
+  <relation id="1000">
+    <member type="way" ref="160" role="from"/>
+    <member type="node" ref="61" role="via"/>
+    <member type="way" ref="162" role="to"/>
+    <tag k="type" v="restriction"/><tag k="restriction" v="no_left_turn"/>
+  </relation>
+  <relation id="1001">
+    <member type="way" ref="160" role="from"/>
+    <member type="node" ref="61" role="via"/>
+    <member type="way" ref="161" role="to"/>
+    <tag k="type" v="restriction"/><tag k="restriction:conditional" v="no_right_turn @ (Mo-Fr 07:00-09:00)"/>
+  </relation>
+</osm>

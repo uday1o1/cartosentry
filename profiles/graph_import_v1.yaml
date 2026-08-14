@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "profile_id": "graph-import-v1",
+  "profile_version": "1.0.0",
+  "freeze_state": "FROZEN_BEFORE_M5_1_ACCEPTANCE",
+  "hash_contract": "SHA-256 of canonical UTF-8 JSON with immutable_sha256 omitted",
+  "immutable_sha256": "89f4b306dce91ba9adcfc4da5b651ef1acaa247a33009cc03d96d85d632f20fb",
+  "authorities": {
+    "data_manifest_file_sha256": "285f92fdf39ae51e6a183ac44bdde2f04f874ac82e5809947bf44e84a2697955",
+    "public_artifact_id": "osm-toronto-glen-shields-v1",
+    "public_object_key": "road_graphs/toronto-glen-shields-v1.osm",
+    "public_object_sha256": "4218be930d42d4b1fcfcf811f366a8837e4b220ffa7fdbd6415820e3a0527600",
+    "snapshot_utc": "2026-08-14T00:47:44Z",
+    "attribution": "Contains information from OpenStreetMap, which is made available under the Open Database License.",
+    "license_url": "https://opendatacommons.org/licenses/odbl/1-0/",
+    "database_classification": "ODBL_DERIVATIVE_DATABASE"
+  },
+  "included_highway_classes": [
+    "motorway",
+    "motorway_link",
+    "trunk",
+    "trunk_link",
+    "primary",
+    "primary_link",
+    "secondary",
+    "secondary_link",
+    "tertiary",
+    "tertiary_link",
+    "unclassified",
+    "residential",
+    "living_street",
+    "service"
+  ],
+  "access": {
+    "generic_keys": ["motorcar", "motor_vehicle", "vehicle", "access"],
+    "allowed_values": ["yes", "permissive", "designated", "official"],
+    "denied_values": ["no", "private", "destination", "delivery", "customers", "permit"],
+    "missing_value_interpretation": "INCLUDED_WITHOUT_ROAD_LEGALITY_CLAIM",
+    "unknown_value_interpretation": "EXCLUDE",
+    "conditional_interpretation": "EXCLUDE",
+    "construction_interpretation": "EXCLUDE",
+    "private_interpretation": "EXCLUDE",
+    "ferry_interpretation": "EXCLUDE"
+  },
+  "directionality": {
+    "oneway_keys": ["oneway:motor_vehicle", "oneway"],
+    "forward_values": ["yes", "1", "true"],
+    "reverse_values": ["-1"],
+    "bidirectional_values": ["no", "0", "false"],
+    "implicit_forward_junction_values": ["roundabout", "circular"],
+    "implicit_forward_highway_classes": ["motorway", "motorway_link"],
+    "directional_access_suffixes": ["forward", "backward"],
+    "unknown_oneway_interpretation": "EXCLUDE"
+  },
+  "turn_restrictions": {
+    "relation_type": "restriction",
+    "restriction_tag_keys": ["restriction:motorcar", "restriction:motor_vehicle", "restriction"],
+    "supported_via": "SINGLE_NODE_ONLY",
+    "supported_prefixes": ["no_", "only_"],
+    "conditional_interpretation": "UNKNOWN_RESTRICTION",
+    "via_way_interpretation": "UNKNOWN_RESTRICTION",
+    "unknown_value_interpretation": "UNKNOWN_RESTRICTION",
+    "except_interpretation": "UNKNOWN_RESTRICTION"
+  },
+  "geometry": {
+    "origin_policy": "OSM_BOUNDS_CENTER_WGS84_E8_ZERO_ELLIPSOID",
+    "coordinate_provenance": "WGS84_SOURCE_DERIVED_LOCAL_WORLD",
+    "local_frame_axes": ["east", "north", "up"],
+    "road_geometry_altitude_policy": "FLATTEN_TO_LOCAL_Z_ZERO",
+    "local_coordinate_rounding_decimal_places": 6,
+    "length_rounding_decimal_places": 6,
+    "minimum_arc_length_m": 0.01,
+    "split_policy": "WAY_ENDPOINT_SHARED_NODE_AND_RESTRICTION_VIA_NODE",
+    "retain_source_shape_nodes": true
+  },
+  "spatial_index": {
+    "implementation": "SHAPELY_STRTREE_IMMUTABLE_V1",
+    "input_order": "ARC_ID_ASCENDING",
+    "query_result_order": "ARC_ID_ASCENDING"
+  },
+  "limits": {
+    "maximum_source_bytes": 67108864,
+    "maximum_nodes": 1000000,
+    "maximum_ways": 250000,
+    "maximum_relations": 100000,
+    "maximum_way_node_references": 1000000,
+    "maximum_tags_per_element": 256,
+    "maximum_geometry_points_per_arc": 65536
+  }
+}

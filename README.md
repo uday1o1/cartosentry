@@ -23,6 +23,19 @@ The deterministic analytic motion-compensated LiDAR alignment qualification is a
 uv run cartosentry qualify-lidar-alignment
 ```
 
+The manifest-pinned OpenStreetMap extract can be imported and qualified as a deterministic directed graph with:
+
+```console
+uv run cartosentry import-road-graph \
+  data/public/road_graphs/toronto-glen-shields-v1.osm \
+  --output output/toronto-glen-shields-directed-graph.json
+uv run cartosentry qualify-road-graph \
+  --public-data-root data/public \
+  --output output/m5-1-road-graph.json
+```
+
+The [directed road-graph import contract](docs/road_graph_import.md) documents conservative access handling, directed topology, graph identity, spatial indexing, source-derived local coordinates, and OpenStreetMap attribution.
+
 The current versioned artifact contracts, deterministic identifiers, portable export rules, and validation commands are documented in `docs/artifact_schemas.md`.
 Representative portable artifacts and their JSON Schemas are committed under `schemas`.
 

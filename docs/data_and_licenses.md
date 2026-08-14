@@ -89,6 +89,7 @@ Public redistribution must preserve OpenStreetMap attribution, source date, the 
 Route GeoJSON or GPX that reproduces material OSM geometry, identifiers, or attributes is conservatively classified as a derivative database.
 Static maps, screenshots, and video frames are produced works and must visibly attribute OpenStreetMap and identify the ODbL source.
 Metrics that contain no recoverable OSM geometry, identifiers, or substantial attributes may be classified as independent project artifacts only after a release audit records that basis.
+The [directed road-graph import contract](road_graph_import.md) defines how attribution, source identity, source tags, and derivative-database classification survive portable graph export.
 
 ## Storage budgets
 

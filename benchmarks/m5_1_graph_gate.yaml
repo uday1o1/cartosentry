@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "gate_id": "m5.1-directed-road-graph-v1",
+  "gate_version": "1.0.0",
+  "freeze_state": "FROZEN_BEFORE_M5_1_ACCEPTANCE",
+  "hash_contract": "SHA-256 of canonical UTF-8 JSON with immutable_sha256 omitted",
+  "immutable_sha256": "3c0290924624e2744be106658e7a2fd3367a69552615619da848bdb2adc1f133",
+  "authorities": {
+    "profile_file_sha256": "c1e11f4a78bb912d1ee94058bf37b1312062cfbd0fd5c6bf1497f9179cc8e4e0",
+    "profile_immutable_sha256": "89f4b306dce91ba9adcfc4da5b651ef1acaa247a33009cc03d96d85d632f20fb",
+    "data_manifest_file_sha256": "285f92fdf39ae51e6a183ac44bdde2f04f874ac82e5809947bf44e84a2697955",
+    "fixture_object_key": "tests/fixtures/road_graphs/topology_v1.osm",
+    "fixture_sha256": "eda30cc433fae67cd95584d89e7d6de0f124aed4b396990b0b3da6c3489a4616",
+    "public_sequence_id": "boreas-2021-09-02-11-42",
+    "public_source_group_id": "boreas-glen-shields-family-v1",
+    "public_partition": "development",
+    "trajectory_object_key": "boreas-2021-09-02-11-42/applanix/gps_post_process.csv",
+    "trajectory_object_sha256": "7314f391b4bd704c838295633bd2139e24dc6596d256b785b9293851f98de124",
+    "trajectory_object_bytes": 77453207
+  },
+  "expected_graphs": {
+    "fixture": {
+      "graph_id": "road-graph-sha256-c08949b5660b5f40eebcc16db519cee9dd91895670f4168f22ae41ca9fe67fe9",
+      "parsed_node_count": 29,
+      "parsed_way_count": 16,
+      "parsed_relation_count": 2,
+      "included_way_count": 16,
+      "topology_node_count": 27,
+      "directed_arc_count": 26,
+      "transition_rule_count": 4,
+      "applied_restriction_count": 1,
+      "unknown_restriction_count": 1
+    },
+    "public": {
+      "graph_id": "road-graph-sha256-da259ced68a1a3d17f7a25ea2e695151928ca73043d42f26c4d8abd89fa7b1f2",
+      "parsed_node_count": 5127,
+      "parsed_way_count": 1194,
+      "parsed_relation_count": 8,
+      "included_way_count": 649,
+      "topology_node_count": 933,
+      "directed_arc_count": 2398,
+      "transition_rule_count": 11,
+      "applied_restriction_count": 5,
+      "unknown_restriction_count": 3
+    }
+  },
+  "observation_contract": {
+    "selection": "FIRST_N_SOURCE_ORDER",
+    "sample_count": 64,
+    "source_key": "applanix/gps_post_process.csv",
+    "coordinate_provenance": "WGS84_SOURCE_DERIVED_LOCAL_WORLD",
+    "local_altitude_policy": "ZERO_ELLIPSOID_FOR_HORIZONTAL_MATCHING",
+    "maximum_horizontal_round_trip_error_m": 0.001
+  },
+  "required_topology_checks": [
+    "forward_oneway",
+    "reverse_oneway",
+    "divided_road",
+    "ramp",
+    "roundabout",
+    "parallel_road",
+    "grade_separated",
+    "simple_turn_restriction",
+    "conditional_restriction_unknown",
+    "spatial_index_order"
+  ]
+}
