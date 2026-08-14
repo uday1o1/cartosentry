@@ -25,6 +25,28 @@ class SchedulerQualificationResult(TypedDict):
     completion_pointer_exists: bool
 
 def native_self_check() -> bool: ...
+def select_best_road_emission_candidate(candidates: list[dict[str, Any]]) -> int: ...
+def generate_road_candidate_batches(
+    graph: dict[str, Any],
+    observations: list[dict[str, Any]],
+    candidate_parameters: dict[str, Any],
+    emission_parameters: dict[str, Any],
+) -> list[list[dict[str, Any]]]: ...
+def score_road_transition_batch(
+    graph: dict[str, Any],
+    observations: list[dict[str, Any]],
+    queries: list[dict[str, Any]],
+    candidate_parameters: dict[str, Any],
+    transition_parameters: dict[str, Any],
+) -> list[dict[str, Any]]: ...
+def decode_road_candidate_batches(
+    graph: dict[str, Any],
+    observations: list[dict[str, Any]],
+    candidate_batches: list[list[dict[str, Any]]],
+    candidate_parameters: dict[str, Any],
+    transition_parameters: dict[str, Any],
+    decoder_parameters: dict[str, Any],
+) -> dict[str, Any]: ...
 def canonicalize_artifact_json(input_json: str, expected_schema: str) -> str: ...
 def checked_translation_norm(translation: tuple[float, float, float]) -> float: ...
 def decimal_seconds_to_nanoseconds(decimal_lexeme: str) -> int: ...

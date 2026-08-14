@@ -3,18 +3,15 @@
 from __future__ import annotations
 
 import hashlib
-import heapq
 import json
 import math
-from collections import defaultdict
 from enum import StrEnum
-from itertools import pairwise
 from pathlib import Path
-from typing import Annotated, Literal, Self, cast
+from typing import Annotated, Any, Literal, Self, cast
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
-from shapely import LineString, Point  # type: ignore[import-untyped]
 
+from cartosentry import _core
 from cartosentry.contracts import TimePoint
 from cartosentry.manifest_boundaries import (
     ManifestBoundaryError,
@@ -25,16 +22,15 @@ from cartosentry.road_graph import (
     PROFILE_IMMUTABLE_SHA256 as GRAPH_PROFILE_IMMUTABLE_SHA256,
 )
 from cartosentry.road_graph import (
-    DirectedRoadArc,
     DirectedRoadGraph,
     RoadGraphSpatialIndex,
-    TransitionState,
     validate_graph_identity,
 )
 
 PROFILE_IMMUTABLE_SHA256 = (
     "dc4da969cb9f9d85492be6ed7f44798dd48b6d0c935e656979c67a27b2c3b5f1"
 )
+ALGORITHM_BACKEND: Literal["C++20_NATIVE_BATCH_V1"] = "C++20_NATIVE_BATCH_V1"
 MAXIMUM_PROFILE_BYTES = 256 * 1024
 NEGATIVE_INFINITY = float("-inf")
 
@@ -197,14 +193,30 @@ def make_road_match_observation(
 ) -> RoadMatchObservation:
     """Construct an observation and retain an upstream identity when present."""
 
+    numeric_values = (
+        *position_local_m,
+        speed_mps,
+        *(() if heading_rad is None else (heading_rad,)),
+        *(() if horizontal_uncertainty_m is None else (horizontal_uncertainty_m,)),
+    )
+    if any(isinstance(value, bool) for value in numeric_values):
+        raise ValueError("road-match numeric features cannot be booleans")
+    canonical_position = (float(position_local_m[0]), float(position_local_m[1]))
+    canonical_heading = float(heading_rad) if heading_rad is not None else None
+    canonical_speed = float(speed_mps)
+    canonical_uncertainty = (
+        float(horizontal_uncertainty_m)
+        if horizontal_uncertainty_m is not None
+        else None
+    )
     payload: dict[str, object] = {
         "source_observation_id": source_observation_id,
         "time": time.model_dump(mode="json"),
         "local_frame_id": local_frame_id,
-        "position_local_m": position_local_m,
-        "heading_rad": heading_rad,
-        "speed_mps": speed_mps,
-        "horizontal_uncertainty_m": horizontal_uncertainty_m,
+        "position_local_m": canonical_position,
+        "heading_rad": canonical_heading,
+        "speed_mps": canonical_speed,
+        "horizontal_uncertainty_m": canonical_uncertainty,
         "horizontal_uncertainty_basis": horizontal_uncertainty_basis,
     }
     observation_id = f"observation-sha256-{_canonical_hash(payload)}"
@@ -213,10 +225,10 @@ def make_road_match_observation(
         source_observation_id=source_observation_id,
         time=time,
         local_frame_id=local_frame_id,
-        position_local_m=position_local_m,
-        heading_rad=heading_rad,
-        speed_mps=speed_mps,
-        horizontal_uncertainty_m=horizontal_uncertainty_m,
+        position_local_m=canonical_position,
+        heading_rad=canonical_heading,
+        speed_mps=canonical_speed,
+        horizontal_uncertainty_m=canonical_uncertainty,
         horizontal_uncertainty_basis=horizontal_uncertainty_basis,
     )
 
@@ -384,59 +396,6 @@ def validate_matching_graph_authority(
         raise ValueError("directed road graph uses a foreign import-profile authority")
 
 
-def _gaussian_log_likelihood(residual: float, sigma: float) -> float:
-    return -0.5 * (residual / sigma) ** 2 - math.log(sigma * math.sqrt(2.0 * math.pi))
-
-
-def _wrapped_heading_difference(left: float, right: float) -> float:
-    return abs((left - right + math.pi) % (2.0 * math.pi) - math.pi)
-
-
-def _heading_weight(speed_mps: float, parameters: EmissionParameters) -> float:
-    if speed_mps <= parameters.heading_disabled_below_speed_mps:
-        return 0.0
-    span = (
-        parameters.heading_full_weight_speed_mps
-        - parameters.heading_disabled_below_speed_mps
-    )
-    return min(1.0, (speed_mps - parameters.heading_disabled_below_speed_mps) / span)
-
-
-def _search_radius(
-    observation: RoadMatchObservation, parameters: CandidateParameters
-) -> float:
-    requested = parameters.default_search_radius_m
-    if observation.horizontal_uncertainty_m is not None:
-        requested = max(
-            requested,
-            observation.horizontal_uncertainty_m
-            * parameters.uncertainty_radius_multiplier,
-        )
-    return min(
-        parameters.maximum_search_radius_m,
-        max(parameters.minimum_search_radius_m, requested),
-    )
-
-
-def _directed_tangent(
-    geometry: tuple[tuple[float, float, float], ...], projected_distance_m: float
-) -> float:
-    remaining = projected_distance_m
-    fallback: tuple[float, float] | None = None
-    for left, right in pairwise(geometry):
-        delta = (right[0] - left[0], right[1] - left[1])
-        length = math.hypot(*delta)
-        if length == 0.0:
-            continue
-        fallback = delta
-        if remaining <= length:
-            return math.atan2(delta[1], delta[0])
-        remaining -= length
-    if fallback is None:
-        raise ValueError("directed arc has no nonzero horizontal segment")
-    return math.atan2(fallback[1], fallback[0])
-
-
 def _candidate_id(payload: dict[str, object]) -> str:
     return f"candidate-sha256-{_canonical_hash(payload)}"
 
@@ -462,136 +421,135 @@ def _validate_candidate_identity(
         raise ValueError("road-candidate identity is invalid")
 
 
-def _on_road_candidate(
+def _native_graph_payload(graph: DirectedRoadGraph) -> dict[str, object]:
+    return {
+        "arcs": [
+            {
+                "arc_id": arc.arc_id,
+                "from_node_id": arc.from_node_id,
+                "to_node_id": arc.to_node_id,
+                "source_way_id": arc.source_way_id,
+                "direction": arc.direction.value,
+                "length_m": arc.length_m,
+                "geometry": [[point[0], point[1]] for point in arc.geometry_local_m],
+            }
+            for arc in graph.arcs
+        ],
+        "transition_rules": [
+            {
+                "from_arc_id": rule.from_arc_id,
+                "to_arc_id": rule.to_arc_id,
+                "state": rule.state.value,
+            }
+            for rule in graph.transition_rules
+        ],
+    }
+
+
+def _native_observation_payload(
     observation: RoadMatchObservation,
-    arc: DirectedRoadArc,
-    *,
-    radius_m: float,
-    graph_id: str,
+) -> dict[str, object]:
+    return {
+        "observation_id": observation.observation_id,
+        "time_ns": observation.time.value_ns,
+        "position_local_m": list(observation.position_local_m),
+        "heading_rad": observation.heading_rad,
+        "speed_mps": observation.speed_mps,
+        "horizontal_uncertainty_m": observation.horizontal_uncertainty_m,
+    }
+
+
+def _candidate_from_native(
+    graph: DirectedRoadGraph,
+    observation: RoadMatchObservation,
     profile: MapMatchingProfile,
+    raw: dict[str, Any],
+    *,
+    observation_index: int,
 ) -> RoadCandidate:
-    candidate_parameters = profile.parameter_charter.candidate
-    emission_parameters = profile.parameter_charter.emission
-    geometry = LineString([(point[0], point[1]) for point in arc.geometry_local_m])
-    point = Point(observation.position_local_m)
-    projected_distance = geometry.project(point)
-    projected = geometry.interpolate(projected_distance)
-    lateral_distance = round(
-        geometry.distance(point),
-        candidate_parameters.distance_rounding_decimal_places,
+    if raw.get("observation_index") != observation_index:
+        raise ValueError("native road candidate belongs to the wrong observation")
+    directed_arc_id = cast(str | None, raw.get("directed_arc_id"))
+    state = (
+        CandidateState.ON_ROAD
+        if directed_arc_id is not None
+        else CandidateState.OFF_MAP
     )
-    if geometry.length <= 0.0:
-        raise ValueError("directed arc has invalid horizontal geometry")
-    along_offset = round(
-        min(arc.length_m, projected_distance / geometry.length * arc.length_m),
-        candidate_parameters.distance_rounding_decimal_places,
-    )
-    places = emission_parameters.score_rounding_decimal_places
-    tangent = round(_directed_tangent(arc.geometry_local_m, projected_distance), places)
-    uncertainty = observation.horizontal_uncertainty_m or 0.0
-    lateral_sigma = min(
-        emission_parameters.maximum_lateral_sigma_m,
-        math.hypot(emission_parameters.base_lateral_sigma_m, uncertainty),
-    )
-    lateral_log = _gaussian_log_likelihood(lateral_distance, lateral_sigma)
-    weight = (
-        _heading_weight(observation.speed_mps, emission_parameters)
-        if observation.heading_rad is not None
-        else 0.0
-    )
-    heading_difference = (
-        _wrapped_heading_difference(observation.heading_rad, tangent)
-        if weight > 0.0 and observation.heading_rad is not None
+    projected_raw = cast(list[float] | None, raw.get("projected_position_local_m"))
+    projected = (
+        (float(projected_raw[0]), float(projected_raw[1]))
+        if projected_raw is not None and len(projected_raw) == 2
         else None
     )
-    heading_log = (
-        _gaussian_log_likelihood(
-            heading_difference, emission_parameters.heading_sigma_rad
+    payload: dict[str, object] = {
+        "profile_immutable_sha256": profile.immutable_sha256,
+        "graph_id": graph.graph_id,
+        "observation_id": observation.observation_id,
+        "state": state,
+    }
+    if state == CandidateState.ON_ROAD:
+        payload.update(
+            {
+                "directed_arc_id": directed_arc_id,
+                "projected_position_local_m": projected,
+                "along_arc_offset_m": raw.get("along_arc_offset_m"),
+            }
         )
-        if heading_difference is not None
-        else None
-    )
-    total = lateral_log + weight * (heading_log or 0.0)
-    projected_position = (
-        round(projected.x, candidate_parameters.distance_rounding_decimal_places),
-        round(projected.y, candidate_parameters.distance_rounding_decimal_places),
-    )
-    payload: dict[str, object] = {
-        "profile_immutable_sha256": profile.immutable_sha256,
-        "graph_id": graph_id,
-        "observation_id": observation.observation_id,
-        "state": CandidateState.ON_ROAD,
-        "directed_arc_id": arc.arc_id,
-        "projected_position_local_m": projected_position,
-        "along_arc_offset_m": along_offset,
-    }
-    return RoadCandidate(
+    candidate = RoadCandidate(
         candidate_id=_candidate_id(payload),
         observation_id=observation.observation_id,
-        graph_id=graph_id,
-        state=CandidateState.ON_ROAD,
-        directed_arc_id=arc.arc_id,
-        source_way_id=arc.source_way_id,
-        projected_position_local_m=projected_position,
-        lateral_distance_m=lateral_distance,
-        tangent_heading_rad=tangent,
-        along_arc_offset_m=along_offset,
-        search_radius_m=radius_m,
-        emission=EmissionFeatures(
-            lateral_sigma_m=round(lateral_sigma, places),
-            lateral_log_likelihood=round(lateral_log, places),
-            heading_used=heading_difference is not None,
-            heading_weight=round(weight, places),
-            heading_difference_rad=(
-                round(heading_difference, places)
-                if heading_difference is not None
-                else None
-            ),
-            heading_log_likelihood=(
-                round(heading_log, places) if heading_log is not None else None
-            ),
-            off_map_log_likelihood=None,
-            total_log_likelihood=round(total, places),
-        ),
+        graph_id=graph.graph_id,
+        state=state,
+        directed_arc_id=directed_arc_id,
+        source_way_id=cast(int | None, raw.get("source_way_id")),
+        projected_position_local_m=projected,
+        lateral_distance_m=cast(float | None, raw.get("lateral_distance_m")),
+        tangent_heading_rad=cast(float | None, raw.get("tangent_heading_rad")),
+        along_arc_offset_m=cast(float | None, raw.get("along_arc_offset_m")),
+        search_radius_m=cast(float, raw["search_radius_m"]),
+        emission=EmissionFeatures.model_validate(raw["emission"]),
     )
+    _validate_candidate_identity(candidate, profile)
+    return candidate
 
 
-def _off_map_candidate(
-    observation: RoadMatchObservation,
+def _generate_road_candidate_batches(
+    graph: DirectedRoadGraph,
+    observations: tuple[RoadMatchObservation, ...],
     *,
-    radius_m: float,
-    graph_id: str,
     profile: MapMatchingProfile,
-) -> RoadCandidate:
-    score = profile.parameter_charter.emission.off_map_log_likelihood
-    payload: dict[str, object] = {
-        "profile_immutable_sha256": profile.immutable_sha256,
-        "graph_id": graph_id,
-        "observation_id": observation.observation_id,
-        "state": CandidateState.OFF_MAP,
-    }
-    return RoadCandidate(
-        candidate_id=_candidate_id(payload),
-        observation_id=observation.observation_id,
-        graph_id=graph_id,
-        state=CandidateState.OFF_MAP,
-        directed_arc_id=None,
-        source_way_id=None,
-        projected_position_local_m=None,
-        lateral_distance_m=None,
-        tangent_heading_rad=None,
-        along_arc_offset_m=None,
-        search_radius_m=radius_m,
-        emission=EmissionFeatures(
-            lateral_sigma_m=None,
-            lateral_log_likelihood=None,
-            heading_used=False,
-            heading_weight=0.0,
-            heading_difference_rad=None,
-            heading_log_likelihood=None,
-            off_map_log_likelihood=score,
-            total_log_likelihood=score,
-        ),
+) -> tuple[tuple[RoadCandidate, ...], ...]:
+    validate_graph_identity(graph)
+    validate_matching_graph_authority(graph, profile)
+    if not observations:
+        raise ValueError("at least one road-match observation is required")
+    for observation in observations:
+        observation.assert_identity()
+        if observation.local_frame_id != graph.local_frame.frame.frame_id:
+            raise ValueError("road-match observation uses the wrong local frame")
+    parameters = profile.parameter_charter
+    raw_batches = _core.generate_road_candidate_batches(
+        _native_graph_payload(graph),
+        [_native_observation_payload(item) for item in observations],
+        parameters.candidate.model_dump(mode="python"),
+        parameters.emission.model_dump(mode="python"),
+    )
+    if len(raw_batches) != len(observations):
+        raise ValueError("native road candidate batch count is invalid")
+    return tuple(
+        tuple(
+            _candidate_from_native(
+                graph,
+                observation,
+                profile,
+                raw,
+                observation_index=observation_index,
+            )
+            for raw in raw_batch
+        )
+        for observation_index, (observation, raw_batch) in enumerate(
+            zip(observations, raw_batches, strict=True)
+        )
     )
 
 
@@ -604,219 +562,55 @@ def generate_road_candidates(
 ) -> tuple[RoadCandidate, ...]:
     """Generate bounded directed projections and an unconditional off-map state."""
 
-    validate_graph_identity(graph)
-    validate_matching_graph_authority(graph, profile)
-    observation.assert_identity()
-    if observation.local_frame_id != graph.local_frame.frame.frame_id:
-        raise ValueError("road-match observation uses the wrong local frame")
-    radius = _search_radius(observation, profile.parameter_charter.candidate)
-    index = spatial_index or RoadGraphSpatialIndex(graph)
-    if index.graph_id != graph.graph_id:
+    if spatial_index is not None and spatial_index.graph_id != graph.graph_id:
         raise ValueError("road spatial index does not belong to the directed graph")
-    on_road = [
-        _on_road_candidate(
-            observation,
-            arc,
-            radius_m=radius,
-            graph_id=graph.graph_id,
-            profile=profile,
-        )
-        for arc in index.query_radius(observation.position_local_m, radius)
-    ]
-    on_road.sort(
-        key=lambda item: (
-            -item.emission.total_log_likelihood,
-            cast(float, item.lateral_distance_m),
-            cast(str, item.directed_arc_id),
-        )
-    )
-    maximum = profile.parameter_charter.candidate.maximum_on_road_candidates
-    selected = on_road[:maximum]
-    selected.append(
-        _off_map_candidate(
-            observation,
-            radius_m=radius,
-            graph_id=graph.graph_id,
-            profile=profile,
-        )
-    )
-    return tuple(selected)
+    return _generate_road_candidate_batches(graph, (observation,), profile=profile)[0]
 
 
 def best_emission_candidate(candidates: tuple[RoadCandidate, ...]) -> RoadCandidate:
-    """Choose one emission-only candidate with deterministic identity tie-breaking."""
+    """Use the native emission score and identity tie-break decision."""
 
     if not candidates:
         raise ValueError("at least one road candidate is required")
-    return min(
-        candidates,
-        key=lambda item: (-item.emission.total_log_likelihood, item.candidate_id),
+    selected = _core.select_best_road_emission_candidate(
+        [
+            {
+                "candidate_id": item.candidate_id,
+                "emission_total_log_likelihood": (item.emission.total_log_likelihood),
+            }
+            for item in candidates
+        ]
     )
+    if selected < 0 or selected >= len(candidates):
+        raise ValueError("native emission selection returned an invalid index")
+    return candidates[selected]
 
 
-def _arc_by_id(graph: DirectedRoadGraph, candidate: RoadCandidate) -> DirectedRoadArc:
-    arc_id = candidate.directed_arc_id
-    if candidate.state != CandidateState.ON_ROAD or arc_id is None:
-        raise ValueError("on-road transition requires an arc candidate")
-    try:
-        return next(item for item in graph.arcs if item.arc_id == arc_id)
-    except StopIteration as error:
-        raise ValueError("road candidate arc is absent from the graph") from error
-
-
-def _blocked_transition(
-    graph: DirectedRoadGraph, from_arc_id: str, to_arc_id: str
-) -> str | None:
-    states = {
-        item.state
-        for item in graph.transition_rules
-        if item.from_arc_id == from_arc_id and item.to_arc_id == to_arc_id
-    }
-    if TransitionState.FORBIDDEN in states:
-        return TransitionRejection.FORBIDDEN_TURN
-    if TransitionState.UNKNOWN_RESTRICTION in states:
-        return TransitionRejection.UNKNOWN_RESTRICTION
-    return None
-
-
-def _count_u_turns(path: tuple[str, ...], arcs: dict[str, DirectedRoadArc]) -> int:
-    return sum(
-        arcs[left].source_way_id == arcs[right].source_way_id
-        and arcs[left].direction is not arcs[right].direction
-        for left, right in pairwise(path)
-    )
-
-
-def _directed_route(
+def _native_candidate_payload(
     graph: DirectedRoadGraph,
-    previous: RoadCandidate,
-    current: RoadCandidate,
-    parameters: TransitionParameters,
-) -> tuple[float, int, int, tuple[str, ...]] | str:
-    previous_arc = _arc_by_id(graph, previous)
-    current_arc = _arc_by_id(graph, current)
-    previous_offset = cast(float, previous.along_arc_offset_m)
-    current_offset = cast(float, current.along_arc_offset_m)
-    if previous_arc.arc_id == current_arc.arc_id and current_offset >= previous_offset:
-        return (
-            current_offset - previous_offset,
-            0,
-            0,
-            (previous_arc.arc_id,),
-        )
-    outgoing: dict[str, list[DirectedRoadArc]] = defaultdict(list)
-    arc_lookup = {item.arc_id: item for item in graph.arcs}
-    for arc in graph.arcs:
-        outgoing[arc.from_node_id].append(arc)
-    initial_distance = previous_arc.length_m - previous_offset
-    if initial_distance > parameters.maximum_graph_search_distance_m:
-        return TransitionRejection.GRAPH_SEARCH_BUDGET
-    initial_path = (previous_arc.arc_id,)
-    queue: list[tuple[float, int, tuple[str, ...], str, str]] = [
-        (
-            initial_distance,
-            0,
-            initial_path,
-            previous_arc.to_node_id,
-            previous_arc.arc_id,
-        )
-    ]
-    best: dict[tuple[str, str], tuple[float, int, tuple[str, ...]]] = {}
-    target_rejections: set[str] = set()
-    visited = 0
-    while queue:
-        distance, turns, path, node_id, incoming_arc_id = heapq.heappop(queue)
-        state = (node_id, incoming_arc_id)
-        previous_best = best.get(state)
-        ranking = (distance, turns, path)
-        if previous_best is not None and ranking >= previous_best:
-            continue
-        best[state] = ranking
-        visited += 1
-        if visited > parameters.maximum_graph_search_states:
-            return TransitionRejection.GRAPH_SEARCH_BUDGET
-        if node_id == current_arc.from_node_id:
-            blocked = _blocked_transition(graph, incoming_arc_id, current_arc.arc_id)
-            if blocked is None:
-                result_path = (
-                    path
-                    if path[-1] == current_arc.arc_id
-                    else (*path, current_arc.arc_id)
-                )
-                total = distance + current_offset
-                if total > parameters.maximum_graph_search_distance_m:
-                    return TransitionRejection.GRAPH_SEARCH_BUDGET
-                return (
-                    total,
-                    max(0, len(result_path) - 1),
-                    _count_u_turns(result_path, arc_lookup),
-                    result_path,
-                )
-            target_rejections.add(blocked)
-        for next_arc in outgoing.get(node_id, []):
-            if _blocked_transition(graph, incoming_arc_id, next_arc.arc_id) is not None:
-                continue
-            next_distance = distance + next_arc.length_m
-            if next_distance > parameters.maximum_graph_search_distance_m:
-                continue
-            next_path = (*path, next_arc.arc_id)
-            heapq.heappush(
-                queue,
-                (
-                    next_distance,
-                    turns + 1,
-                    next_path,
-                    next_arc.to_node_id,
-                    next_arc.arc_id,
-                ),
-            )
-    if TransitionRejection.FORBIDDEN_TURN in target_rejections:
-        return TransitionRejection.FORBIDDEN_TURN
-    if TransitionRejection.UNKNOWN_RESTRICTION in target_rejections:
-        return TransitionRejection.UNKNOWN_RESTRICTION
-    return TransitionRejection.NO_DIRECTED_PATH
-
-
-def _impossible_transition(
-    previous: RoadCandidate,
-    current: RoadCandidate,
+    candidate: RoadCandidate,
     *,
-    reason: str,
-    elapsed_seconds: float,
-    observed_displacement_m: float,
-    graph_distance_m: float | None = None,
-    implied_graph_speed_mps: float | None = None,
-    path_arc_ids: tuple[str, ...] = (),
-) -> TransitionScore:
-    return TransitionScore(
-        from_candidate_id=previous.candidate_id,
-        to_candidate_id=current.candidate_id,
-        possible=False,
-        rejection_reason=cast(
-            Literal[
-                "NON_POSITIVE_ELAPSED_TIME",
-                "FORBIDDEN_TURN",
-                "UNKNOWN_RESTRICTION",
-                "NO_DIRECTED_PATH",
-                "GRAPH_SEARCH_BUDGET",
-                "IMPLAUSIBLE_ABSOLUTE_SPEED",
-            ],
-            reason,
-        ),
-        elapsed_seconds=max(0.0, elapsed_seconds),
-        observed_displacement_m=observed_displacement_m,
-        graph_distance_m=graph_distance_m,
-        implied_graph_speed_mps=implied_graph_speed_mps,
-        path_discrepancy_m=None,
-        turn_count=None,
-        u_turn_count=None,
-        path_arc_ids=path_arc_ids,
-        path_log_likelihood=None,
-        speed_log_likelihood=None,
-        turn_log_likelihood=None,
-        off_map_log_likelihood=None,
-        total_log_likelihood=None,
-    )
+    observation_index: int,
+) -> dict[str, object]:
+    arc_index: int | None = None
+    if candidate.state == CandidateState.ON_ROAD:
+        try:
+            arc_index = next(
+                index
+                for index, arc in enumerate(graph.arcs)
+                if arc.arc_id == candidate.directed_arc_id
+            )
+        except StopIteration as error:
+            raise ValueError(
+                "road candidate arc is absent from the directed graph"
+            ) from error
+    return {
+        "candidate_id": candidate.candidate_id,
+        "observation_index": observation_index,
+        "arc_index": arc_index,
+        "along_arc_offset_m": candidate.along_arc_offset_m,
+        "emission_total_log_likelihood": (candidate.emission.total_log_likelihood),
+    }
 
 
 def score_road_transition(
@@ -828,12 +622,13 @@ def score_road_transition(
     *,
     profile: MapMatchingProfile,
 ) -> TransitionScore:
-    """Score one graph-valid directed transition or return runtime negative infinity."""
+    """Score one graph-valid directed transition in the native batch kernel."""
 
     validate_graph_identity(graph)
     validate_matching_graph_authority(graph, profile)
     previous_observation.assert_identity()
     current_observation.assert_identity()
+    current_observation.time.difference(previous_observation.time)
     if (
         previous.observation_id != previous_observation.observation_id
         or current.observation_id != current_observation.observation_id
@@ -843,115 +638,39 @@ def score_road_transition(
         raise ValueError("road candidates do not belong to the directed graph")
     _validate_candidate_identity(previous, profile)
     _validate_candidate_identity(current, profile)
-    observed_displacement = math.dist(
-        previous_observation.position_local_m,
-        current_observation.position_local_m,
+    parameters = profile.parameter_charter
+    raw_results = _core.score_road_transition_batch(
+        _native_graph_payload(graph),
+        [
+            _native_observation_payload(previous_observation),
+            _native_observation_payload(current_observation),
+        ],
+        [
+            {
+                "previous_observation_index": 0,
+                "previous_candidate": _native_candidate_payload(
+                    graph, previous, observation_index=0
+                ),
+                "current_observation_index": 1,
+                "current_candidate": _native_candidate_payload(
+                    graph, current, observation_index=1
+                ),
+            }
+        ],
+        parameters.candidate.model_dump(mode="python"),
+        parameters.transition.model_dump(mode="python"),
     )
-    elapsed_ns = current_observation.time.difference(previous_observation.time).value_ns
-    elapsed_seconds = elapsed_ns / 1_000_000_000.0
-    if elapsed_seconds <= 0.0:
-        return _impossible_transition(
-            previous,
-            current,
-            reason=TransitionRejection.NON_POSITIVE_ELAPSED_TIME,
-            elapsed_seconds=elapsed_seconds,
-            observed_displacement_m=observed_displacement,
-        )
-    parameters = profile.parameter_charter.transition
-    places = parameters.score_rounding_decimal_places
-    if (
-        previous.state == CandidateState.OFF_MAP
-        or current.state == CandidateState.OFF_MAP
-    ):
-        if previous.state == current.state:
-            off_map_log = parameters.off_map_stay_log_likelihood
-        elif previous.state == CandidateState.OFF_MAP:
-            off_map_log = parameters.off_map_exit_log_likelihood
-        else:
-            off_map_log = parameters.off_map_enter_log_likelihood
-        rounded = round(off_map_log, places)
-        return TransitionScore(
-            from_candidate_id=previous.candidate_id,
-            to_candidate_id=current.candidate_id,
-            possible=True,
-            rejection_reason=None,
-            elapsed_seconds=elapsed_seconds,
-            observed_displacement_m=observed_displacement,
-            graph_distance_m=None,
-            implied_graph_speed_mps=None,
-            path_discrepancy_m=None,
-            turn_count=None,
-            u_turn_count=None,
-            path_arc_ids=(),
-            path_log_likelihood=None,
-            speed_log_likelihood=None,
-            turn_log_likelihood=None,
-            off_map_log_likelihood=rounded,
-            total_log_likelihood=rounded,
-        )
-
-    route = _directed_route(graph, previous, current, parameters)
-    if isinstance(route, str):
-        return _impossible_transition(
-            previous,
-            current,
-            reason=route,
-            elapsed_seconds=elapsed_seconds,
-            observed_displacement_m=observed_displacement,
-        )
-    graph_distance, turn_count, u_turn_count, path = route
-    graph_distance = round(
-        graph_distance,
-        profile.parameter_charter.candidate.distance_rounding_decimal_places,
-    )
-    implied_speed = graph_distance / elapsed_seconds
-    if implied_speed > parameters.maximum_absolute_speed_mps:
-        return _impossible_transition(
-            previous,
-            current,
-            reason=TransitionRejection.IMPLAUSIBLE_ABSOLUTE_SPEED,
-            elapsed_seconds=elapsed_seconds,
-            observed_displacement_m=observed_displacement,
-            graph_distance_m=graph_distance,
-            implied_graph_speed_mps=implied_speed,
-            path_arc_ids=path,
-        )
-    discrepancy = abs(graph_distance - observed_displacement)
-    path_log = -discrepancy / parameters.path_discrepancy_scale_m
-    supported_speed = max(previous_observation.speed_mps, current_observation.speed_mps)
-    speed_excess = max(
-        0.0,
-        implied_speed
-        - supported_speed
-        - parameters.observed_speed_excess_allowance_mps,
-    )
-    speed_log = -speed_excess * parameters.speed_excess_penalty_per_mps
-    turn_log = -(
-        turn_count * parameters.turn_penalty + u_turn_count * parameters.u_turn_penalty
-    )
-    total = path_log + speed_log + turn_log
-    return TransitionScore(
-        from_candidate_id=previous.candidate_id,
-        to_candidate_id=current.candidate_id,
-        possible=True,
-        rejection_reason=None,
-        elapsed_seconds=elapsed_seconds,
-        observed_displacement_m=observed_displacement,
-        graph_distance_m=graph_distance,
-        implied_graph_speed_mps=round(implied_speed, places),
-        path_discrepancy_m=round(discrepancy, places),
-        turn_count=turn_count,
-        u_turn_count=u_turn_count,
-        path_arc_ids=path,
-        path_log_likelihood=round(path_log, places),
-        speed_log_likelihood=round(speed_log, places),
-        turn_log_likelihood=round(turn_log, places),
-        off_map_log_likelihood=None,
-        total_log_likelihood=round(total, places),
-    )
+    if len(raw_results) != 1:
+        raise ValueError("native road transition result count is invalid")
+    raw = raw_results[0]
+    raw["from_candidate_id"] = previous.candidate_id
+    raw["to_candidate_id"] = current.candidate_id
+    raw["path_arc_ids"] = tuple(cast(list[str], raw["path_arc_ids"]))
+    return TransitionScore.model_validate(raw)
 
 
 __all__ = [
+    "ALGORITHM_BACKEND",
     "NEGATIVE_INFINITY",
     "PROFILE_IMMUTABLE_SHA256",
     "CandidateState",

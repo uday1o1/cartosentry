@@ -498,6 +498,53 @@ def test_uncertainty_requires_an_explicit_trustworthy_basis(
         )
 
 
+def test_observation_builder_canonicalizes_integer_numeric_inputs() -> None:
+    observation = make_road_match_observation(
+        time=_time("1"),
+        local_frame_id="integer-input-frame",
+        position_local_m=(1, 2),
+        heading_rad=0,
+        speed_mps=3,
+        horizontal_uncertainty_m=None,
+    )
+    observation.assert_identity()
+    assert observation.position_local_m == (1.0, 2.0)
+    assert isinstance(observation.speed_mps, float)
+    with pytest.raises(ValueError, match="cannot be booleans"):
+        make_road_match_observation(
+            time=_time("1"),
+            local_frame_id="boolean-input-frame",
+            position_local_m=(1, 2),
+            heading_rad=None,
+            speed_mps=True,
+            horizontal_uncertainty_m=None,
+        )
+
+
+def test_antipodal_heading_difference_stays_within_closed_domain(
+    graph: DirectedRoadGraph, matching_profile
+) -> None:
+    arc = _arc(graph, 140, ArcDirection.FORWARD)
+    for index in range(10):
+        observation = _observation(
+            graph,
+            _position(arc, 0.5),
+            time=str(index + 1),
+            speed=10.0,
+            heading=-2.0 + 0.4 * index,
+        )
+
+        candidates = generate_road_candidates(
+            graph, observation, profile=matching_profile
+        )
+
+        assert all(
+            item.emission.heading_difference_rad is None
+            or item.emission.heading_difference_rad <= math.pi
+            for item in candidates
+        )
+
+
 def test_same_arc_transition_units_sign_and_speed_support(
     graph: DirectedRoadGraph, matching_profile
 ) -> None:

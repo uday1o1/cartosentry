@@ -5,6 +5,7 @@
 #include "cartosentry/ingest/boreas_inspector.hpp"
 #include "cartosentry/scheduler/qualification.hpp"
 #include "cartosentry/spikes/observability.hpp"
+#include "road_matching_bindings.hpp"
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -360,6 +361,7 @@ auto scheduler_qualification_to_dict(
 
 PYBIND11_MODULE(_core, module) {
   module.doc() = "Checked native CartoSentry foundation";
+  bind_road_matching(module);
   py::register_exception<cartosentry::ingest::BoreasFormatError>(
       module, "BoreasFormatError", PyExc_ValueError);
   module.def("native_self_check", &cartosentry::core::native_self_check);
