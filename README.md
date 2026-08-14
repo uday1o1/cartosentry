@@ -11,6 +11,12 @@ uv run python -c "import cartosentry; print(cartosentry.native_self_check())"
 uv run pytest
 ```
 
+After materializing the manifest-pinned public development sample, the streaming LiDAR integrity qualification is available through:
+
+```console
+uv run cartosentry qualify-lidar-integrity --public-data-root data/public
+```
+
 The current versioned artifact contracts, deterministic identifiers, portable export rules, and validation commands are documented in `docs/artifact_schemas.md`.
 Representative portable artifacts and their JSON Schemas are committed under `schemas`.
 

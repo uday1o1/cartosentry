@@ -34,6 +34,7 @@ from cartosentry.ingestion import (
     index_boreas_recording,
     load_ingestion_budget,
 )
+from cartosentry.lidar_integrity_qualification import qualify_lidar_integrity
 from cartosentry.manifest_boundaries import (
     MAXIMUM_ARTIFACT_JSON_BYTES,
     read_bounded_regular_bytes,
@@ -812,6 +813,123 @@ def qualify_trajectory_integrity_command(
         _write_report(report, output)
     except (OSError, ValueError, ValidationError) as error:
         typer.echo(f"Trajectory integrity qualification failed: {error}", err=True)
+        raise typer.Exit(code=2) from error
+    if not report["accepted"]:
+        raise typer.Exit(code=1)
+
+
+@app.command("qualify-lidar-integrity")
+def qualify_lidar_integrity_command(
+    public_data_root: Annotated[
+        Path,
+        typer.Option(
+            "--public-data-root",
+            exists=True,
+            file_okay=False,
+            dir_okay=True,
+            readable=True,
+            resolve_path=True,
+            help="Manifest-verified public development data root.",
+        ),
+    ] = Path("data/public"),
+    gate: Annotated[
+        Path,
+        typer.Option(
+            "--gate",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen M4.1 LiDAR qualification gate.",
+        ),
+    ] = Path("benchmarks/m4_1_lidar_gate.yaml"),
+    profile: Annotated[
+        Path,
+        typer.Option(
+            "--profile",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen LiDAR integrity profile.",
+        ),
+    ] = Path("profiles/lidar_integrity_v1.yaml"),
+    split_manifest: Annotated[
+        Path,
+        typer.Option(
+            "--split-manifest",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen source-group and partition assignment.",
+        ),
+    ] = Path("benchmarks/split_manifest.yaml"),
+    charter: Annotated[
+        Path,
+        typer.Option(
+            "--charter",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen numerical acceptance charter.",
+        ),
+    ] = Path("benchmarks/numerical_charter.yaml"),
+    fault_matrix: Annotated[
+        Path,
+        typer.Option(
+            "--fault-matrix",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen representative V1 fault matrix authority.",
+        ),
+    ] = Path("benchmarks/fault_matrix_v1.yaml"),
+    data_manifest: Annotated[
+        Path,
+        typer.Option(
+            "--data-manifest",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Immutable public-data object manifest.",
+        ),
+    ] = Path("benchmarks/data_manifest.yaml"),
+    output: Annotated[
+        Path | None,
+        typer.Option(
+            "--output",
+            file_okay=True,
+            dir_okay=False,
+            resolve_path=True,
+            help="Write the machine-readable qualification report atomically.",
+        ),
+    ] = None,
+) -> None:
+    """Qualify streaming LiDAR integrity on frozen synthetic and public inputs."""
+
+    try:
+        report = qualify_lidar_integrity(
+            gate_path=gate,
+            profile_path=profile,
+            split_manifest_path=split_manifest,
+            numerical_charter_path=charter,
+            representative_fault_matrix_path=fault_matrix,
+            data_manifest_path=data_manifest,
+            public_data_root=public_data_root,
+        )
+        _write_report(report, output)
+    except (OSError, ValueError, ValidationError) as error:
+        typer.echo(f"LiDAR integrity qualification failed: {error}", err=True)
         raise typer.Exit(code=2) from error
     if not report["accepted"]:
         raise typer.Exit(code=1)

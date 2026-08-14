@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "gate_id": "m4.1-lidar-integrity-v1",
+  "gate_version": "1.0.0",
+  "freeze_state": "FROZEN_AFTER_PREACCEPTANCE_AUDIT_BEFORE_M4_1_ACCEPTANCE",
+  "hash_contract": "SHA-256 of canonical UTF-8 JSON with immutable_sha256 omitted",
+  "immutable_sha256": "ff7da9dd5d49d8cf3ec1df68a591fa75f03ca7a0703feda5ac3aedea6531419e",
+  "claim_scope": "Synthetic engineering and calibration qualification plus bounded-memory public smoke; no confirmatory, final-test, or release claim",
+  "matrix_status": "ENGINEERING_SUPPLEMENT_TO_BE_MERGED_INTO_CARTOSENTRY_V1_CORE_AT_M11_1",
+  "authorities": {
+    "profile_file_sha256": "4f0b83080762db586df1921ebfc71fa5bad6a09a19d957710c7048e5a1e1a90e",
+    "profile_immutable_sha256": "ab7b89360fdc136752f7c89c301dd4de42f28181cc020e60d2e759afe1ae5aad",
+    "split_manifest_file_sha256": "ed028d3a7b4062edca754e095a040843a63b8ca45aeb059018dff0b353021aaf",
+    "numerical_charter_file_sha256": "c993ee0db9ffec8ad7fa987cd64ab86516405d441e038d4dbfce00fdbaf25aec",
+    "representative_fault_matrix_file_sha256": "e565290f8e7da79f44d9bf6a9c33fb85c7a21fa345a1f07c5d01fba83460ed24"
+  },
+  "partitions": {
+    "development": {
+      "family_prefix": "sensor-map-dev-",
+      "family_count": 8,
+      "claim_status": "DESCRIPTIVE_ONLY"
+    },
+    "threshold_calibration": {
+      "family_prefix": "sensor-map-cal-",
+      "family_count": 12,
+      "claim_status": "CALIBRATION_ONLY"
+    }
+  },
+  "operators": [
+    {
+      "operator_id": "lidar.scan_loss",
+      "cases": [
+        {"case_id": "scan-loss-1", "severity": "below_threshold", "parameters": {"drop_frames": 1}, "expected_rule": "frame_cadence"},
+        {"case_id": "scan-loss-2", "severity": "near_threshold", "parameters": {"drop_frames": 2}, "expected_rule": "frame_cadence"},
+        {"case_id": "scan-loss-3", "severity": "detectable", "parameters": {"drop_frames": 3}, "expected_rule": "frame_cadence"}
+      ]
+    },
+    {
+      "operator_id": "lidar.ring_loss",
+      "cases": [
+        {"case_id": "ring-loss-1-frame", "severity": "below_threshold", "parameters": {"ring_count": 1, "duration_frames": 1}, "expected_rule": null},
+        {"case_id": "ring-loss-2-frames", "severity": "near_threshold", "parameters": {"ring_count": 1, "duration_frames": 2}, "expected_rule": "ring_loss"},
+        {"case_id": "ring-loss-2-rings-4-frames", "severity": "detectable", "parameters": {"ring_count": 2, "duration_frames": 4}, "expected_rule": "ring_loss"}
+      ]
+    },
+    {
+      "operator_id": "lidar.sector_loss",
+      "cases": [
+        {"case_id": "sector-loss-22p5deg-1-frame", "severity": "below_threshold", "parameters": {"start_deg": 0.0, "width_deg": 22.5, "duration_frames": 1}, "expected_rule": null},
+        {"case_id": "sector-loss-45deg-2-frames", "severity": "near_threshold", "parameters": {"start_deg": 0.0, "width_deg": 45.0, "duration_frames": 2}, "expected_rule": "sector_loss"},
+        {"case_id": "sector-loss-90deg-4-frames", "severity": "detectable", "parameters": {"start_deg": 0.0, "width_deg": 90.0, "duration_frames": 4}, "expected_rule": "sector_loss"}
+      ]
+    },
+    {
+      "operator_id": "lidar.density_reduction",
+      "cases": [
+        {"case_id": "density-retain-95pct-1-frame", "severity": "below_threshold", "parameters": {"retain_fraction": 0.95, "duration_frames": 1, "mode": "spatially_uniform"}, "expected_rule": null},
+        {"case_id": "density-retain-90pct-2-frames", "severity": "near_threshold", "parameters": {"retain_fraction": 0.9, "duration_frames": 2, "mode": "spatially_uniform"}, "expected_rule": null},
+        {"case_id": "density-retain-50pct-4-frames", "severity": "detectable", "parameters": {"retain_fraction": 0.5, "duration_frames": 4, "mode": "sector_biased"}, "expected_rule": "density"}
+      ]
+    },
+    {
+      "operator_id": "lidar.nonfinite",
+      "cases": [
+        {"case_id": "nonfinite-1-position", "severity": "below_threshold", "parameters": {"record_count": 1, "field": "position_x", "value": "NAN"}, "expected_rule": "nonfinite"},
+        {"case_id": "nonfinite-2-intensity", "severity": "near_threshold", "parameters": {"record_count": 2, "field": "intensity", "value": "POSITIVE_INFINITY"}, "expected_rule": "nonfinite"},
+        {"case_id": "nonfinite-4-point-time", "severity": "detectable", "parameters": {"record_count": 4, "field": "relative_time", "value": "NEGATIVE_INFINITY"}, "expected_rule": "nonfinite"}
+      ]
+    },
+    {
+      "operator_id": "lidar.range_scale",
+      "cases": [
+        {"case_id": "range-scale-1p01", "severity": "below_threshold", "parameters": {"scale": 1.01, "duration_frames": 1}, "expected_rule": null},
+        {"case_id": "range-scale-1p5", "severity": "near_threshold", "parameters": {"scale": 1.5, "duration_frames": 2}, "expected_rule": null},
+        {"case_id": "range-scale-3", "severity": "detectable", "parameters": {"scale": 3.0, "duration_frames": 4}, "expected_rule": "range"}
+      ]
+    },
+    {
+      "operator_id": "lidar.point_time_corruption",
+      "cases": [
+        {"case_id": "point-time-shift-10ms", "severity": "below_threshold", "parameters": {"variant": "shift", "shift_ns": 10000000, "duration_frames": 1}, "expected_rule": null},
+        {"case_id": "point-time-shift-30ms", "severity": "near_threshold", "parameters": {"variant": "shift", "shift_ns": 30000000, "duration_frames": 2}, "expected_rule": null},
+        {"case_id": "point-time-shift-100ms", "severity": "detectable", "parameters": {"variant": "shift", "shift_ns": 100000000, "duration_frames": 4}, "expected_rule": "point_time"},
+        {"case_id": "point-time-reverse", "severity": "detectable", "parameters": {"variant": "reverse", "shift_ns": 0, "duration_frames": 2}, "expected_rule": "point_time"},
+        {"case_id": "point-time-clamp", "severity": "detectable", "parameters": {"variant": "clamp", "shift_ns": 0, "duration_frames": 2}, "expected_rule": "scan_duration"}
+      ]
+    }
+  ],
+  "gates": {
+    "structural_expected_outcome_fraction": {"operator": "fraction_eq", "value": 1.0, "unit": "fraction"},
+    "supported_coverage_expected_outcome_fraction": {"operator": "fraction_eq", "value": 1.0, "unit": "fraction"},
+    "clean_false_critical_count": {"operator": "max_le", "value": 0, "unit": "count"},
+    "event_boundary_error_frames": {"operator": "max_le", "value": 1, "unit": "frame"},
+    "public_smoke_peak_traced_bytes": {"operator": "max_le", "value": 67108864, "unit": "byte"}
+  }
+}

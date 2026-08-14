@@ -48,6 +48,11 @@ Every trajectory and timestamp family has below-threshold, near-threshold, and d
 The synthetic generator exposes a 32-column lidar control for the frozen 5-degree sector case.
 Its default remains the compact 16-column fixture set.
 
+M4.1 adds an authenticated engineering supplement for streaming LiDAR qualification without modifying the already accepted M3 matrix snapshot.
+The supplement covers `lidar.scan_loss`, `lidar.ring_loss`, `lidar.sector_loss`, `lidar.density_reduction`, `lidar.nonfinite`, `lidar.range_scale`, and `lidar.point_time_corruption` through typed in-memory derivatives.
+M11.1 is the required merge point for these proven operators into the sole complete release matrix.
+See `docs/lidar_integrity.md` for the detector contract, truth schema, public memory smoke, and interpretation limits.
+
 ## Inject and verify
 
 The clean-source truth argument is a file, not a caller-supplied hash, so the public command binds the manifest to an artifact that exists before injection.
