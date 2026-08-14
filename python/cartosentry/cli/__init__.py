@@ -35,6 +35,7 @@ from cartosentry.ingestion import (
     load_ingestion_budget,
 )
 from cartosentry.qualification import qualify_contracts
+from cartosentry.recovery import qualify_run_recovery, resume_registered_run
 from cartosentry.scheduler import qualify_scheduler
 from cartosentry.spikes import qualify_observability
 from cartosentry.synthetic import materialize_fixture_set, qualify_fixture_set
@@ -403,6 +404,86 @@ def qualify_scheduler_command(
         _write_report(report.portable_dict(), None)
     except (OSError, ValueError, ValidationError) as error:
         typer.echo(f"Scheduler qualification failed: {error}", err=True)
+        raise typer.Exit(code=2) from error
+    if not report.accepted:
+        raise typer.Exit(code=1)
+
+
+@app.command("resume-run")
+def resume_run_command(
+    run_root: Annotated[
+        Path,
+        typer.Argument(
+            exists=True,
+            file_okay=False,
+            dir_okay=True,
+            readable=True,
+            resolve_path=True,
+            help="Existing CartoSentry run directory.",
+        ),
+    ],
+    force_stage: Annotated[
+        str | None,
+        typer.Option(
+            "--force-stage",
+            help="Invalidate and execute only this stage and its dependency closure.",
+        ),
+    ] = None,
+    dry_run: Annotated[
+        bool,
+        typer.Option(
+            "--dry-run",
+            help="Show the force-stage scope without changing the run.",
+        ),
+    ] = False,
+) -> None:
+    """Reconcile hashes and resume a registered persisted workflow."""
+
+    try:
+        if dry_run and force_stage is None:
+            raise ValueError("--dry-run requires --force-stage")
+        if force_stage is not None and not dry_run:
+            preview = resume_registered_run(
+                run_root,
+                force_stage=force_stage,
+                dry_run=True,
+            )
+            typer.echo(
+                "Force-stage scope: " + ", ".join(preview.forced_scope),
+                err=True,
+            )
+        report = resume_registered_run(
+            run_root,
+            force_stage=force_stage,
+            dry_run=dry_run,
+        )
+        _write_report(report.portable_dict(), None)
+    except (OSError, RuntimeError, ValueError, ValidationError) as error:
+        typer.echo(f"Run resume failed: {error}", err=True)
+        raise typer.Exit(code=2) from error
+    if not dry_run and not report.complete:
+        raise typer.Exit(code=1)
+
+
+@app.command("qualify-run-recovery")
+def qualify_run_recovery_command(
+    output_root: Annotated[
+        Path,
+        typer.Argument(
+            file_okay=False,
+            dir_okay=True,
+            resolve_path=True,
+            help="New output directory for interruption and recovery evidence.",
+        ),
+    ],
+) -> None:
+    """Kill stages at every commit boundary and verify exact resume semantics."""
+
+    try:
+        report = qualify_run_recovery(output_root)
+        _write_report(report.portable_dict(), None)
+    except (OSError, RuntimeError, ValueError, ValidationError) as error:
+        typer.echo(f"Run recovery qualification failed: {error}", err=True)
         raise typer.Exit(code=2) from error
     if not report.accepted:
         raise typer.Exit(code=1)
