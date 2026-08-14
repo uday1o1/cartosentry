@@ -1,0 +1,126 @@
+schema_version: 1
+milestone: M0.3b
+observed_at: "2026-08-13"
+decision: feasible
+release_scope: post-v1-only
+reason: >-
+  The public wheel loads generated V4 pose, camera, lidar, and radar data on
+  both required platforms, but an adapter must supply CartoSentry timestamp,
+  lineage, calibration-identity, and typed radar-field contracts.
+package:
+  name: nvidia-ncore
+  version: 19.5.1
+  filename: nvidia_ncore-19.5.1-py3-none-any.whl
+  size_bytes: 115543
+  url: https://files.pythonhosted.org/packages/a0/c1/4e417aca37daae1ced7515b3f24912245b35cea4696359c1ebb32127c665/nvidia_ncore-19.5.1-py3-none-any.whl
+  sha256: a753f81470ba1b35567cbca26794a7f9ceefe04ec306b962a52dd18dc988fe29
+  requires_python: ">=3.8"
+  wheel_tag: py3-none-any
+  license: Apache-2.0
+  pypi: https://pypi.org/project/nvidia-ncore/19.5.1/
+source:
+  repository: https://github.com/NVIDIA/ncore
+  tag: v19.5.1
+  commit: cbd8c16f3487186e8848e707eece0045ece3a058
+  release_date: "2026-08-05"
+  license: https://github.com/NVIDIA/ncore/blob/v19.5.1/LICENSE
+documentation:
+  installation: https://nvidia.github.io/ncore/apis/install.html
+  v4_loading: https://nvidia.github.io/ncore/tutorial/data_loading.html
+  conventions: https://nvidia.github.io/ncore/data/conventions.html
+fixture:
+  kind: deterministic-generated-v4
+  external_bytes: false
+  generator: tools/ncore_v4_probe.py
+  store_type: directory
+  modalities:
+    - pose
+    - camera
+    - lidar
+    - radar
+environments:
+  macos-arm64:
+    result: pass
+    os: macOS 26.5.2
+    machine: arm64
+    python: 3.12.13
+    installer: uv 0.11.23
+    elapsed_seconds: 45.1
+    resolved_packages: 28
+    versions:
+      cbor2: 6.1.4
+      dataclasses-json: 0.6.7
+      numpy: 2.5.2
+      nvidia-ncore: 19.5.1
+      pillow: 12.3.0
+      scipy: 1.18.0
+      torch: 2.13.0
+      typing-extensions: 4.16.0
+      universal-pathlib: 0.3.10
+      zarr: 2.18.7
+  linux-x86-64:
+    result: pass
+    image: python:3.12.13-slim-bookworm@sha256:6e13e65c55e33adf203d77ee371cf8bf5d81bd4902ef07565721f46bf44917af
+    machine: x86_64
+    python: 3.12.13
+    installer: pip 25.0.1
+    elapsed_seconds: 593.1
+    resolved_packages: 47
+    default_gpu_dependency_families:
+      - CUDA 13
+      - cuDNN
+      - NCCL
+      - NVSHMEM
+      - Triton
+    versions:
+      cbor2: 6.1.4
+      dataclasses-json: 0.6.7
+      numpy: 2.5.2
+      nvidia-ncore: 19.5.1
+      pillow: 12.3.0
+      scipy: 1.18.0
+      torch: 2.13.0
+      typing-extensions: 4.16.0
+      universal-pathlib: 0.3.10
+      zarr: 2.18.7
+capabilities:
+  python:
+    status: supported-with-gap
+    observed: Python 3.12.13 imported the wheel on both required platforms.
+    gap: The wheel declares Python >=3.8 without an upper bound.
+  dependencies:
+    status: supported-with-gap
+    observed: The isolated default resolver completed on both required platforms.
+    gap: Direct dependencies are broadly constrained and torch is mandatory for format-only use.
+  platform:
+    status: supported
+    observed: The same generated V4 observations loaded on macOS ARM64 and Linux x86-64.
+    gap: The pure Python wheel still depends on platform-specific transitive wheels.
+  timestamps:
+    status: adapter-required
+    observed: Frame intervals and lidar and radar per-ray timestamps round-trip as uint64 microseconds.
+    gap: Epoch, clock identifier, time reference, signed nanoseconds, and raw-field provenance are not typed.
+  calibration:
+    status: adapter-required
+    observed: Named-frame static extrinsics and typed camera and lidar intrinsics round-trip.
+    gap: Calibration identity, validity interval, uncertainty, and a typed radar model are not provided.
+  pose:
+    status: adapter-required
+    observed: Named dynamic 4x4 poses and uint64 microsecond samples interpolate through the pose graph.
+    gap: Pose uncertainty, quality, source lineage, and CartoSentry global-coordinate semantics need adapter data.
+  camera:
+    status: supported-with-gap
+    observed: Encoded PNG data, start and end timestamps, extrinsics, and ideal pinhole intrinsics round-trip.
+    gap: Source-object lineage and explicit clock semantics need adapter data.
+  lidar:
+    status: supported-with-gap
+    observed: Per-ray time, direction, model element, distance, intensity, frame interval, extrinsics, and structured intrinsics round-trip.
+    gap: Source-object lineage and explicit clock semantics need adapter data.
+  radar:
+    status: adapter-required
+    observed: Per-detection time, direction, distance, frame interval, and extrinsics round-trip.
+    gap: Velocity, RCS, status, and radar model fields are generic arrays rather than stable typed contracts.
+  writer_api:
+    status: adapter-required
+    observed: The public V4 writer and reader APIs created and loaded the generated sample.
+    gap: Constructing the required sequence interval uses ncore.impl.common.transformations.HalfClosedInterval.
