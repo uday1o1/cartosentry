@@ -139,6 +139,25 @@ def test_metadata_exposes_supported_and_optional_capabilities(tmp_path: Path) ->
     ]
 
 
+def test_missing_optional_calibrations_remain_explicitly_optional(
+    tmp_path: Path,
+) -> None:
+    sequence = _build_fixture(tmp_path)
+    (sequence / "calib/T_camera_lidar.txt").unlink()
+    (sequence / "calib/T_radar_lidar.txt").unlink()
+    adapter = _adapter(sequence)
+    calibrations = tuple(adapter.calibrations())
+    assert [item.calibration_key for item in calibrations] == [
+        "calib/T_applanix_lidar.txt"
+    ]
+    assert [item.source_key for item in adapter.source_files()] == [
+        "applanix/gps_post_process.csv",
+        "applanix/lidar_poses.csv",
+        "calib/T_applanix_lidar.txt",
+        "lidar/1000000.bin",
+    ]
+
+
 def test_trajectory_iterator_preserves_time_geography_motion_and_raw_row(
     tmp_path: Path,
 ) -> None:

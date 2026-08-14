@@ -1,5 +1,6 @@
 """Production input adapters and their qualification reports."""
 
+from .base import AdapterSourceFile
 from .boreas import BoreasGate, inspect_boreas
 from .boreas_v1 import (
     BoreasAdapter,
@@ -9,6 +10,7 @@ from .boreas_v1 import (
 )
 
 __all__ = [
+    "AdapterSourceFile",
     "BoreasAdapter",
     "BoreasAdapterError",
     "BoreasGate",

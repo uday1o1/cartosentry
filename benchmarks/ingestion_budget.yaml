@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "budget_id": "m2.2-v1",
+  "hash_chunk_bytes": 1048576,
+  "index_batch_bytes": 1048576,
+  "maximum_source_files": 100000,
+  "maximum_structural_findings": 4096
+}

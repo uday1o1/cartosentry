@@ -65,6 +65,18 @@ class AdapterSensorDescriptor(ContractModel):
     required_calibration_keys: tuple[PortableKey, ...]
 
 
+class AdapterSourceFile(ContractModel):
+    """One immutable source snapshot selected by an adapter."""
+
+    source_key: PortableKey
+    byte_count: NonnegativeInt
+    modified_time_ns: NonnegativeInt
+    device_id: NonnegativeInt
+    file_id: NonnegativeInt
+    required_for_v1: bool
+    media_type: Identifier
+
+
 class SourceProvenance(ContractModel):
     source_key: PortableKey
     record_index: NonnegativeInt
@@ -172,11 +184,18 @@ class ReadOnlyAdapter(Protocol):
 
     def lidar_points(self, frame: LidarFrameView) -> Iterator[LidarPointView]: ...
 
+    def source_files(self) -> Iterator[AdapterSourceFile]: ...
+
+    def source_chunks(
+        self, source: AdapterSourceFile, *, chunk_bytes: int
+    ) -> Iterator[bytes]: ...
+
 
 __all__ = [
     "AdapterCapability",
     "AdapterSensorDescriptor",
     "AdapterSequenceMetadata",
+    "AdapterSourceFile",
     "CalibrationView",
     "CapabilityState",
     "FramePayloadHandle",

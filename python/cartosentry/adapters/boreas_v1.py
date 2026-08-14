@@ -30,6 +30,7 @@ from .base import (
     AdapterCapability,
     AdapterSensorDescriptor,
     AdapterSequenceMetadata,
+    AdapterSourceFile,
     CalibrationView,
     CapabilityState,
     FramePayloadHandle,
@@ -84,6 +85,19 @@ LIDAR_RECORDS_PER_CHUNK: Final = 4096
 class BoreasAdapterError(ValueError):
     """Safe source-key-only adapter error."""
 
+    def __init__(
+        self,
+        message: str,
+        *,
+        source_key: str = "sequence",
+        record: int = 0,
+        field: str = "",
+    ) -> None:
+        super().__init__(message)
+        self.source_key = source_key
+        self.record = record
+        self.field = field
+
 
 def _error(source_key: str, record: int, field: str, detail: str) -> BoreasAdapterError:
     location = source_key
@@ -91,7 +105,12 @@ def _error(source_key: str, record: int, field: str, detail: str) -> BoreasAdapt
         location += f":record-{record}"
     if field:
         location += f":{field}"
-    return BoreasAdapterError(f"Invalid Boreas input at {location}: {detail}")
+    return BoreasAdapterError(
+        f"Invalid Boreas input at {location}: {detail}",
+        source_key=source_key,
+        record=record,
+        field=field,
+    )
 
 
 def _float(lexeme: str, source_key: str, record: int, field: str) -> float:
@@ -201,8 +220,9 @@ class BoreasAdapter:
         self._source_group_id = source_group_id
         self._require_file(GPS_SOURCE)
         self._require_file(LIDAR_POSE_SOURCE)
-        for source_key, _, _, _ in CALIBRATIONS:
-            self._require_file(source_key)
+        for source_key, _, _, required in CALIBRATIONS:
+            if required:
+                self._require_file(source_key)
         lidar_directory = self._path(LIDAR_DIRECTORY)
         if not lidar_directory.is_dir():
             raise _error(LIDAR_DIRECTORY, 0, "", "directory is unavailable")
@@ -490,6 +510,9 @@ class BoreasAdapter:
 
     def calibrations(self) -> Iterator[CalibrationView]:
         for source_key, target_frame, source_frame, required in CALIBRATIONS:
+            path = self._path(source_key)
+            if not path.is_file() and not required:
+                continue
             path = self._require_file(source_key)
             try:
                 rows = path.read_text(encoding="utf-8").splitlines()
@@ -543,6 +566,94 @@ class BoreasAdapter:
                 ),
                 raw_row_major_4x4_lexemes=tuple(lexemes),
                 required_for_v1=required,
+            )
+
+    def source_files(self) -> Iterator[AdapterSourceFile]:
+        """Yield the exact selected V1 sources in portable key order."""
+
+        calibration_required = {item[0]: item[3] for item in CALIBRATIONS}
+        source_keys = sorted(
+            (
+                GPS_SOURCE,
+                LIDAR_POSE_SOURCE,
+                *(
+                    source_key
+                    for source_key, _, _, required in CALIBRATIONS
+                    if required or self._path(source_key).is_file()
+                ),
+                *self._frame_source_keys,
+            )
+        )
+        for source_key in source_keys:
+            path = self._require_file(source_key)
+            try:
+                snapshot = path.stat()
+            except OSError as error:
+                raise _error(
+                    source_key, 0, "", "source metadata read failed"
+                ) from error
+            media_type = (
+                "application-octet-stream"
+                if source_key.endswith(".bin")
+                else "text-csv"
+                if source_key.endswith(".csv")
+                else "text-plain"
+            )
+            yield AdapterSourceFile(
+                source_key=source_key,
+                byte_count=snapshot.st_size,
+                modified_time_ns=snapshot.st_mtime_ns,
+                device_id=snapshot.st_dev,
+                file_id=snapshot.st_ino,
+                required_for_v1=(
+                    source_key in {GPS_SOURCE, LIDAR_POSE_SOURCE}
+                    or source_key.endswith(".bin")
+                    or calibration_required.get(source_key, False)
+                ),
+                media_type=media_type,
+            )
+
+    def source_chunks(
+        self, source: AdapterSourceFile, *, chunk_bytes: int
+    ) -> Iterator[bytes]:
+        """Read one snapshotted source through a bounded binary buffer."""
+
+        if chunk_bytes <= 0:
+            raise ValueError("source chunk size must be positive")
+        path = self._require_file(source.source_key)
+        try:
+            before = path.stat()
+            if (
+                before.st_size != source.byte_count
+                or before.st_mtime_ns != source.modified_time_ns
+                or before.st_dev != source.device_id
+                or before.st_ino != source.file_id
+            ):
+                raise _error(
+                    source.source_key,
+                    0,
+                    "source_snapshot",
+                    "source changed after enumeration",
+                )
+            total = 0
+            with path.open("rb") as stream:
+                while chunk := stream.read(chunk_bytes):
+                    total += len(chunk)
+                    yield chunk
+            after = path.stat()
+        except OSError as error:
+            raise _error(source.source_key, 0, "", "binary read failed") from error
+        if total != source.byte_count or (
+            after.st_size != source.byte_count
+            or after.st_mtime_ns != source.modified_time_ns
+            or after.st_dev != source.device_id
+            or after.st_ino != source.file_id
+        ):
+            raise _error(
+                source.source_key,
+                0,
+                "source_snapshot",
+                "source changed during hashing",
             )
 
     def frames(self) -> Iterator[LidarFrameView]:

@@ -30,6 +30,10 @@ from cartosentry.faults import (
     materialize_fault_result,
     verify_fault_result,
 )
+from cartosentry.ingestion import (
+    index_boreas_recording,
+    load_ingestion_budget,
+)
 from cartosentry.qualification import qualify_contracts
 from cartosentry.spikes import qualify_observability
 from cartosentry.synthetic import materialize_fixture_set, qualify_fixture_set
@@ -297,6 +301,73 @@ def qualify_boreas_adapter_command(
         typer.echo(f"Boreas adapter qualification failed: {error}", err=True)
         raise typer.Exit(code=2) from error
     if not report["accepted"]:
+        raise typer.Exit(code=1)
+
+
+@app.command("index-boreas")
+def index_boreas_command(
+    sequence_root: Annotated[
+        Path,
+        typer.Argument(
+            exists=True,
+            file_okay=False,
+            dir_okay=True,
+            readable=True,
+            resolve_path=True,
+            help="Root of one locally materialized Boreas sequence.",
+        ),
+    ],
+    output: Annotated[
+        Path,
+        typer.Argument(
+            file_okay=False,
+            dir_okay=True,
+            resolve_path=True,
+            help="New directory for the atomically published manifest and index.",
+        ),
+    ],
+    split_manifest: Annotated[
+        Path,
+        typer.Option(
+            "--split-manifest",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen source-group assignment.",
+        ),
+    ] = Path("benchmarks/split_manifest.yaml"),
+    budget_path: Annotated[
+        Path,
+        typer.Option(
+            "--budget",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen ingestion memory and safety budget.",
+        ),
+    ] = Path("benchmarks/ingestion_budget.yaml"),
+) -> None:
+    """Hash, inspect, and atomically index an immutable Boreas recording."""
+
+    try:
+        source_group_id = source_group_for_sequence(sequence_root.name, split_manifest)
+        budget, budget_sha256 = load_ingestion_budget(budget_path)
+        report = index_boreas_recording(
+            sequence_root,
+            output,
+            source_group_id=source_group_id,
+            budget=budget,
+            budget_sha256=budget_sha256,
+        )
+        _write_report(report.portable_dict(), None)
+    except (OSError, ValueError, ValidationError) as error:
+        typer.echo(f"Boreas indexing failed: {error}", err=True)
+        raise typer.Exit(code=2) from error
+    if not report.accepted:
         raise typer.Exit(code=1)
 
 
