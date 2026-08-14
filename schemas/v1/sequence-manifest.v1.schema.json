@@ -1,0 +1,527 @@
+{
+  "$defs": {
+    "AdapterIdentity": {
+      "additionalProperties": false,
+      "properties": {
+        "adapter_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Adapter Id",
+          "type": "string"
+        },
+        "adapter_version": {
+          "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$",
+          "title": "Adapter Version",
+          "type": "string"
+        },
+        "capabilities": {
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+            "type": "string"
+          },
+          "title": "Capabilities",
+          "type": "array"
+        }
+      },
+      "required": [
+        "adapter_id",
+        "adapter_version",
+        "capabilities"
+      ],
+      "title": "AdapterIdentity",
+      "type": "object"
+    },
+    "CalibrationIdentity": {
+      "additionalProperties": false,
+      "properties": {
+        "calibration_id": {
+          "pattern": "^[a-z][a-z0-9-]*-sha256-[0-9a-f]{64}$",
+          "title": "Calibration Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "source_frame": {
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Source Frame",
+          "type": "string"
+        },
+        "target_frame": {
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Target Frame",
+          "type": "string"
+        }
+      },
+      "required": [
+        "calibration_id",
+        "sha256",
+        "target_frame",
+        "source_frame"
+      ],
+      "title": "CalibrationIdentity",
+      "type": "object"
+    },
+    "CoordinateMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "global_frame": {
+          "const": "WGS84",
+          "title": "Global Frame",
+          "type": "string"
+        },
+        "local_frame": {
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Local Frame",
+          "type": "string"
+        },
+        "rig_frame": {
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Rig Frame",
+          "type": "string"
+        },
+        "vertical_datum": {
+          "$ref": "#/$defs/VerticalDatum"
+        }
+      },
+      "required": [
+        "global_frame",
+        "local_frame",
+        "rig_frame",
+        "vertical_datum"
+      ],
+      "title": "CoordinateMetadata",
+      "type": "object"
+    },
+    "DeclaredGap": {
+      "additionalProperties": false,
+      "properties": {
+        "interval": {
+          "$ref": "#/$defs/SourceInterval"
+        },
+        "reason": {
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "stream_id": {
+          "pattern": "^stream-[a-z0-9-]+-[a-z0-9-]+-[0-9a-f]{64}$",
+          "title": "Stream Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "stream_id",
+        "interval",
+        "reason"
+      ],
+      "title": "DeclaredGap",
+      "type": "object"
+    },
+    "RawTime": {
+      "additionalProperties": false,
+      "description": "Lossless source timestamp representation and conversion provenance.",
+      "properties": {
+        "decimal_lexeme": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Decimal Lexeme"
+        },
+        "encoded_bytes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Encoded Bytes"
+        },
+        "encoding": {
+          "$ref": "#/$defs/RawTimeEncoding"
+        },
+        "epoch": {
+          "$ref": "#/$defs/TimeEpoch"
+        },
+        "field": {
+          "minLength": 1,
+          "title": "Field",
+          "type": "string"
+        },
+        "integer_value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Integer Value"
+        },
+        "maximum_conversion_error_ns": {
+          "minimum": 0.0,
+          "title": "Maximum Conversion Error Ns",
+          "type": "number"
+        },
+        "reference": {
+          "$ref": "#/$defs/TimeReference"
+        },
+        "rounding": {
+          "$ref": "#/$defs/TimeRounding"
+        },
+        "source_key": {
+          "minLength": 1,
+          "title": "Source Key",
+          "type": "string"
+        },
+        "unit": {
+          "minLength": 1,
+          "title": "Unit",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_key",
+        "field",
+        "unit",
+        "epoch",
+        "reference",
+        "encoding",
+        "rounding",
+        "maximum_conversion_error_ns"
+      ],
+      "title": "RawTime",
+      "type": "object"
+    },
+    "RawTimeEncoding": {
+      "enum": [
+        "decimal_lexeme",
+        "signed_integer",
+        "unsigned_integer",
+        "encoded_bytes"
+      ],
+      "title": "RawTimeEncoding",
+      "type": "string"
+    },
+    "SensorDescriptor": {
+      "additionalProperties": false,
+      "properties": {
+        "calibration_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9-]*-sha256-[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "title": "Calibration Ids",
+          "type": "array"
+        },
+        "coordinate_frame": {
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_.:-]+$",
+          "title": "Coordinate Frame",
+          "type": "string"
+        },
+        "modality": {
+          "$ref": "#/$defs/SensorModality"
+        },
+        "sensor_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Sensor Id",
+          "type": "string"
+        },
+        "stream_id": {
+          "pattern": "^stream-[a-z0-9-]+-[a-z0-9-]+-[0-9a-f]{64}$",
+          "title": "Stream Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "stream_id",
+        "modality",
+        "sensor_id",
+        "coordinate_frame",
+        "calibration_ids"
+      ],
+      "title": "SensorDescriptor",
+      "type": "object"
+    },
+    "SensorModality": {
+      "enum": [
+        "camera",
+        "gnss",
+        "imu",
+        "lidar",
+        "radar",
+        "trajectory"
+      ],
+      "title": "SensorModality",
+      "type": "string"
+    },
+    "SourceFile": {
+      "additionalProperties": false,
+      "properties": {
+        "byte_count": {
+          "minimum": 0,
+          "title": "Byte Count",
+          "type": "integer"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "source_key": {
+          "minLength": 1,
+          "title": "Source Key",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_key",
+        "sha256",
+        "byte_count"
+      ],
+      "title": "SourceFile",
+      "type": "object"
+    },
+    "SourceInterval": {
+      "additionalProperties": false,
+      "properties": {
+        "end": {
+          "$ref": "#/$defs/TimePoint"
+        },
+        "start": {
+          "$ref": "#/$defs/TimePoint"
+        }
+      },
+      "required": [
+        "start",
+        "end"
+      ],
+      "title": "SourceInterval",
+      "type": "object"
+    },
+    "SourcePartition": {
+      "enum": [
+        "development",
+        "policy_tuning",
+        "final_test"
+      ],
+      "title": "SourcePartition",
+      "type": "string"
+    },
+    "TimeEpoch": {
+      "enum": [
+        "UNIX_UTC",
+        "GPS",
+        "SENSOR_BOOT",
+        "HOST_MONOTONIC",
+        "UNKNOWN"
+      ],
+      "title": "TimeEpoch",
+      "type": "string"
+    },
+    "TimePoint": {
+      "additionalProperties": false,
+      "description": "Tagged canonical timestamp with exact signed-int64 nanoseconds.",
+      "properties": {
+        "clock_id": {
+          "minLength": 1,
+          "title": "Clock Id",
+          "type": "string"
+        },
+        "epoch": {
+          "$ref": "#/$defs/TimeEpoch"
+        },
+        "raw": {
+          "$ref": "#/$defs/RawTime"
+        },
+        "reference": {
+          "$ref": "#/$defs/TimeReference"
+        },
+        "value_ns": {
+          "maximum": 9223372036854775807,
+          "minimum": -9223372036854775808,
+          "title": "Value Ns",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "value_ns",
+        "epoch",
+        "clock_id",
+        "reference",
+        "raw"
+      ],
+      "title": "TimePoint",
+      "type": "object"
+    },
+    "TimeReference": {
+      "enum": [
+        "EXPOSURE_START",
+        "EXPOSURE_MIDPOINT",
+        "EXPOSURE_END",
+        "SCAN_START",
+        "SCAN_MIDPOINT",
+        "SCAN_END",
+        "SAMPLE",
+        "PER_POINT",
+        "PER_AZIMUTH",
+        "UNKNOWN"
+      ],
+      "title": "TimeReference",
+      "type": "string"
+    },
+    "TimeRounding": {
+      "enum": [
+        "exact",
+        "nearest_nanosecond_half_away_from_zero"
+      ],
+      "title": "TimeRounding",
+      "type": "string"
+    },
+    "TimestampMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "clock_id": {
+          "minLength": 1,
+          "title": "Clock Id",
+          "type": "string"
+        },
+        "epoch": {
+          "$ref": "#/$defs/TimeEpoch"
+        },
+        "raw_unit": {
+          "minLength": 1,
+          "title": "Raw Unit",
+          "type": "string"
+        },
+        "reference": {
+          "$ref": "#/$defs/TimeReference"
+        },
+        "stream_id": {
+          "pattern": "^stream-[a-z0-9-]+-[a-z0-9-]+-[0-9a-f]{64}$",
+          "title": "Stream Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "stream_id",
+        "epoch",
+        "clock_id",
+        "reference",
+        "raw_unit"
+      ],
+      "title": "TimestampMetadata",
+      "type": "object"
+    },
+    "VerticalDatum": {
+      "enum": [
+        "WGS84_ELLIPSOID",
+        "UNKNOWN_VERTICAL_DATUM"
+      ],
+      "title": "VerticalDatum",
+      "type": "string"
+    }
+  },
+  "$id": "https://schemas.cartosentry.dev/cartosentry.sequence-manifest.v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "adapter": {
+      "$ref": "#/$defs/AdapterIdentity"
+    },
+    "calibrations": {
+      "items": {
+        "$ref": "#/$defs/CalibrationIdentity"
+      },
+      "title": "Calibrations",
+      "type": "array"
+    },
+    "coordinate_metadata": {
+      "$ref": "#/$defs/CoordinateMetadata"
+    },
+    "declared_gaps": {
+      "items": {
+        "$ref": "#/$defs/DeclaredGap"
+      },
+      "title": "Declared Gaps",
+      "type": "array"
+    },
+    "partition": {
+      "$ref": "#/$defs/SourcePartition"
+    },
+    "schema_version": {
+      "const": "cartosentry.sequence-manifest.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "sensors": {
+      "items": {
+        "$ref": "#/$defs/SensorDescriptor"
+      },
+      "title": "Sensors",
+      "type": "array"
+    },
+    "sequence_id": {
+      "pattern": "^[a-z][a-z0-9-]*-sha256-[0-9a-f]{64}$",
+      "title": "Sequence Id",
+      "type": "string"
+    },
+    "source_files": {
+      "items": {
+        "$ref": "#/$defs/SourceFile"
+      },
+      "title": "Source Files",
+      "type": "array"
+    },
+    "source_group_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+      "title": "Source Group Id",
+      "type": "string"
+    },
+    "source_identity_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Identity Sha256",
+      "type": "string"
+    },
+    "timestamp_metadata": {
+      "items": {
+        "$ref": "#/$defs/TimestampMetadata"
+      },
+      "title": "Timestamp Metadata",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "sequence_id",
+    "source_identity_sha256",
+    "source_group_id",
+    "partition",
+    "adapter",
+    "sensors",
+    "source_files",
+    "calibrations",
+    "timestamp_metadata",
+    "coordinate_metadata",
+    "declared_gaps"
+  ],
+  "title": "SequenceManifest",
+  "type": "object"
+}

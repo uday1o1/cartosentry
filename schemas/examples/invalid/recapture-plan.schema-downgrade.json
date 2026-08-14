@@ -1,0 +1,40 @@
+{
+  "budget": {
+    "maximum_distance_m": 1000.0,
+    "maximum_duration_ns": null
+  },
+  "covered_requirement_ids": [
+    "requirement-sha256-e65f1896c7427afa5b003d3cf664cf935f45c1640aeea1f567e49d4bf53c80cf"
+  ],
+  "deferred_requirement_ids": [],
+  "depot_node_id": "depot",
+  "estimated_distance_m": 120.0,
+  "estimated_duration_ns": 20000000000,
+  "recapture_plan_id": "recapture-plan-sha256-929aa14ad6e374db31fe1bf4388c9a7f09ebba04b79a39453f5a28836ddd9578",
+  "requirements": [
+    {
+      "directed_arc_id": "arc-001",
+      "end_offset_m": 30.0,
+      "minimum_continuous_observation_m": 20.0,
+      "priority_weight": 10,
+      "reachability": "REACHABLE",
+      "reason": "The selected road bin lacks observable lidar support.",
+      "required_modality": "lidar",
+      "requirement_id": "requirement-sha256-e65f1896c7427afa5b003d3cf664cf935f45c1640aeea1f567e49d4bf53c80cf",
+      "road_bin_id": "road-bin-sha256-5f402440f57bb8d58b26f62107048cebc929e28a96d866e457421fd41ec36979",
+      "sensor_warmup_m": 5.0,
+      "start_offset_m": 10.0,
+      "traversal_direction": "FORWARD"
+    }
+  ],
+  "road_graph_id": "road-graph-sha256-4444444444444444444444444444444444444444444444444444444444444444",
+  "route_arc_ids": [
+    "connector-001",
+    "arc-001",
+    "connector-002"
+  ],
+  "run_id": "run-sha256-a6b66a960ebe3b9ceab5c564255482fe7bd0cb62ea5d1bdfd7ede7839b5cb204",
+  "schema_version": "cartosentry.recapture-plan.v0",
+  "unreachable_requirement_ids": [],
+  "validation_state": "PASS"
+}

@@ -34,6 +34,7 @@ include(cmake/CartoSentryDependencies.cmake)
 add_library(
   CartoSentryCore STATIC
   cpp/src/boreas_inspector.cpp
+  cpp/src/artifact_json.cpp
   cpp/src/geometry.cpp
   cpp/src/native_check.cpp
   cpp/src/observability.cpp
@@ -52,6 +53,7 @@ target_link_libraries(
     CartoSentry::Osmium
     CartoSentry::Sophus
     GeographicLib::GeographicLib
+    nlohmann_json::nlohmann_json
 )
 target_compile_features(CartoSentryCore PUBLIC cxx_std_20)
 cartosentry_enable_warnings(CartoSentryCore)
@@ -110,6 +112,7 @@ if(BUILD_TESTING)
   add_executable(
     cartosentry_core_tests
     cpp/tests/boreas_inspector_test.cpp
+    cpp/tests/artifact_json_test.cpp
     cpp/tests/contracts_test.cpp
     cpp/tests/native_check_test.cpp
     cpp/tests/observability_test.cpp

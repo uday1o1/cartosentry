@@ -1,0 +1,67 @@
+{
+  "accepted_intervals": [
+    {
+      "interval": {
+        "end": {
+          "clock_id": "synthetic-common",
+          "epoch": "UNIX_UTC",
+          "raw": {
+            "decimal_lexeme": null,
+            "encoded_bytes": null,
+            "encoding": "signed_integer",
+            "epoch": "UNIX_UTC",
+            "field": "timestamp",
+            "integer_value": "1000000000",
+            "maximum_conversion_error_ns": 0.0,
+            "reference": "SAMPLE",
+            "rounding": "exact",
+            "source_key": "synthetic/trajectory.json",
+            "unit": "ns"
+          },
+          "reference": "SAMPLE",
+          "value_ns": 1000000000
+        },
+        "start": {
+          "clock_id": "synthetic-common",
+          "epoch": "UNIX_UTC",
+          "raw": {
+            "decimal_lexeme": null,
+            "encoded_bytes": null,
+            "encoding": "signed_integer",
+            "epoch": "UNIX_UTC",
+            "field": "timestamp",
+            "integer_value": "0",
+            "maximum_conversion_error_ns": 0.0,
+            "reference": "SAMPLE",
+            "rounding": "exact",
+            "source_key": "synthetic/trajectory.json",
+            "unit": "ns"
+          },
+          "reference": "SAMPLE",
+          "value_ns": 0
+        }
+      },
+      "reason": "All mandatory requirements passed.",
+      "source_key": "synthetic/trajectory.json"
+    }
+  ],
+  "bundle_id": "accepted-bundle-sha256-fe85c61a2a475ccff4c21b4d8a9f1301c3176f1f1602b3362c78d8b527d105ef",
+  "derived_artifacts": [
+    {
+      "byte_count": 1024,
+      "media_type": "application/vnd.apache.parquet",
+      "sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+      "source_key": "/recordings/private/evidence.parquet"
+    }
+  ],
+  "excluded_intervals": [],
+  "immutable": true,
+  "profile_id": "structural-preflight-v1",
+  "raw_data_shards": [],
+  "required_calibration_ids": [
+    "calibration-sha256-7230102781840d9a49db98b1323efd5fde379d35b2400a01a553a3bcbb310ad7"
+  ],
+  "schema_version": "cartosentry.accepted-data-bundle.v1",
+  "sequence_id": "sequence-sha256-039f8b334fb5fd2ed65c8fd72f82a58a83645f67e91a2d2f18ce206a46eb3d6e",
+  "source_sequence_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+}

@@ -1,4 +1,5 @@
 #include "cartosentry/core/native_check.hpp"
+#include "cartosentry/contracts/artifact_json.hpp"
 #include "cartosentry/contracts/geometry.hpp"
 #include "cartosentry/contracts/time.hpp"
 #include "cartosentry/ingest/boreas_inspector.hpp"
@@ -333,6 +334,9 @@ PYBIND11_MODULE(_core, module) {
   py::register_exception<cartosentry::ingest::BoreasFormatError>(
       module, "BoreasFormatError", PyExc_ValueError);
   module.def("native_self_check", &cartosentry::core::native_self_check);
+  module.def("canonicalize_artifact_json",
+             &cartosentry::contracts::canonicalize_artifact_json,
+             py::arg("input_json"), py::arg("expected_schema"));
   module.def("checked_translation_norm",
              &cartosentry::core::checked_translation_norm);
   module.def("decimal_seconds_to_nanoseconds",

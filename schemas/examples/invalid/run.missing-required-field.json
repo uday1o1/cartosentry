@@ -1,0 +1,29 @@
+{
+  "artifacts": [
+    {
+      "byte_count": 1024,
+      "media_type": "application/vnd.apache.parquet",
+      "sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+      "source_key": "artifacts/evidence.parquet"
+    }
+  ],
+  "configuration_hashes": {
+    "engine": "5555555555555555555555555555555555555555555555555555555555555555",
+    "profile": "6666666666666666666666666666666666666666666666666666666666666666"
+  },
+  "engine_version": "0.1.0",
+  "profile_id": "structural-preflight-v1",
+  "road_graph_id": "road-graph-sha256-4444444444444444444444444444444444444444444444444444444444444444",
+  "schema_version": "cartosentry.run.v1",
+  "sequence_id": "sequence-sha256-039f8b334fb5fd2ed65c8fd72f82a58a83645f67e91a2d2f18ce206a46eb3d6e",
+  "stages": {
+    "structural-preflight": {
+      "attempt_id": "attempt-001",
+      "output_hashes": {
+        "evidence": "7777777777777777777777777777777777777777777777777777777777777777"
+      },
+      "state": "COMPLETE"
+    }
+  },
+  "state": "COMPLETE"
+}

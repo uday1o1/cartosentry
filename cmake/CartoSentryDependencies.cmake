@@ -123,6 +123,10 @@ target_link_libraries(
   BZip2::BZip2 EXPAT::EXPAT Threads::Threads ZLIB::ZLIB
 )
 
+cartosentry_declare_locked_archive(cartosentry_json_source nlohmann-json)
+FetchContent_MakeAvailable(cartosentry_json_source)
+set_property(TARGET nlohmann_json PROPERTY SYSTEM TRUE)
+
 if(BUILD_TESTING)
   cartosentry_locked_dependency_field(catch_archive catch2 archive_url)
   cartosentry_locked_dependency_field(catch_archive_sha256 catch2 archive_sha256)
@@ -182,7 +186,6 @@ if(CARTOSENTRY_BUILD_COMPATIBILITY_PROBE)
   set(YAML_CPP_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
 
   cartosentry_declare_locked_archive(cartosentry_fmt_source fmt)
-  cartosentry_declare_locked_archive(cartosentry_json_source nlohmann-json)
   cartosentry_declare_locked_archive(cartosentry_opencv_source opencv)
   cartosentry_declare_locked_archive(cartosentry_spdlog_source spdlog)
   cartosentry_declare_locked_archive(cartosentry_sqlite_source sqlite)
@@ -190,7 +193,6 @@ if(CARTOSENTRY_BUILD_COMPATIBILITY_PROBE)
 
   FetchContent_MakeAvailable(
     cartosentry_fmt_source
-    cartosentry_json_source
     cartosentry_opencv_source
     cartosentry_spdlog_source
     cartosentry_sqlite_source

@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "schemas": [
+    {
+      "path": "v1/sequence-manifest.v1.schema.json",
+      "schema": "cartosentry.sequence-manifest.v1",
+      "sha256": "dba87bbe430d5d9807bb2742a8b9399b669ec7e1c284ad2e53ec1b4d39f288e4"
+    },
+    {
+      "path": "v1/run.v1.schema.json",
+      "schema": "cartosentry.run.v1",
+      "sha256": "62f53f13bf80a281528d10121714a6487e6b7eec11fc3093fdf1a10bef3e2b32"
+    },
+    {
+      "path": "v1/finding.v1.schema.json",
+      "schema": "cartosentry.finding.v1",
+      "sha256": "46912609b7202d11f0a4500ba7ea3af45141bce30ca2d6a92566a9ac650aa6bb"
+    },
+    {
+      "path": "v1/readiness-profile.v1.schema.json",
+      "schema": "cartosentry.readiness-profile.v1",
+      "sha256": "6c699c97aa3f59eb199155b1280fea6225d2294b0e860b05d8a1e4abcb271bce"
+    },
+    {
+      "path": "v1/recapture-plan.v1.schema.json",
+      "schema": "cartosentry.recapture-plan.v1",
+      "sha256": "3da2c57383c59973292826ab3c810b64883995a1e1846dbec15d7227f23d49a5"
+    },
+    {
+      "path": "v1/accepted-data-bundle.v1.schema.json",
+      "schema": "cartosentry.accepted-data-bundle.v1",
+      "sha256": "1bf220acbba0104d5090ffdcfad0474f8965e0e0ce997af606f9a4affe586d16"
+    }
+  ]
+}

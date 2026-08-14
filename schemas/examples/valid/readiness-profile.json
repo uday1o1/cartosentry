@@ -1,0 +1,47 @@
+{
+  "aggregation_rules": [
+    {
+      "rule_id": "full-sequence-integrity",
+      "stride_unit": null,
+      "stride_value": null,
+      "window_policy": "full_sequence",
+      "window_unit": null,
+      "window_value": null
+    }
+  ],
+  "charter_references": [
+    {
+      "charter_key": "lidar.time-monotonic",
+      "document_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
+    }
+  ],
+  "mandatory_requirements": [
+    {
+      "charter_key": "lidar.time-monotonic",
+      "evidence_key": "lidar-time-integrity",
+      "minimum_observability": "OBSERVABLE",
+      "operator": "eq",
+      "requirement_id": "lidar-time-monotonic",
+      "threshold": 1.0,
+      "unit": "bool"
+    }
+  ],
+  "optional_review_features": [
+    "evidence-thumbnails"
+  ],
+  "profile_id": "structural-preflight-v1",
+  "profile_version": "1.0.0",
+  "required_detectors": [
+    "source-integrity",
+    "lidar-time-integrity"
+  ],
+  "required_modalities": [
+    "trajectory",
+    "lidar"
+  ],
+  "schema_version": "cartosentry.readiness-profile.v1",
+  "supported_adapter_capabilities": [
+    "trajectory",
+    "lidar-points"
+  ]
+}

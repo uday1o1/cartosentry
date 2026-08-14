@@ -1,0 +1,331 @@
+{
+  "$defs": {
+    "ArtifactReference": {
+      "additionalProperties": false,
+      "properties": {
+        "byte_count": {
+          "minimum": 0,
+          "title": "Byte Count",
+          "type": "integer"
+        },
+        "media_type": {
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "source_key": {
+          "minLength": 1,
+          "title": "Source Key",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_key",
+        "sha256",
+        "byte_count",
+        "media_type"
+      ],
+      "title": "ArtifactReference",
+      "type": "object"
+    },
+    "BundleInterval": {
+      "additionalProperties": false,
+      "properties": {
+        "interval": {
+          "$ref": "#/$defs/SourceInterval"
+        },
+        "reason": {
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "source_key": {
+          "minLength": 1,
+          "title": "Source Key",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_key",
+        "interval",
+        "reason"
+      ],
+      "title": "BundleInterval",
+      "type": "object"
+    },
+    "RawTime": {
+      "additionalProperties": false,
+      "description": "Lossless source timestamp representation and conversion provenance.",
+      "properties": {
+        "decimal_lexeme": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Decimal Lexeme"
+        },
+        "encoded_bytes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Encoded Bytes"
+        },
+        "encoding": {
+          "$ref": "#/$defs/RawTimeEncoding"
+        },
+        "epoch": {
+          "$ref": "#/$defs/TimeEpoch"
+        },
+        "field": {
+          "minLength": 1,
+          "title": "Field",
+          "type": "string"
+        },
+        "integer_value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Integer Value"
+        },
+        "maximum_conversion_error_ns": {
+          "minimum": 0.0,
+          "title": "Maximum Conversion Error Ns",
+          "type": "number"
+        },
+        "reference": {
+          "$ref": "#/$defs/TimeReference"
+        },
+        "rounding": {
+          "$ref": "#/$defs/TimeRounding"
+        },
+        "source_key": {
+          "minLength": 1,
+          "title": "Source Key",
+          "type": "string"
+        },
+        "unit": {
+          "minLength": 1,
+          "title": "Unit",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_key",
+        "field",
+        "unit",
+        "epoch",
+        "reference",
+        "encoding",
+        "rounding",
+        "maximum_conversion_error_ns"
+      ],
+      "title": "RawTime",
+      "type": "object"
+    },
+    "RawTimeEncoding": {
+      "enum": [
+        "decimal_lexeme",
+        "signed_integer",
+        "unsigned_integer",
+        "encoded_bytes"
+      ],
+      "title": "RawTimeEncoding",
+      "type": "string"
+    },
+    "SourceInterval": {
+      "additionalProperties": false,
+      "properties": {
+        "end": {
+          "$ref": "#/$defs/TimePoint"
+        },
+        "start": {
+          "$ref": "#/$defs/TimePoint"
+        }
+      },
+      "required": [
+        "start",
+        "end"
+      ],
+      "title": "SourceInterval",
+      "type": "object"
+    },
+    "TimeEpoch": {
+      "enum": [
+        "UNIX_UTC",
+        "GPS",
+        "SENSOR_BOOT",
+        "HOST_MONOTONIC",
+        "UNKNOWN"
+      ],
+      "title": "TimeEpoch",
+      "type": "string"
+    },
+    "TimePoint": {
+      "additionalProperties": false,
+      "description": "Tagged canonical timestamp with exact signed-int64 nanoseconds.",
+      "properties": {
+        "clock_id": {
+          "minLength": 1,
+          "title": "Clock Id",
+          "type": "string"
+        },
+        "epoch": {
+          "$ref": "#/$defs/TimeEpoch"
+        },
+        "raw": {
+          "$ref": "#/$defs/RawTime"
+        },
+        "reference": {
+          "$ref": "#/$defs/TimeReference"
+        },
+        "value_ns": {
+          "maximum": 9223372036854775807,
+          "minimum": -9223372036854775808,
+          "title": "Value Ns",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "value_ns",
+        "epoch",
+        "clock_id",
+        "reference",
+        "raw"
+      ],
+      "title": "TimePoint",
+      "type": "object"
+    },
+    "TimeReference": {
+      "enum": [
+        "EXPOSURE_START",
+        "EXPOSURE_MIDPOINT",
+        "EXPOSURE_END",
+        "SCAN_START",
+        "SCAN_MIDPOINT",
+        "SCAN_END",
+        "SAMPLE",
+        "PER_POINT",
+        "PER_AZIMUTH",
+        "UNKNOWN"
+      ],
+      "title": "TimeReference",
+      "type": "string"
+    },
+    "TimeRounding": {
+      "enum": [
+        "exact",
+        "nearest_nanosecond_half_away_from_zero"
+      ],
+      "title": "TimeRounding",
+      "type": "string"
+    }
+  },
+  "$id": "https://schemas.cartosentry.dev/cartosentry.accepted-data-bundle.v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "accepted_intervals": {
+      "items": {
+        "$ref": "#/$defs/BundleInterval"
+      },
+      "title": "Accepted Intervals",
+      "type": "array"
+    },
+    "bundle_id": {
+      "pattern": "^[a-z][a-z0-9-]*-sha256-[0-9a-f]{64}$",
+      "title": "Bundle Id",
+      "type": "string"
+    },
+    "derived_artifacts": {
+      "items": {
+        "$ref": "#/$defs/ArtifactReference"
+      },
+      "title": "Derived Artifacts",
+      "type": "array"
+    },
+    "excluded_intervals": {
+      "items": {
+        "$ref": "#/$defs/BundleInterval"
+      },
+      "title": "Excluded Intervals",
+      "type": "array"
+    },
+    "immutable": {
+      "const": true,
+      "title": "Immutable",
+      "type": "boolean"
+    },
+    "profile_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+      "title": "Profile Id",
+      "type": "string"
+    },
+    "raw_data_shards": {
+      "items": {
+        "$ref": "#/$defs/ArtifactReference"
+      },
+      "title": "Raw Data Shards",
+      "type": "array"
+    },
+    "required_calibration_ids": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9-]*-sha256-[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "title": "Required Calibration Ids",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "cartosentry.accepted-data-bundle.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "sequence_id": {
+      "pattern": "^[a-z][a-z0-9-]*-sha256-[0-9a-f]{64}$",
+      "title": "Sequence Id",
+      "type": "string"
+    },
+    "source_sequence_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Sequence Sha256",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "bundle_id",
+    "immutable",
+    "source_sequence_sha256",
+    "sequence_id",
+    "profile_id",
+    "accepted_intervals",
+    "excluded_intervals",
+    "required_calibration_ids",
+    "derived_artifacts",
+    "raw_data_shards"
+  ],
+  "title": "AcceptedDataBundle",
+  "type": "object"
+}

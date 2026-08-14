@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import tempfile
@@ -12,6 +13,10 @@ import typer
 from pydantic import ValidationError
 
 from cartosentry.adapters import inspect_boreas
+from cartosentry.artifacts import (
+    canonicalize_portable_artifact,
+    validate_artifact_json,
+)
 from cartosentry.qualification import qualify_contracts
 from cartosentry.spikes import qualify_observability
 
@@ -27,11 +32,7 @@ def main() -> None:
     """Run one of CartoSentry's checked public workflows."""
 
 
-def _write_report(report: dict[str, object], output: Path | None) -> None:
-    serialized = json.dumps(report, indent=2, sort_keys=True, allow_nan=False) + "\n"
-    if output is None:
-        typer.echo(serialized, nl=False)
-        return
+def _write_text_atomically(serialized: str, output: Path) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
     descriptor, temporary_name = tempfile.mkstemp(
         prefix=f".{output.name}.", suffix=".tmp", dir=output.parent
@@ -46,6 +47,105 @@ def _write_report(report: dict[str, object], output: Path | None) -> None:
     except BaseException:
         temporary_path.unlink(missing_ok=True)
         raise
+
+
+def _write_report(report: dict[str, object], output: Path | None) -> None:
+    serialized = json.dumps(report, indent=2, sort_keys=True, allow_nan=False) + "\n"
+    if output is None:
+        typer.echo(serialized, nl=False)
+        return
+    _write_text_atomically(serialized, output)
+
+
+def _read_artifact(path: Path) -> str:
+    if path.stat().st_size > 16 * 1024 * 1024:
+        raise ValueError("artifact exceeds the 16 MiB validation limit")
+    return path.read_text(encoding="utf-8")
+
+
+def _artifact_identifier(value: dict[str, object]) -> str:
+    for key in (
+        "sequence_id",
+        "run_id",
+        "finding_id",
+        "profile_id",
+        "recapture_plan_id",
+        "bundle_id",
+    ):
+        candidate = value.get(key)
+        if isinstance(candidate, str):
+            return candidate
+    raise ValueError("artifact has no public identifier")
+
+
+@app.command("validate-artifact")
+def validate_artifact_command(
+    artifact_path: Annotated[
+        Path,
+        typer.Argument(
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Versioned CartoSentry JSON artifact.",
+        ),
+    ],
+) -> None:
+    """Validate and cross-language round-trip a portable artifact."""
+
+    try:
+        artifact = validate_artifact_json(_read_artifact(artifact_path))
+        canonical = canonicalize_portable_artifact(artifact)
+        portable = artifact.portable_dict()
+        _write_report(
+            {
+                "accepted": True,
+                "artifact_id": _artifact_identifier(portable),
+                "canonical_sha256": hashlib.sha256(canonical.encode()).hexdigest(),
+                "schema_version": artifact.schema_name,
+            },
+            None,
+        )
+    except (OSError, ValueError, ValidationError) as error:
+        typer.echo(f"Artifact validation failed: {error}", err=True)
+        raise typer.Exit(code=2) from error
+
+
+@app.command("export-portable-artifact")
+def export_portable_artifact_command(
+    artifact_path: Annotated[
+        Path,
+        typer.Argument(
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Local or already portable CartoSentry JSON artifact.",
+        ),
+    ],
+    output: Annotated[
+        Path,
+        typer.Argument(
+            file_okay=True,
+            dir_okay=False,
+            resolve_path=True,
+            help="Destination for deterministic portable JSON.",
+        ),
+    ],
+) -> None:
+    """Strip local run context and atomically export portable JSON."""
+
+    try:
+        if artifact_path == output:
+            raise ValueError("portable export destination must differ from its input")
+        artifact = validate_artifact_json(_read_artifact(artifact_path))
+        canonical = canonicalize_portable_artifact(artifact)
+        _write_text_atomically(canonical + "\n", output)
+    except (OSError, ValueError, ValidationError) as error:
+        typer.echo(f"Portable artifact export failed: {error}", err=True)
+        raise typer.Exit(code=2) from error
 
 
 @app.command("inspect-boreas")

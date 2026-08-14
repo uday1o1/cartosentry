@@ -1,0 +1,279 @@
+{
+  "$defs": {
+    "AggregationRule": {
+      "additionalProperties": false,
+      "properties": {
+        "rule_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Rule Id",
+          "type": "string"
+        },
+        "stride_unit": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MeasurementUnit"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "stride_value": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Stride Value"
+        },
+        "window_policy": {
+          "$ref": "#/$defs/WindowPolicy"
+        },
+        "window_unit": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MeasurementUnit"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "window_value": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Window Value"
+        }
+      },
+      "required": [
+        "rule_id",
+        "window_policy",
+        "window_value",
+        "window_unit",
+        "stride_value",
+        "stride_unit"
+      ],
+      "title": "AggregationRule",
+      "type": "object"
+    },
+    "CharterReference": {
+      "additionalProperties": false,
+      "properties": {
+        "charter_key": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Charter Key",
+          "type": "string"
+        },
+        "document_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Document Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "charter_key",
+        "document_sha256"
+      ],
+      "title": "CharterReference",
+      "type": "object"
+    },
+    "MandatoryRequirement": {
+      "additionalProperties": false,
+      "properties": {
+        "charter_key": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Charter Key",
+          "type": "string"
+        },
+        "evidence_key": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Evidence Key",
+          "type": "string"
+        },
+        "minimum_observability": {
+          "const": "OBSERVABLE",
+          "title": "Minimum Observability",
+          "type": "string"
+        },
+        "operator": {
+          "$ref": "#/$defs/ThresholdOperator"
+        },
+        "requirement_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Requirement Id",
+          "type": "string"
+        },
+        "threshold": {
+          "title": "Threshold",
+          "type": "number"
+        },
+        "unit": {
+          "$ref": "#/$defs/MeasurementUnit"
+        }
+      },
+      "required": [
+        "requirement_id",
+        "evidence_key",
+        "operator",
+        "threshold",
+        "unit",
+        "minimum_observability",
+        "charter_key"
+      ],
+      "title": "MandatoryRequirement",
+      "type": "object"
+    },
+    "MeasurementUnit": {
+      "enum": [
+        "ns",
+        "m",
+        "m/s",
+        "m/s^2",
+        "rad",
+        "rad/s",
+        "deg",
+        "Hz",
+        "count",
+        "fraction",
+        "bytes",
+        "m^2",
+        "1/m",
+        "dB",
+        "bool"
+      ],
+      "title": "MeasurementUnit",
+      "type": "string"
+    },
+    "SensorModality": {
+      "enum": [
+        "camera",
+        "gnss",
+        "imu",
+        "lidar",
+        "radar",
+        "trajectory"
+      ],
+      "title": "SensorModality",
+      "type": "string"
+    },
+    "ThresholdOperator": {
+      "enum": [
+        "lt",
+        "le",
+        "gt",
+        "ge",
+        "abs_le",
+        "eq"
+      ],
+      "title": "ThresholdOperator",
+      "type": "string"
+    },
+    "WindowPolicy": {
+      "enum": [
+        "fixed_duration",
+        "fixed_distance",
+        "frame_neighborhood",
+        "full_sequence"
+      ],
+      "title": "WindowPolicy",
+      "type": "string"
+    }
+  },
+  "$id": "https://schemas.cartosentry.dev/cartosentry.readiness-profile.v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "aggregation_rules": {
+      "items": {
+        "$ref": "#/$defs/AggregationRule"
+      },
+      "title": "Aggregation Rules",
+      "type": "array"
+    },
+    "charter_references": {
+      "items": {
+        "$ref": "#/$defs/CharterReference"
+      },
+      "title": "Charter References",
+      "type": "array"
+    },
+    "mandatory_requirements": {
+      "items": {
+        "$ref": "#/$defs/MandatoryRequirement"
+      },
+      "title": "Mandatory Requirements",
+      "type": "array"
+    },
+    "optional_review_features": {
+      "items": {
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+        "type": "string"
+      },
+      "title": "Optional Review Features",
+      "type": "array"
+    },
+    "profile_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+      "title": "Profile Id",
+      "type": "string"
+    },
+    "profile_version": {
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$",
+      "title": "Profile Version",
+      "type": "string"
+    },
+    "required_detectors": {
+      "items": {
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+        "type": "string"
+      },
+      "title": "Required Detectors",
+      "type": "array"
+    },
+    "required_modalities": {
+      "items": {
+        "$ref": "#/$defs/SensorModality"
+      },
+      "title": "Required Modalities",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "cartosentry.readiness-profile.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "supported_adapter_capabilities": {
+      "items": {
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+        "type": "string"
+      },
+      "title": "Supported Adapter Capabilities",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "profile_id",
+    "profile_version",
+    "supported_adapter_capabilities",
+    "required_modalities",
+    "required_detectors",
+    "aggregation_rules",
+    "mandatory_requirements",
+    "optional_review_features",
+    "charter_references"
+  ],
+  "title": "ReadinessProfile",
+  "type": "object"
+}

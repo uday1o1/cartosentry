@@ -1,0 +1,57 @@
+{
+  "adapter": {
+    "adapter_id": "synthetic",
+    "adapter_version": "1.0.0",
+    "capabilities": [
+      "trajectory",
+      "lidar-points"
+    ]
+  },
+  "calibrations": [
+    {
+      "calibration_id": "calibration-sha256-7230102781840d9a49db98b1323efd5fde379d35b2400a01a553a3bcbb310ad7",
+      "sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "source_frame": "lidar",
+      "target_frame": "rig"
+    }
+  ],
+  "coordinate_metadata": {
+    "global_frame": "WGS84",
+    "local_frame": "local_world",
+    "rig_frame": "rig",
+    "vertical_datum": "WGS84_ELLIPSOID"
+  },
+  "declared_gaps": [],
+  "partition": "development",
+  "schema_version": "cartosentry.sequence-manifest.v1",
+  "sensors": [
+    {
+      "calibration_ids": [
+        "calibration-sha256-7230102781840d9a49db98b1323efd5fde379d35b2400a01a553a3bcbb310ad7"
+      ],
+      "coordinate_frame": "lidar",
+      "modality": "lidar",
+      "sensor_id": "roof-lidar",
+      "stream_id": "stream-lidar-roof-lidar-10289af83dc3847667f7c7d063540a239c1352a18a4a4ceee2a3eeb3012ce7ff"
+    }
+  ],
+  "sequence_id": "sequence-sha256-039f8b334fb5fd2ed65c8fd72f82a58a83645f67e91a2d2f18ce206a46eb3d6e",
+  "source_files": [
+    {
+      "byte_count": 4096,
+      "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "source_key": "synthetic/trajectory.json"
+    }
+  ],
+  "source_group_id": "synthetic-v1",
+  "source_identity_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+  "timestamp_metadata": [
+    {
+      "clock_id": "synthetic-common",
+      "epoch": "UNIX_UTC",
+      "raw_unit": "ns",
+      "reference": "SAMPLE",
+      "stream_id": "stream-lidar-roof-lidar-10289af83dc3847667f7c7d063540a239c1352a18a4a4ceee2a3eeb3012ce7ff"
+    }
+  ]
+}

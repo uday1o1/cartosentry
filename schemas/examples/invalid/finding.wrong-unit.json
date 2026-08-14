@@ -1,0 +1,181 @@
+{
+  "detector_id": "lidar-time-integrity",
+  "detector_version": "1.0.0",
+  "evidence": [
+    {
+      "derived_artifact_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+      "detector_version": "1.0.0",
+      "frame_ids": [
+        "frame-sha256-8594aa8150d9e069588eedcf37c6d4e4c821d554c9cf37ea6412e6ddf6e156e6"
+      ],
+      "source_artifact_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "source_interval": {
+        "end": {
+          "clock_id": "synthetic-common",
+          "epoch": "UNIX_UTC",
+          "raw": {
+            "decimal_lexeme": null,
+            "encoded_bytes": null,
+            "encoding": "signed_integer",
+            "epoch": "UNIX_UTC",
+            "field": "timestamp",
+            "integer_value": "1000000000",
+            "maximum_conversion_error_ns": 0.0,
+            "reference": "SAMPLE",
+            "rounding": "exact",
+            "source_key": "synthetic/trajectory.json",
+            "unit": "ns"
+          },
+          "reference": "SAMPLE",
+          "value_ns": 1000000000
+        },
+        "start": {
+          "clock_id": "synthetic-common",
+          "epoch": "UNIX_UTC",
+          "raw": {
+            "decimal_lexeme": null,
+            "encoded_bytes": null,
+            "encoding": "signed_integer",
+            "epoch": "UNIX_UTC",
+            "field": "timestamp",
+            "integer_value": "0",
+            "maximum_conversion_error_ns": 0.0,
+            "reference": "SAMPLE",
+            "rounding": "exact",
+            "source_key": "synthetic/trajectory.json",
+            "unit": "ns"
+          },
+          "reference": "SAMPLE",
+          "value_ns": 0
+        }
+      },
+      "transformation_lineage": [
+        "decode-v1",
+        "time-normalization-v1"
+      ]
+    }
+  ],
+  "finding_id": "finding-sha256-b8d992a2756616a1d9dc9a052dd5add9fa5cf24e2927447d97ea4493ce6dee4b",
+  "hypotheses": [
+    {
+      "confirmed": false,
+      "contradicting_evidence": [],
+      "possible_cause": "The source clocks may not be synchronized.",
+      "supporting_evidence": [
+        {
+          "derived_artifact_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+          "detector_version": "1.0.0",
+          "frame_ids": [
+            "frame-sha256-8594aa8150d9e069588eedcf37c6d4e4c821d554c9cf37ea6412e6ddf6e156e6"
+          ],
+          "source_artifact_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "source_interval": {
+            "end": {
+              "clock_id": "synthetic-common",
+              "epoch": "UNIX_UTC",
+              "raw": {
+                "decimal_lexeme": null,
+                "encoded_bytes": null,
+                "encoding": "signed_integer",
+                "epoch": "UNIX_UTC",
+                "field": "timestamp",
+                "integer_value": "1000000000",
+                "maximum_conversion_error_ns": 0.0,
+                "reference": "SAMPLE",
+                "rounding": "exact",
+                "source_key": "synthetic/trajectory.json",
+                "unit": "ns"
+              },
+              "reference": "SAMPLE",
+              "value_ns": 1000000000
+            },
+            "start": {
+              "clock_id": "synthetic-common",
+              "epoch": "UNIX_UTC",
+              "raw": {
+                "decimal_lexeme": null,
+                "encoded_bytes": null,
+                "encoding": "signed_integer",
+                "epoch": "UNIX_UTC",
+                "field": "timestamp",
+                "integer_value": "0",
+                "maximum_conversion_error_ns": 0.0,
+                "reference": "SAMPLE",
+                "rounding": "exact",
+                "source_key": "synthetic/trajectory.json",
+                "unit": "ns"
+              },
+              "reference": "SAMPLE",
+              "value_ns": 0
+            }
+          },
+          "transformation_lineage": [
+            "decode-v1",
+            "time-normalization-v1"
+          ]
+        }
+      ]
+    }
+  ],
+  "interval": {
+    "end": {
+      "clock_id": "synthetic-common",
+      "epoch": "UNIX_UTC",
+      "raw": {
+        "decimal_lexeme": null,
+        "encoded_bytes": null,
+        "encoding": "signed_integer",
+        "epoch": "UNIX_UTC",
+        "field": "timestamp",
+        "integer_value": "1000000000",
+        "maximum_conversion_error_ns": 0.0,
+        "reference": "SAMPLE",
+        "rounding": "exact",
+        "source_key": "synthetic/trajectory.json",
+        "unit": "ns"
+      },
+      "reference": "SAMPLE",
+      "value_ns": 1000000000
+    },
+    "start": {
+      "clock_id": "synthetic-common",
+      "epoch": "UNIX_UTC",
+      "raw": {
+        "decimal_lexeme": null,
+        "encoded_bytes": null,
+        "encoding": "signed_integer",
+        "epoch": "UNIX_UTC",
+        "field": "timestamp",
+        "integer_value": "0",
+        "maximum_conversion_error_ns": 0.0,
+        "reference": "SAMPLE",
+        "rounding": "exact",
+        "source_key": "synthetic/trajectory.json",
+        "unit": "ns"
+      },
+      "reference": "SAMPLE",
+      "value_ns": 0
+    }
+  },
+  "measurement": {
+    "name": "estimated-offset",
+    "unit": "ns",
+    "value": 42000000.0
+  },
+  "observability": "OBSERVABLE",
+  "readiness_effect": "FAIL",
+  "remediation": "Verify clock synchronization before recollection.",
+  "road_bin_ids": [],
+  "rule_id": "maximum-observable-offset",
+  "schema_version": "cartosentry.finding.v1",
+  "severity": "CRITICAL",
+  "streams": [
+    "stream-lidar-roof-lidar-10289af83dc3847667f7c7d063540a239c1352a18a4a4ceee2a3eeb3012ce7ff"
+  ],
+  "threshold": {
+    "charter_key": "time-alignment.maximum-offset-ns",
+    "operator": "abs_le",
+    "unit": "m",
+    "value": 15000000.0
+  }
+}
