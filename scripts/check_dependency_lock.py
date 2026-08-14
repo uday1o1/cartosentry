@@ -197,6 +197,10 @@ def validate_dependency_contract(
 
     runtime = _exact_requirements(project.get("dependencies"), "runtime")
     development = _exact_requirements(groups.get("dev"), "development")
+    if groups.get("fuzz") != [
+        "atheris==3.1.0 ; platform_machine == 'x86_64' and sys_platform == 'linux'"
+    ]:
+        raise DependencyLockError("fuzz dependencies must pin Atheris to Linux x86-64")
     build = _exact_requirements(build_system.get("requires"), "build-system")
     if REQUIRED_PYTHON_DEPENDENCIES.difference(runtime):
         raise DependencyLockError("runtime dependency ownership set is incomplete")

@@ -39,8 +39,12 @@ constexpr std::string_view kGpsSource = "applanix/gps_post_process.csv";
 constexpr std::string_view kLidarPoseSource = "applanix/lidar_poses.csv";
 constexpr std::string_view kLidarSource = "lidar";
 constexpr std::string_view kRouteSource = "route.html";
-constexpr std::size_t kLidarRecordBytes = 6U * sizeof(float);
 constexpr double kRadiansToDegrees = 180.0 / std::numbers::pi_v<double>;
+constexpr std::uint64_t kMaximumGpsBytes = 256U * 1024U * 1024U;
+constexpr std::uint64_t kMaximumLidarPoseBytes = 64U * 1024U * 1024U;
+constexpr std::uint64_t kMaximumCalibrationBytes = 64U * 1024U;
+constexpr std::uint64_t kMaximumRouteBytes = 16U * 1024U * 1024U;
+constexpr std::size_t kMaximumTextLineBytes = 16U * 1024U;
 
 struct GeographicPoint {
   double latitude_deg{};
@@ -51,6 +55,14 @@ struct GeographicPoint {
 struct LocalPoint {
   double x_m{};
   double y_m{};
+};
+
+struct LidarFrameParseState {
+  LidarFrameSummary frame;
+  std::string source_key;
+  std::int64_t previous_time{std::numeric_limits<std::int64_t>::min()};
+  std::uint64_t point_index{};
+  double maximum_time_conversion_error_ns{};
 };
 
 auto format_error(std::string_view source_key, std::size_t row_number,
@@ -80,11 +92,46 @@ auto checked_file_size(const std::filesystem::path& path,
 
 auto open_text(const std::filesystem::path& path, std::string_view source_key)
     -> std::ifstream {
+  std::uint64_t maximum_bytes = 0U;
+  if (source_key == kGpsSource) {
+    maximum_bytes = kMaximumGpsBytes;
+  } else if (source_key == kLidarPoseSource) {
+    maximum_bytes = kMaximumLidarPoseBytes;
+  } else if (source_key.starts_with("calib/")) {
+    maximum_bytes = kMaximumCalibrationBytes;
+  } else if (source_key == kRouteSource) {
+    maximum_bytes = kMaximumRouteBytes;
+  } else {
+    throw format_error(source_key, 0U, "", "text source is not registered");
+  }
+  const auto source_bytes = checked_file_size(path, source_key);
+  if (source_bytes == 0U || source_bytes > maximum_bytes) {
+    throw format_error(source_key, 0U, "",
+                       "file size is outside the supported range");
+  }
   std::ifstream input(path);
   if (!input) {
     throw format_error(source_key, 0U, "", "file is unavailable");
   }
   return input;
+}
+
+auto read_bounded_line(std::ifstream& input, std::string& line,
+                       std::string_view source_key, std::size_t row_number)
+    -> bool {
+  line.clear();
+  char character = '\0';
+  while (input.get(character)) {
+    if (character == '\n') {
+      return true;
+    }
+    if (line.size() >= kMaximumTextLineBytes) {
+      throw format_error(source_key, row_number, "row",
+                         "line exceeds the supported byte limit");
+    }
+    line.push_back(character);
+  }
+  return !line.empty();
 }
 
 auto split_csv(std::string_view line) -> std::vector<std::string_view> {
@@ -108,7 +155,7 @@ auto split_csv(std::string_view line) -> std::vector<std::string_view> {
 auto require_header(std::ifstream& input, std::string_view expected,
                     std::string_view source_key) -> void {
   std::string header;
-  if (!std::getline(input, header)) {
+  if (!read_bounded_line(input, header, source_key, 1U)) {
     throw format_error(source_key, 1U, "header", "header is missing");
   }
   if (!header.empty() && header.back() == '\r') {
@@ -171,6 +218,121 @@ auto checked_add(std::int64_t left, std::int64_t right,
   return left + right;
 }
 
+auto checked_add_unsigned(std::uint64_t left, std::uint64_t right,
+                          std::string_view source_key,
+                          std::string_view field) -> std::uint64_t {
+  if (right > std::numeric_limits<std::uint64_t>::max() - left) {
+    throw format_error(source_key, 0U, field, "unsigned byte count overflow");
+  }
+  return left + right;
+}
+
+auto initialize_lidar_frame(std::string_view frame_id,
+                            std::uint64_t source_bytes)
+    -> LidarFrameParseState {
+  const auto source_key =
+      std::string(kLidarSource) + "/" + std::string(frame_id) + ".bin";
+  if (source_bytes == 0U ||
+      source_bytes > kMaximumBoreasLidarFrameBytes ||
+      source_bytes % kBoreasLidarRecordBytes != 0U) {
+    throw format_error(
+        source_key, 0U, "record_layout",
+        "byte count is outside the supported nonzero 24-byte record range");
+  }
+  const auto midpoint_us =
+      parse_unsigned(frame_id, source_key, 0U, "filename_timestamp");
+  const auto midpoint_ns = microseconds_to_nanoseconds(
+      midpoint_us, source_key, 0U, "filename_timestamp");
+  LidarFrameParseState state;
+  state.source_key = source_key;
+  state.frame.frame_id = frame_id;
+  state.frame.source_bytes = source_bytes;
+  state.frame.point_count = source_bytes / kBoreasLidarRecordBytes;
+  state.frame.scan_midpoint_ns = midpoint_ns;
+  state.frame.first_point_ns = std::numeric_limits<std::int64_t>::max();
+  state.frame.last_point_ns = std::numeric_limits<std::int64_t>::min();
+  state.frame.minimum_relative_time_seconds =
+      std::numeric_limits<double>::infinity();
+  state.frame.maximum_relative_time_seconds =
+      -std::numeric_limits<double>::infinity();
+  state.frame.minimum_laser_id = std::numeric_limits<std::uint32_t>::max();
+  state.frame.timestamps_nondecreasing = true;
+  state.frame.required_fields_finite = true;
+  return state;
+}
+
+auto consume_lidar_records(LidarFrameParseState& state,
+                           std::span<const std::byte> content) -> void {
+  if (content.size() % kBoreasLidarRecordBytes != 0U) {
+    throw format_error(state.source_key, 0U, "record_layout",
+                       "partial record encountered");
+  }
+  const auto records = content.size() / kBoreasLidarRecordBytes;
+  if (state.point_index > state.frame.point_count ||
+      records > state.frame.point_count - state.point_index) {
+    throw format_error(state.source_key, 0U, "record_layout",
+                       "input exceeds the declared frame size");
+  }
+  for (std::size_t record = 0U; record < records; ++record) {
+    ++state.point_index;
+    const auto row_number = static_cast<std::size_t>(state.point_index);
+    const auto record_value = decode_boreas_lidar_record(
+        content.subspan(record * kBoreasLidarRecordBytes,
+                        kBoreasLidarRecordBytes),
+        state.source_key, row_number);
+    const auto& values = record_value.values;
+    const auto& bits = record_value.bits;
+    const auto laser_rounded = std::round(values[4]);
+    const auto laser = static_cast<std::uint32_t>(laser_rounded);
+    state.frame.minimum_laser_id =
+        std::min(state.frame.minimum_laser_id, laser);
+    state.frame.maximum_laser_id =
+        std::max(state.frame.maximum_laser_id, laser);
+
+    const double offset_seconds = static_cast<double>(values[5]);
+    const double unrounded_offset_ns = offset_seconds * 1'000'000'000.0;
+    constexpr double kInt64UpperExclusive = 9'223'372'036'854'775'808.0;
+    if (unrounded_offset_ns <
+            static_cast<double>(std::numeric_limits<std::int64_t>::min()) ||
+        unrounded_offset_ns >= kInt64UpperExclusive) {
+      throw format_error(state.source_key, row_number, "time_offset",
+                         "nanosecond offset is out of range");
+    }
+    const auto offset_ns =
+        static_cast<std::int64_t>(std::llround(unrounded_offset_ns));
+    state.maximum_time_conversion_error_ns =
+        std::max(state.maximum_time_conversion_error_ns,
+                 std::abs(unrounded_offset_ns - static_cast<double>(offset_ns)));
+    const auto point_time =
+        checked_add(state.frame.scan_midpoint_ns, offset_ns, state.source_key,
+                    row_number, "time_offset");
+    state.frame.first_point_ns =
+        std::min(state.frame.first_point_ns, point_time);
+    state.frame.last_point_ns =
+        std::max(state.frame.last_point_ns, point_time);
+    state.frame.timestamps_nondecreasing =
+        state.frame.timestamps_nondecreasing &&
+        point_time >= state.previous_time;
+    state.previous_time = point_time;
+    if (offset_seconds < state.frame.minimum_relative_time_seconds) {
+      state.frame.minimum_relative_time_seconds = offset_seconds;
+      state.frame.minimum_relative_time_bits = bits[5];
+    }
+    if (offset_seconds > state.frame.maximum_relative_time_seconds) {
+      state.frame.maximum_relative_time_seconds = offset_seconds;
+      state.frame.maximum_relative_time_bits = bits[5];
+    }
+  }
+}
+
+auto finish_lidar_frame(LidarFrameParseState state) -> LidarFrameParseResult {
+  if (state.point_index != state.frame.point_count) {
+    throw format_error(state.source_key, 0U, "record_layout",
+                       "point count changed during read");
+  }
+  return {std::move(state.frame), state.maximum_time_conversion_error_ns};
+}
+
 auto quantize(double value, double scale) -> double {
   return std::round(value * scale) / scale;
 }
@@ -212,7 +374,6 @@ auto point_segment_distance(const LocalPoint& point, const LocalPoint& begin,
 
 auto parse_route_polyline(const std::filesystem::path& path)
     -> std::vector<GeographicPoint> {
-  constexpr std::uint64_t kMaximumRouteBytes = 16U * 1024U * 1024U;
   const auto source_bytes = checked_file_size(path, kRouteSource);
   if (source_bytes == 0U || source_bytes > kMaximumRouteBytes) {
     throw format_error(kRouteSource, 0U, "polyline",
@@ -308,6 +469,10 @@ auto inspect_lidar(const std::filesystem::path& lidar_directory)
        !directory_error && iterator != std::filesystem::directory_iterator{};
        iterator.increment(directory_error)) {
     if (iterator->is_regular_file() && iterator->path().extension() == ".bin") {
+      if (paths.size() >= kMaximumBoreasLidarFrames) {
+        throw format_error(kLidarSource, 0U, "frame_count",
+                           "frame count exceeds the supported limit");
+      }
       paths.push_back(iterator->path());
     }
   }
@@ -330,120 +495,43 @@ auto inspect_lidar(const std::filesystem::path& lidar_directory)
   summary.last_point_ns = std::numeric_limits<std::int64_t>::min();
 
   constexpr std::size_t kRecordsPerBuffer = 4096U;
-  std::array<std::byte, kLidarRecordBytes * kRecordsPerBuffer> buffer{};
+  std::array<std::byte, kBoreasLidarRecordBytes * kRecordsPerBuffer> buffer{};
   for (std::size_t frame_index = 0U; frame_index < paths.size(); ++frame_index) {
     const auto& path = paths[frame_index];
     const auto frame_id = path.stem().string();
     const auto source_key = std::string(kLidarSource) + "/" + frame_id + ".bin";
-    const auto midpoint_us =
-        parse_unsigned(frame_id, source_key, 0U, "filename_timestamp");
-    const auto midpoint_ns = microseconds_to_nanoseconds(
-        midpoint_us, source_key, 0U, "filename_timestamp");
     const auto source_bytes = checked_file_size(path, source_key);
-    if (source_bytes == 0U || source_bytes % kLidarRecordBytes != 0U) {
-      throw format_error(source_key, 0U, "record_layout",
-                         "byte count is not a nonzero multiple of 24");
-    }
+    auto state = initialize_lidar_frame(frame_id, source_bytes);
     std::ifstream input(path, std::ios::binary);
     if (!input) {
       throw format_error(source_key, 0U, "", "file is unavailable");
     }
 
-    LidarFrameSummary frame;
-    frame.frame_id = frame_id;
-    frame.source_bytes = source_bytes;
-    frame.point_count = source_bytes / kLidarRecordBytes;
-    frame.scan_midpoint_ns = midpoint_ns;
-    frame.first_point_ns = std::numeric_limits<std::int64_t>::max();
-    frame.last_point_ns = std::numeric_limits<std::int64_t>::min();
-    frame.minimum_relative_time_seconds = std::numeric_limits<double>::infinity();
-    frame.maximum_relative_time_seconds =
-        -std::numeric_limits<double>::infinity();
-    frame.minimum_laser_id = std::numeric_limits<std::uint32_t>::max();
-    frame.timestamps_nondecreasing = true;
-    frame.required_fields_finite = true;
-    std::int64_t previous_time = std::numeric_limits<std::int64_t>::min();
-    std::uint64_t point_index = 0U;
-
     while (input) {
       input.read(reinterpret_cast<char*>(buffer.data()),
                  static_cast<std::streamsize>(buffer.size()));
       const auto read_bytes = input.gcount();
-      if (read_bytes < 0 ||
-          static_cast<std::size_t>(read_bytes) % kLidarRecordBytes != 0U) {
+      if (read_bytes < 0 || static_cast<std::size_t>(read_bytes) %
+                                    kBoreasLidarRecordBytes !=
+                                0U) {
         throw format_error(source_key, 0U, "record_layout",
                            "partial record encountered");
       }
-      const auto records =
-          static_cast<std::size_t>(read_bytes) / kLidarRecordBytes;
-      for (std::size_t record = 0U; record < records; ++record) {
-        std::array<float, 6> values{};
-        std::array<std::uint32_t, 6> bits{};
-        for (std::size_t field = 0U; field < values.size(); ++field) {
-          std::memcpy(&bits[field],
-                      buffer.data() + record * kLidarRecordBytes +
-                          field * sizeof(float),
-                      sizeof(float));
-          values[field] = std::bit_cast<float>(bits[field]);
-        }
-        ++point_index;
-        if (!std::all_of(values.begin(), values.end(),
-                         [](float value) { return std::isfinite(value); })) {
-          throw format_error(source_key, static_cast<std::size_t>(point_index),
-                             "point", "all six float32 fields must be finite");
-        }
-        const auto laser_rounded = std::round(values[4]);
-        if (values[4] < 0.0F || values[4] > 127.0F ||
-            laser_rounded != values[4]) {
-          throw format_error(source_key, static_cast<std::size_t>(point_index),
-                             "laser_id", "integer in [0,127] required");
-        }
-        const auto laser = static_cast<std::uint32_t>(laser_rounded);
-        frame.minimum_laser_id = std::min(frame.minimum_laser_id, laser);
-        frame.maximum_laser_id = std::max(frame.maximum_laser_id, laser);
-
-        const double offset_seconds = static_cast<double>(values[5]);
-        const double unrounded_offset_ns = offset_seconds * 1'000'000'000.0;
-        if (unrounded_offset_ns <
-                static_cast<double>(std::numeric_limits<std::int64_t>::min()) ||
-            unrounded_offset_ns >
-                static_cast<double>(std::numeric_limits<std::int64_t>::max())) {
-          throw format_error(source_key, static_cast<std::size_t>(point_index),
-                             "time_offset", "nanosecond offset is out of range");
-        }
-        const auto offset_ns = static_cast<std::int64_t>(
-            std::llround(unrounded_offset_ns));
-        summary.maximum_time_conversion_error_ns =
-            std::max(summary.maximum_time_conversion_error_ns,
-                     std::abs(unrounded_offset_ns -
-                              static_cast<double>(offset_ns)));
-        const auto point_time = checked_add(midpoint_ns, offset_ns, source_key,
-                                            static_cast<std::size_t>(point_index),
-                                            "time_offset");
-        frame.first_point_ns = std::min(frame.first_point_ns, point_time);
-        frame.last_point_ns = std::max(frame.last_point_ns, point_time);
-        frame.timestamps_nondecreasing =
-            frame.timestamps_nondecreasing && point_time >= previous_time;
-        previous_time = point_time;
-        if (offset_seconds < frame.minimum_relative_time_seconds) {
-          frame.minimum_relative_time_seconds = offset_seconds;
-          frame.minimum_relative_time_bits = bits[5];
-        }
-        if (offset_seconds > frame.maximum_relative_time_seconds) {
-          frame.maximum_relative_time_seconds = offset_seconds;
-          frame.maximum_relative_time_bits = bits[5];
-        }
-      }
+      consume_lidar_records(
+          state, std::span(buffer.data(), static_cast<std::size_t>(read_bytes)));
     }
     if (!input.eof()) {
       throw format_error(source_key, 0U, "", "binary read failed");
     }
-    if (point_index != frame.point_count) {
-      throw format_error(source_key, 0U, "record_layout",
-                         "point count changed during read");
-    }
-    summary.total_points += frame.point_count;
-    summary.total_bytes += frame.source_bytes;
+    auto parsed = finish_lidar_frame(std::move(state));
+    auto& frame = parsed.frame;
+    summary.maximum_time_conversion_error_ns =
+        std::max(summary.maximum_time_conversion_error_ns,
+                 parsed.maximum_time_conversion_error_ns);
+    summary.total_points = checked_add_unsigned(
+        summary.total_points, frame.point_count, kLidarSource, "point_count");
+    summary.total_bytes = checked_add_unsigned(
+        summary.total_bytes, frame.source_bytes, kLidarSource, "byte_count");
     summary.first_point_ns = std::min(summary.first_point_ns, frame.first_point_ns);
     summary.last_point_ns = std::max(summary.last_point_ns, frame.last_point_ns);
     summary.frames.push_back(frame);
@@ -492,7 +580,8 @@ auto inspect_trajectory(const std::filesystem::path& path,
   std::unique_ptr<GeographicLib::LocalCartesian> local;
   GeographicPoint last_point;
   bool sampled_last = false;
-  while (std::getline(input, line)) {
+  while (read_bounded_line(input, line, kGpsSource,
+                           static_cast<std::size_t>(summary.row_count + 2U))) {
     ++summary.row_count;
     const auto row_number = static_cast<std::size_t>(summary.row_count + 1U);
     const auto fields = split_csv(line);
@@ -696,7 +785,9 @@ auto inspect_lidar_poses(const std::filesystem::path& path,
 
   std::string line;
   std::int64_t previous_time = std::numeric_limits<std::int64_t>::min();
-  while (std::getline(input, line)) {
+  while (read_bounded_line(
+      input, line, kLidarPoseSource,
+      static_cast<std::size_t>(summary.row_count + 2U))) {
     ++summary.row_count;
     const auto row_number = static_cast<std::size_t>(summary.row_count + 1U);
     const auto fields = split_csv(line);
@@ -744,7 +835,7 @@ auto inspect_calibration(const std::filesystem::path& path,
   summary.source_frame = source_frame;
   for (std::size_t row = 0U; row < 4U; ++row) {
     std::string line;
-    if (!std::getline(input, line)) {
+    if (!read_bounded_line(input, line, source_key, row + 1U)) {
       throw format_error(source_key, row + 1U, "matrix",
                          "exactly four rows required");
     }
@@ -765,7 +856,7 @@ auto inspect_calibration(const std::filesystem::path& path,
     }
   }
   std::string extra_row;
-  while (std::getline(input, extra_row)) {
+  while (read_bounded_line(input, extra_row, source_key, 5U)) {
     if (extra_row.find_first_not_of(" \t\r") != std::string::npos) {
       throw format_error(source_key, 5U, "matrix",
                          "exactly four rows required");
@@ -809,6 +900,41 @@ auto peak_rss_bytes() -> std::uint64_t {
 }
 
 }  // namespace
+
+auto decode_boreas_lidar_record(std::span<const std::byte> content,
+                                std::string_view source_key,
+                                std::size_t row_number) -> BoreasLidarRecord {
+  if (content.size() != kBoreasLidarRecordBytes) {
+    throw format_error(source_key, row_number, "record_layout",
+                       "exactly 24 bytes required");
+  }
+  BoreasLidarRecord result;
+  for (std::size_t field = 0U; field < result.values.size(); ++field) {
+    std::memcpy(&result.bits[field], content.data() + field * sizeof(float),
+                sizeof(float));
+    result.values[field] = std::bit_cast<float>(result.bits[field]);
+  }
+  if (!std::all_of(result.values.begin(), result.values.end(),
+                   [](float value) { return std::isfinite(value); })) {
+    throw format_error(source_key, row_number, "point",
+                       "all six float32 fields must be finite");
+  }
+  const auto laser_rounded = std::round(result.values[4]);
+  if (result.values[4] < 0.0F || result.values[4] > 127.0F ||
+      laser_rounded != result.values[4]) {
+    throw format_error(source_key, row_number, "laser_id",
+                       "integer in [0,127] required");
+  }
+  return result;
+}
+
+auto parse_boreas_lidar_frame(std::span<const std::byte> content,
+                              std::string_view frame_id)
+    -> LidarFrameParseResult {
+  auto state = initialize_lidar_frame(frame_id, content.size());
+  consume_lidar_records(state, content);
+  return finish_lidar_frame(std::move(state));
+}
 
 auto parse_decimal_seconds_to_nanoseconds(
     std::string_view lexeme, std::string_view source_key,
@@ -865,13 +991,23 @@ auto inspect_boreas_sequence(
   }
 
   result.unique_input_bytes = result.lidar.total_bytes;
-  result.unique_input_bytes += checked_file_size(gps_path, kGpsSource);
-  result.unique_input_bytes +=
-      checked_file_size(lidar_poses_path, kLidarPoseSource);
-  result.unique_input_bytes += checked_file_size(route_html_path, kRouteSource);
+  result.unique_input_bytes = checked_add_unsigned(
+      result.unique_input_bytes, checked_file_size(gps_path, kGpsSource),
+      "sequence", "unique_input_bytes");
+  result.unique_input_bytes = checked_add_unsigned(
+      result.unique_input_bytes,
+      checked_file_size(lidar_poses_path, kLidarPoseSource), "sequence",
+      "unique_input_bytes");
+  result.unique_input_bytes = checked_add_unsigned(
+      result.unique_input_bytes,
+      checked_file_size(route_html_path, kRouteSource), "sequence",
+      "unique_input_bytes");
   for (const auto& contract : calibration_contracts) {
-    result.unique_input_bytes += checked_file_size(
-        sequence_root / std::filesystem::path(contract[0]), contract[0]);
+    result.unique_input_bytes = checked_add_unsigned(
+        result.unique_input_bytes,
+        checked_file_size(sequence_root / std::filesystem::path(contract[0]),
+                          contract[0]),
+        "sequence", "unique_input_bytes");
   }
   const auto elapsed = std::chrono::duration<double>(
       std::chrono::steady_clock::now() - start);

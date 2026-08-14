@@ -34,6 +34,10 @@ from cartosentry.ingestion import (
     index_boreas_recording,
     load_ingestion_budget,
 )
+from cartosentry.manifest_boundaries import (
+    MAXIMUM_ARTIFACT_JSON_BYTES,
+    read_bounded_regular_bytes,
+)
 from cartosentry.qualification import qualify_contracts
 from cartosentry.recovery import qualify_run_recovery, resume_registered_run
 from cartosentry.scheduler import qualify_scheduler
@@ -78,9 +82,15 @@ def _write_report(report: dict[str, object], output: Path | None) -> None:
 
 
 def _read_artifact(path: Path) -> str:
-    if path.stat().st_size > 16 * 1024 * 1024:
-        raise ValueError("artifact exceeds the 16 MiB validation limit")
-    return path.read_text(encoding="utf-8")
+    content = read_bounded_regular_bytes(
+        path,
+        maximum_bytes=MAXIMUM_ARTIFACT_JSON_BYTES,
+        context="artifact",
+    )
+    try:
+        return content.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise ValueError("artifact is not valid UTF-8") from error
 
 
 def _artifact_identifier(value: dict[str, object]) -> str:

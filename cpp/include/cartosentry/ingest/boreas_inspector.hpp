@@ -4,12 +4,18 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <span>
 #include <stdexcept>
 #include <string>
 #include <string_view>
 #include <vector>
 
 namespace cartosentry::ingest {
+
+inline constexpr std::size_t kBoreasLidarRecordBytes = 6U * sizeof(float);
+inline constexpr std::size_t kMaximumBoreasLidarFrameBytes =
+    16U * 1024U * 1024U;
+inline constexpr std::size_t kMaximumBoreasLidarFrames = 100'000U;
 
 class BoreasFormatError : public std::runtime_error {
  public:
@@ -47,6 +53,16 @@ struct LidarFrameSummary {
   std::uint32_t maximum_laser_id{};
   bool timestamps_nondecreasing{};
   bool required_fields_finite{};
+};
+
+struct LidarFrameParseResult {
+  LidarFrameSummary frame;
+  double maximum_time_conversion_error_ns{};
+};
+
+struct BoreasLidarRecord {
+  std::array<float, 6> values{};
+  std::array<std::uint32_t, 6> bits{};
 };
 
 struct LidarSummary {
@@ -127,6 +143,14 @@ struct BoreasInspectionResult {
 auto parse_decimal_seconds_to_nanoseconds(
     std::string_view lexeme, std::string_view source_key, std::size_t row_number,
     std::string_view field_name) -> std::int64_t;
+
+auto parse_boreas_lidar_frame(std::span<const std::byte> content,
+                              std::string_view frame_id)
+    -> LidarFrameParseResult;
+
+auto decode_boreas_lidar_record(std::span<const std::byte> content,
+                                std::string_view source_key,
+                                std::size_t row_number) -> BoreasLidarRecord;
 
 auto inspect_boreas_sequence(
     const std::filesystem::path& sequence_root,

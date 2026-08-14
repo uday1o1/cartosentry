@@ -3,15 +3,57 @@ name: CI
 on:
   push:
   pull_request:
+  schedule:
+    - cron: "17 13 * * *"
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  fuzz:
+    name: LibFuzzer (${{ github.event_name == 'schedule' && 'nightly' || 'local' }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out the source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Run the frozen sanitizer fuzz suite
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "schedule" ]]; then
+            fuzz_suite="nightly"
+          else
+            fuzz_suite="local"
+          fi
+          docker build \
+            --platform linux/amd64 \
+            --build-arg "SOURCE_REVISION=${GITHUB_SHA}" \
+            --file docker/fuzz-linux-x86_64.Dockerfile \
+            --tag cartosentry-fuzz:${GITHUB_SHA} \
+            .
+          python3 scripts/run_fuzz_container.py \
+            --image cartosentry-fuzz:${GITHUB_SHA} \
+            --suite "${fuzz_suite}" \
+            --source-revision "${GITHUB_SHA}" \
+            --output-root "benchmark-results/ci-fuzz-${fuzz_suite}"
+
+      - name: Preserve fuzz qualification evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: fuzz-${{ github.event_name }}-${{ github.sha }}
+          path: benchmark-results/ci-fuzz-*
+          if-no-files-found: warn
+          retention-days: 14
+
   foundation:
     name: Foundation (${{ matrix.name }})
     runs-on: ${{ matrix.runner }}

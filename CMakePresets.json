@@ -68,6 +68,16 @@
       "cacheVariables": {
         "CARTOSENTRY_ENABLE_CUDA": "ON"
       }
+    },
+    {
+      "name": "fuzz",
+      "inherits": "base",
+      "cacheVariables": {
+        "BUILD_TESTING": "OFF",
+        "CARTOSENTRY_BUILD_FUZZERS": "ON",
+        "CARTOSENTRY_BUILD_PYTHON": "OFF",
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+      }
     }
   ],
   "buildPresets": [
@@ -76,7 +86,8 @@
     {"name": "sanitizer", "configurePreset": "sanitizer"},
     {"name": "thread-sanitizer", "configurePreset": "thread-sanitizer"},
     {"name": "compatibility", "configurePreset": "compatibility"},
-    {"name": "coverage", "configurePreset": "coverage"}
+    {"name": "coverage", "configurePreset": "coverage"},
+    {"name": "fuzz", "configurePreset": "fuzz"}
   ],
   "testPresets": [
     {

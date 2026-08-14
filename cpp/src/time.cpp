@@ -146,7 +146,7 @@ auto to_string(TimeReference value) -> std::string_view {
 }
 
 auto decimal_seconds_to_nanoseconds(std::string_view lexeme) -> std::int64_t {
-  if (lexeme.empty()) {
+  if (lexeme.empty() || lexeme.size() > kMaximumDecimalSecondsBytes) {
     throw std::invalid_argument("plain decimal seconds required");
   }
   bool negative = false;

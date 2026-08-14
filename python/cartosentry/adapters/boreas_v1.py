@@ -80,6 +80,7 @@ LIDAR_RECORD = struct.Struct("<6f")
 LIDAR_BITS = struct.Struct("<6I")
 LIDAR_RECORD_BYTES: Final = LIDAR_RECORD.size
 LIDAR_RECORDS_PER_CHUNK: Final = 4096
+MAXIMUM_BOREAS_LIDAR_FRAME_BYTES: Final = 16 * 1024 * 1024
 
 
 class BoreasAdapterError(ValueError):
@@ -111,6 +112,68 @@ def _error(source_key: str, record: int, field: str, detail: str) -> BoreasAdapt
         record=record,
         field=field,
     )
+
+
+def decode_boreas_lidar_record(
+    content: bytes | memoryview,
+    *,
+    source_key: str = "lidar/frame.bin",
+    record_number: int = 1,
+) -> tuple[tuple[float, ...], tuple[int, ...]]:
+    """Decode one exact Boreas record through the production adapter boundary."""
+
+    if len(content) != LIDAR_RECORD_BYTES:
+        raise _error(
+            source_key,
+            record_number,
+            "record_layout",
+            "exactly 24 bytes required",
+        )
+    values = tuple(float(value) for value in LIDAR_RECORD.unpack(content))
+    bits = tuple(int(value) for value in LIDAR_BITS.unpack(content))
+    if not all(math.isfinite(value) for value in values):
+        raise _error(
+            source_key,
+            record_number,
+            "point",
+            "all six float32 fields must be finite",
+        )
+    laser_id = values[4]
+    if not 0.0 <= laser_id <= 127.0 or round(laser_id) != laser_id:
+        raise _error(
+            source_key,
+            record_number,
+            "laser_id",
+            "integer in [0,127] required",
+        )
+    return values, bits
+
+
+def parse_boreas_lidar_frame_bytes(
+    content: bytes, *, source_key: str = "lidar/frame.bin"
+) -> int:
+    """Validate one bounded Boreas frame without retaining decoded points."""
+
+    byte_count = len(content)
+    if (
+        byte_count == 0
+        or byte_count > MAXIMUM_BOREAS_LIDAR_FRAME_BYTES
+        or byte_count % LIDAR_RECORD_BYTES != 0
+    ):
+        raise _error(
+            source_key,
+            0,
+            "record_layout",
+            "byte count must be a bounded nonzero multiple of 24",
+        )
+    view = memoryview(content)
+    for offset in range(0, byte_count, LIDAR_RECORD_BYTES):
+        decode_boreas_lidar_record(
+            view[offset : offset + LIDAR_RECORD_BYTES],
+            source_key=source_key,
+            record_number=offset // LIDAR_RECORD_BYTES + 1,
+        )
+    return byte_count // LIDAR_RECORD_BYTES
 
 
 def _float(lexeme: str, source_key: str, record: int, field: str) -> float:
@@ -660,12 +723,16 @@ class BoreasAdapter:
         for source_key in self._frame_source_keys:
             path = self._require_file(source_key)
             byte_count = path.stat().st_size
-            if byte_count == 0 or byte_count % LIDAR_RECORD_BYTES != 0:
+            if (
+                byte_count == 0
+                or byte_count > MAXIMUM_BOREAS_LIDAR_FRAME_BYTES
+                or byte_count % LIDAR_RECORD_BYTES != 0
+            ):
                 raise _error(
                     source_key,
                     0,
                     "record_layout",
-                    "byte count must be a nonzero multiple of 24",
+                    "byte count must be a bounded nonzero multiple of 24",
                 )
             source_frame_key = path.stem
             midpoint = _microsecond_time(
@@ -703,7 +770,10 @@ class BoreasAdapter:
                 "lidar frame handle does not belong to this adapter"
             )
         path = self._require_file(expected_key)
-        if path.stat().st_size != frame.payload.byte_count:
+        if (
+            frame.payload.byte_count > MAXIMUM_BOREAS_LIDAR_FRAME_BYTES
+            or path.stat().st_size != frame.payload.byte_count
+        ):
             raise _error(
                 expected_key, 0, "byte_count", "source changed after enumeration"
             )
@@ -720,25 +790,14 @@ class BoreasAdapter:
                             "record_layout",
                             "partial record encountered",
                         )
+                    view = memoryview(chunk)
                     for offset in range(0, len(chunk), LIDAR_RECORD_BYTES):
-                        values = LIDAR_RECORD.unpack_from(chunk, offset)
-                        bits = LIDAR_BITS.unpack_from(chunk, offset)
                         record_index += 1
-                        if not all(math.isfinite(value) for value in values):
-                            raise _error(
-                                expected_key,
-                                record_index,
-                                "point",
-                                "all six float32 fields must be finite",
-                            )
-                        laser_id = values[4]
-                        if not 0.0 <= laser_id <= 127.0 or round(laser_id) != laser_id:
-                            raise _error(
-                                expected_key,
-                                record_index,
-                                "laser_id",
-                                "integer in [0,127] required",
-                            )
+                        values, bits = decode_boreas_lidar_record(
+                            view[offset : offset + LIDAR_RECORD_BYTES],
+                            source_key=expected_key,
+                            record_number=record_index,
+                        )
                         yield record_index - 1, values, bits
         except OSError as error:
             raise _error(expected_key, 0, "", "binary read failed") from error
@@ -972,8 +1031,11 @@ def source_group_for_sequence(sequence_key: str, split_manifest_path: Path) -> s
 __all__ = [
     "ADAPTER_ID",
     "ADAPTER_VERSION",
+    "MAXIMUM_BOREAS_LIDAR_FRAME_BYTES",
     "BoreasAdapter",
     "BoreasAdapterError",
+    "decode_boreas_lidar_record",
+    "parse_boreas_lidar_frame_bytes",
     "qualify_boreas_adapter",
     "source_group_for_sequence",
 ]

@@ -12,7 +12,10 @@ from cartosentry.cli import app
 from cartosentry.synthetic import (
     COLUMN_PERIOD_NS,
     GENERATOR_VERSION,
+    MAXIMUM_FIXTURE_SET_MANIFEST_BYTES,
     generate_fixture,
+    materialize_fixture_set,
+    parse_fixture_set_manifest_bytes,
     qualify_fixture_set,
     render_fixture_set,
 )
@@ -41,6 +44,33 @@ def _fixtures() -> list[SyntheticFixture]:
         )
         for item in manifest["fixtures"]
     ]
+
+
+@pytest.mark.parametrize(
+    "content",
+    [
+        b'{"schema_version":"cartosentry.synthetic-fixture-set.v1",'
+        b'"schema_version":"cartosentry.synthetic-fixture-set.v1"}',
+        b"[" * 65 + b"0" + b"]" * 65,
+        b'{"fixture_count":NaN}',
+        b" " * (MAXIMUM_FIXTURE_SET_MANIFEST_BYTES + 1),
+    ],
+)
+def test_fixture_set_manifest_parser_rejects_unsafe_json(content: bytes) -> None:
+    with pytest.raises(ValueError):
+        parse_fixture_set_manifest_bytes(content)
+
+
+def test_fixture_qualification_bounds_manifest_before_comparison(
+    tmp_path: Path,
+) -> None:
+    fixture_root = tmp_path / "fixtures"
+    materialize_fixture_set(fixture_root, SPLIT_MANIFEST)
+    (fixture_root / "manifest.json").write_bytes(
+        b" " * (MAXIMUM_FIXTURE_SET_MANIFEST_BYTES + 1)
+    )
+    with pytest.raises(ValueError, match="size is outside"):
+        qualify_fixture_set(fixture_root, SPLIT_MANIFEST, CHARTER)
 
 
 def test_committed_fixture_set_passes_full_qualification() -> None:

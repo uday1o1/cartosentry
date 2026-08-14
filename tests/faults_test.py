@@ -19,6 +19,7 @@ from cartosentry.faults import (
     inject_fault,
     load_fault_registry,
     materialize_fault_result,
+    parse_fault_manifest_bytes,
     serialize_fault_manifest,
     verify_fault_result,
 )
@@ -218,6 +219,31 @@ def test_invalid_operator_range_fails_before_creating_output(tmp_path: Path) -> 
         materialize_fault_result(output_root, result)
     assert not output_root.exists()
     assert source == SOURCE_PATH.read_bytes()
+
+
+def test_fault_matrix_rejects_duplicate_keys(tmp_path: Path) -> None:
+    matrix = tmp_path / "fault-matrix.json"
+    matrix.write_text(
+        '{"fault_matrix_id":"cartosentry-v1-core",'
+        '"fault_matrix_id":"cartosentry-v1-core"}'
+    )
+    with pytest.raises(ValueError, match="duplicate key"):
+        load_fault_registry(matrix)
+
+
+@pytest.mark.parametrize(
+    "content",
+    [
+        b'{"schema_version":"cartosentry.fault-manifest.v1",'
+        b'"schema_version":"cartosentry.fault-manifest.v1"}',
+        b"[" * 65 + b"0" + b"]" * 65,
+        b'{"seed":Infinity}',
+        b" " * (16 * 1024 * 1024 + 1),
+    ],
+)
+def test_fault_manifest_parser_rejects_unsafe_json(content: bytes) -> None:
+    with pytest.raises(ValueError):
+        parse_fault_manifest_bytes(content)
 
 
 def test_every_committed_v1_family_can_only_generate_allowlisted_derivatives() -> None:

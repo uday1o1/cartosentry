@@ -15,13 +15,15 @@ They are not runtime performance evidence.
 | --- | --- | --- | --- | --- |
 | macOS ARM64 | macOS 26.5.2, build 25F84 | AppleClang 21.0.0 | CMake 4.4.2, Ninja 1.13.0, uv 0.11.23 | Editable install, developer/release/sanitizer builds, locked dependency probe, wheel, source distribution, and clean wheel import passed. |
 | Linux x86-64 | `python:3.12.13-slim-bookworm` amd64 manifest `sha256:6e13e65c55e33adf203d77ee371cf8bf5d81bd4902ef07565721f46bf44917af` | GCC 12.2.0-14+deb12u1 | CMake 4.4.2, Debian Ninja 1.11.1-2~deb12u1, uv 0.11.23 | Frozen sync, editable install, developer/release/sanitizer builds, locked dependency probe, wheel, source distribution, and clean wheel import passed. |
+| Linux x86-64 fuzz | The same pinned Debian amd64 base and 2026-08-13 package snapshot | Clang 14.0.6 with `libclang-rt-14-dev` 14.0.6 | LibFuzzer, AddressSanitizer, UndefinedBehaviorSanitizer, and Atheris 3.1.0 | Frozen 5-second and 60-second campaigns cover three native parser targets and one Python manifest-boundary target with every applicable required seed class. |
 
 The Linux image uses packages from the immutable Debian snapshot `20260813T000000Z`.
 Its top-level package versions and uv wheel hash are fixed in `docker/linux-x86_64.Dockerfile`.
 The local qualification ran the amd64 image on an ARM64 host through Apple Rosetta in a Linux virtual machine.
 The same image is suitable for a native amd64 Docker host, but M0.3 did not measure or compare performance across those hosts.
 
-The supported compiler range is currently AppleClang 21 on macOS ARM64 and GCC 12.2 on Linux x86-64.
+The supported product compiler range is currently AppleClang 21 on macOS ARM64 and GCC 12.2 on Linux x86-64.
+The parser-fuzz qualification additionally supports Clang 14.0.6 on the pinned Linux x86-64 base.
 Other compilers and operating-system releases are unqualified until their full gate passes.
 The optional CUDA preset intentionally fails closed until the M12 profiling gate selects and records a CUDA toolchain.
 

@@ -17,7 +17,13 @@ from cartosentry.recovery import (
     resume_registered_run,
     run_demo_pipeline,
 )
-from cartosentry.runstate import ArtifactPayload, RunEngine, build_stage_cache_key
+from cartosentry.runstate import (
+    ArtifactIntegrityError,
+    ArtifactPayload,
+    RunEngine,
+    build_stage_cache_key,
+    parse_run_inputs_bytes,
+)
 from typer.testing import CliRunner
 
 
@@ -124,6 +130,21 @@ def test_stage_start_requires_complete_upstream(tmp_path: Path) -> None:
             )
 
 
+@pytest.mark.parametrize(
+    "content",
+    [
+        b'{"schema_version":"cartosentry.run-inputs.v1",'
+        b'"schema_version":"cartosentry.run-inputs.v1"}',
+        b"[" * 65 + b"0" + b"]" * 65,
+        b'{"schema_version":NaN}',
+        b" " * (1024 * 1024 + 1),
+    ],
+)
+def test_run_control_parser_rejects_unsafe_json(content: bytes) -> None:
+    with pytest.raises(ArtifactIntegrityError, match="control artifact"):
+        parse_run_inputs_bytes(content)
+
+
 def test_invalid_stage_schema_never_publishes_completion(tmp_path: Path) -> None:
     root = tmp_path / "invalid-stage-output"
     definitions = demo_stage_definitions()
@@ -184,4 +205,23 @@ def test_run_input_change_cannot_reuse_existing_artifacts(tmp_path: Path) -> Non
     inputs["source_hashes"]["fixture-source"] = "f" * 64
     inputs_path.write_text(json.dumps(inputs))
     with pytest.raises(ValueError, match=r"sequence_id|identity"):
+        resume_registered_run(root)
+
+
+@pytest.mark.parametrize("mutation", ["duplicate", "oversized"])
+def test_run_control_manifest_boundary_is_bounded_and_duplicate_safe(
+    tmp_path: Path,
+    mutation: str,
+) -> None:
+    root = tmp_path / mutation
+    run_demo_pipeline(root)
+    inputs_path = root / "run-inputs.json"
+    if mutation == "duplicate":
+        content = inputs_path.read_bytes()
+        inputs_path.write_bytes(
+            b'{"workflow_id":"resumable-stage-qualification-v1",' + content[1:]
+        )
+    else:
+        inputs_path.write_bytes(b" " * (1024 * 1024 + 1))
+    with pytest.raises(ArtifactIntegrityError):
         resume_registered_run(root)

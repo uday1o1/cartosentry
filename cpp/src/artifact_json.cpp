@@ -9,6 +9,8 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <unordered_set>
+#include <vector>
 
 namespace cartosentry::contracts {
 namespace {
@@ -243,8 +245,31 @@ auto canonicalize_artifact_json(std::string_view input_json,
   }
   const auto& rule = schema_rule(expected_schema);
   Json document;
+  std::vector<std::unordered_set<std::string>> object_keys;
+  const Json::parser_callback_t reject_duplicate_keys =
+      [&object_keys](int depth, Json::parse_event_t event, Json& parsed) {
+        if (depth < 0 ||
+            static_cast<std::size_t>(depth) > maximum_artifact_depth) {
+          throw std::invalid_argument(
+              "invalid artifact JSON: nesting exceeds the supported depth");
+        }
+        if (event == Json::parse_event_t::object_start) {
+          object_keys.emplace_back();
+        } else if (event == Json::parse_event_t::key) {
+          if (object_keys.empty() ||
+              !object_keys.back()
+                   .insert(parsed.get_ref<const std::string&>())
+                   .second) {
+            throw std::invalid_argument(
+                "invalid artifact JSON: duplicate object key");
+          }
+        } else if (event == Json::parse_event_t::object_end) {
+          object_keys.pop_back();
+        }
+        return true;
+      };
   try {
-    document = Json::parse(input_json);
+    document = Json::parse(input_json, reject_duplicate_keys);
   } catch (const Json::exception& error) {
     throw std::invalid_argument("invalid artifact JSON: " +
                                 std::string{error.what()});

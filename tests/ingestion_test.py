@@ -26,6 +26,11 @@ from cartosentry.ingestion import (
     load_ingestion_budget,
     read_frame_index,
 )
+from cartosentry.manifest_boundaries import (
+    MAXIMUM_FRAME_INDEX_LINE_BYTES,
+    MAXIMUM_INGESTION_BUDGET_BYTES,
+    ManifestBoundaryError,
+)
 from typer.testing import CliRunner
 
 from tests.adapters_boreas_test import SOURCE_GROUP, _build_fixture
@@ -244,3 +249,40 @@ def test_actual_public_smoke_manifest_index_and_memory_gate(tmp_path: Path) -> N
     assert ranges["lidar-frame"].record_count == 10
     assert all(item.duplicate_timestamp_count == 0 for item in ranges.values())
     assert report.structural_findings == ()
+
+
+@pytest.mark.parametrize("mutation", ["duplicate", "oversized", "deep"])
+def test_ingestion_budget_boundary_rejects_unsafe_documents(
+    tmp_path: Path, mutation: str
+) -> None:
+    path = tmp_path / "budget.json"
+    if mutation == "duplicate":
+        content = BUDGET_PATH.read_bytes()
+        path.write_bytes(b'{"schema_version":1,' + content[1:])
+    elif mutation == "oversized":
+        path.write_bytes(b" " * (MAXIMUM_INGESTION_BUDGET_BYTES + 1))
+    else:
+        path.write_bytes(b"[" * 65 + b"0" + b"]" * 65)
+    with pytest.raises(ManifestBoundaryError):
+        load_ingestion_budget(path)
+
+
+@pytest.mark.parametrize("mutation", ["duplicate", "oversized", "deep"])
+def test_frame_index_boundary_rejects_unsafe_jsonl_records(
+    tmp_path: Path, mutation: str
+) -> None:
+    sequence = _build_fixture(tmp_path / "source")
+    output = tmp_path / "index"
+    assert _index(sequence, output).accepted is True
+    path = output / INDEX_FILE
+    if mutation == "duplicate":
+        content = path.read_bytes()
+        path.write_bytes(
+            b'{"schema_version":"cartosentry.frame-index-entry.v1",' + content[1:]
+        )
+    elif mutation == "oversized":
+        path.write_bytes(b" " * (MAXIMUM_FRAME_INDEX_LINE_BYTES + 1))
+    else:
+        path.write_bytes(b"[" * 65 + b"0" + b"]" * 65 + b"\n")
+    with pytest.raises(ManifestBoundaryError):
+        tuple(read_frame_index(path))

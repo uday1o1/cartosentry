@@ -14,6 +14,10 @@ from cartosentry.adapters import (
     qualify_boreas_adapter,
 )
 from cartosentry.adapters.base import CapabilityState
+from cartosentry.adapters.boreas_v1 import (
+    MAXIMUM_BOREAS_LIDAR_FRAME_BYTES,
+    parse_boreas_lidar_frame_bytes,
+)
 from cartosentry.cli import app
 from cartosentry.contracts import TimeEpoch, TimeReference, VerticalDatum
 from pydantic import ValidationError
@@ -295,6 +299,20 @@ def test_invalid_lidar_payload_names_source_without_echoing_value(
     assert "lidar/1000000.bin" in str(error.value)
     assert "nan" not in str(error.value).lower()
     assert str(tmp_path) not in str(error.value)
+
+
+def test_python_lidar_binary_boundary_is_bounded_and_exact(tmp_path: Path) -> None:
+    clean = struct.pack("<6f", 1.0, 2.0, 3.0, 0.5, 1.0, 0.0)
+    assert parse_boreas_lidar_frame_bytes(clean) == 1
+    with pytest.raises(BoreasAdapterError, match="bounded nonzero multiple"):
+        parse_boreas_lidar_frame_bytes(clean[:-1])
+
+    sequence = _build_fixture(tmp_path)
+    lidar = sequence / "lidar/1000000.bin"
+    with lidar.open("wb") as stream:
+        stream.truncate(MAXIMUM_BOREAS_LIDAR_FRAME_BYTES + 1)
+    with pytest.raises(BoreasAdapterError, match="bounded nonzero multiple"):
+        next(_adapter(sequence).frames())
 
 
 def test_tiny_end_to_end_qualification_and_public_cli(tmp_path: Path) -> None:

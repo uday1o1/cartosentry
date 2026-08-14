@@ -18,13 +18,11 @@
 
 #include <algorithm>
 #include <array>
-#include <bit>
 #include <charconv>
 #include <chrono>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
-#include <cstring>
 #include <fstream>
 #include <functional>
 #include <limits>
@@ -50,7 +48,6 @@ constexpr std::string_view kGpsSource = "applanix/gps_post_process.csv";
 constexpr std::string_view kCalibrationSource = "calib/T_applanix_lidar.txt";
 constexpr std::string_view kLidarSource = "lidar";
 constexpr std::string_view kRoadGraphSource = "road_graph";
-constexpr std::size_t kLidarRecordBytes = 6U * sizeof(float);
 constexpr double kRadiansToDegrees = 180.0 / std::numbers::pi_v<double>;
 
 struct Pose {
@@ -327,6 +324,10 @@ auto lidar_paths(const std::filesystem::path &sequence_root)
     std::error_code entry_error;
     if (iterator->is_regular_file(entry_error) && !entry_error &&
         iterator->path().extension() == ".bin") {
+      if (paths.size() >= cartosentry::ingest::kMaximumBoreasLidarFrames) {
+        throw input_error(kLidarSource,
+                          "frame count exceeds the supported limit");
+      }
       paths.push_back(iterator->path());
     }
     if (entry_error) {
@@ -350,12 +351,6 @@ auto filename_time_ns(const std::filesystem::path &path) -> std::int64_t {
     throw input_error(kLidarSource, "filename timestamp is out of range");
   }
   return microseconds * 1000;
-}
-
-auto point_float(const std::byte *record, std::size_t index) -> float {
-  std::uint32_t bits = 0U;
-  std::memcpy(&bits, record + index * sizeof(float), sizeof(bits));
-  return std::bit_cast<float>(bits);
 }
 
 auto cell_for(const Eigen::Vector3d &point, double width_m) -> Cell {
@@ -460,69 +455,117 @@ auto public_alignment(const std::filesystem::path &sequence_root,
     std::error_code size_error;
     const auto source_bytes = std::filesystem::file_size(path, size_error);
     if (size_error || source_bytes == 0U ||
-        source_bytes % kLidarRecordBytes != 0U) {
+        source_bytes > cartosentry::ingest::kMaximumBoreasLidarFrameBytes ||
+        source_bytes % cartosentry::ingest::kBoreasLidarRecordBytes != 0U) {
       throw input_error(kLidarSource, "invalid binary frame size");
     }
     std::ifstream input(path, std::ios::binary);
     if (!input) {
       throw input_error(kLidarSource, "binary frame is unavailable");
     }
-    std::vector<std::byte> bytes(static_cast<std::size_t>(source_bytes));
-    input.read(reinterpret_cast<char *>(bytes.data()),
-               static_cast<std::streamsize>(bytes.size()));
-    if (!input || static_cast<std::size_t>(input.gcount()) != bytes.size()) {
-      throw input_error(kLidarSource, "binary frame read failed");
-    }
     const auto midpoint_ns = filename_time_ns(path);
     std::vector<Eigen::Vector3d> clean_points;
     std::vector<Eigen::Vector3d> time_shifted_points;
     std::vector<Eigen::Vector3d> trajectory_shifted_points;
-    const auto record_count = bytes.size() / kLidarRecordBytes;
+    const auto record_count = static_cast<std::size_t>(source_bytes) /
+                              cartosentry::ingest::kBoreasLidarRecordBytes;
     clean_points.reserve(record_count / parameters.lidar_point_stride + 1U);
     time_shifted_points.reserve(clean_points.capacity());
     trajectory_shifted_points.reserve(clean_points.capacity());
-    for (std::size_t record_index = 0U; record_index < record_count;
-         record_index += parameters.lidar_point_stride) {
-      const auto *record = bytes.data() + record_index * kLidarRecordBytes;
-      const Eigen::Vector3d point(static_cast<double>(point_float(record, 0U)),
-                                  static_cast<double>(point_float(record, 1U)),
-                                  static_cast<double>(point_float(record, 2U)));
-      const double time_offset_seconds =
-          static_cast<double>(point_float(record, 5U));
-      if (!point.allFinite() || !std::isfinite(time_offset_seconds)) {
-        throw input_error(kLidarSource, "sampled point must be finite");
+    constexpr std::size_t kRecordsPerBuffer = 4096U;
+    std::array<std::byte, cartosentry::ingest::kBoreasLidarRecordBytes *
+                              kRecordsPerBuffer>
+        buffer{};
+    std::size_t record_index = 0U;
+    while (input) {
+      input.read(reinterpret_cast<char *>(buffer.data()),
+                 static_cast<std::streamsize>(buffer.size()));
+      const auto read_bytes = input.gcount();
+      if (read_bytes < 0 || static_cast<std::size_t>(read_bytes) %
+                                    cartosentry::ingest::kBoreasLidarRecordBytes !=
+                                0U) {
+        throw input_error(kLidarSource, "binary frame has a partial record");
       }
-      const double range = point.norm();
-      if (range < 5.0 || range > 60.0 || point.z() < -3.0 || point.z() > 4.0) {
-        continue;
+      const auto records = static_cast<std::size_t>(read_bytes) /
+                           cartosentry::ingest::kBoreasLidarRecordBytes;
+      for (std::size_t local_index = 0U; local_index < records;
+           ++local_index, ++record_index) {
+        cartosentry::ingest::BoreasLidarRecord decoded;
+        try {
+          decoded = cartosentry::ingest::decode_boreas_lidar_record(
+              std::span(buffer).subspan(
+                  local_index * cartosentry::ingest::kBoreasLidarRecordBytes,
+                  cartosentry::ingest::kBoreasLidarRecordBytes),
+              kLidarSource, record_index + 1U);
+        } catch (const cartosentry::ingest::BoreasFormatError &) {
+          throw input_error(kLidarSource, "binary point record is invalid");
+        }
+        if (record_index % parameters.lidar_point_stride != 0U) {
+          continue;
+        }
+        const auto &values = decoded.values;
+        const Eigen::Vector3d point(static_cast<double>(values[0]),
+                                    static_cast<double>(values[1]),
+                                    static_cast<double>(values[2]));
+        const double time_offset_seconds = static_cast<double>(values[5]);
+        const double range = point.norm();
+        if (range < 5.0 || range > 60.0 || point.z() < -3.0 ||
+            point.z() > 4.0) {
+          continue;
+        }
+        const double offset_ns_value = time_offset_seconds * 1'000'000'000.0;
+        constexpr double kInt64UpperExclusive = 9'223'372'036'854'775'808.0;
+        if (offset_ns_value <
+                static_cast<double>(std::numeric_limits<std::int64_t>::min()) ||
+            offset_ns_value >= kInt64UpperExclusive) {
+          throw input_error(kLidarSource, "point time offset is out of range");
+        }
+        const auto offset_ns =
+            static_cast<std::int64_t>(std::llround(offset_ns_value));
+        if ((offset_ns > 0 &&
+             midpoint_ns > std::numeric_limits<std::int64_t>::max() - offset_ns) ||
+            (offset_ns < 0 && midpoint_ns <
+                                  std::numeric_limits<std::int64_t>::min() -
+                                      offset_ns)) {
+          throw input_error(kLidarSource, "point timestamp is out of range");
+        }
+        const auto point_time_ns = midpoint_ns + offset_ns;
+        const auto clean_pose =
+            compose(interpolate_pose(trajectory, point_time_ns), extrinsic);
+        if ((parameters.injected_point_time_shift_ns > 0 &&
+             point_time_ns > std::numeric_limits<std::int64_t>::max() -
+                                 parameters.injected_point_time_shift_ns) ||
+            (parameters.injected_point_time_shift_ns < 0 &&
+             point_time_ns < std::numeric_limits<std::int64_t>::min() -
+                                 parameters.injected_point_time_shift_ns)) {
+          throw input_error(kLidarSource, "injected point time is out of range");
+        }
+        const auto time_shifted_pose = compose(
+            interpolate_pose(trajectory,
+                             point_time_ns +
+                                 parameters.injected_point_time_shift_ns),
+            extrinsic);
+        auto trajectory_shifted_pose = clean_pose;
+        if (frame_index >= paths.size() / 3U &&
+            frame_index < (2U * paths.size()) / 3U) {
+          trajectory_shifted_pose.translation.x() +=
+              parameters.injected_trajectory_shift_m;
+        }
+        const auto clean_point = transform_point(clean_pose, point);
+        const auto time_shifted_point = transform_point(time_shifted_pose, point);
+        const auto trajectory_shifted_point =
+            transform_point(trajectory_shifted_pose, point);
+        point_time_effect_sum_m += (time_shifted_point - clean_point).norm();
+        trajectory_effect_sum_m +=
+            (trajectory_shifted_point - clean_point).norm();
+        clean_points.push_back(clean_point);
+        time_shifted_points.push_back(time_shifted_point);
+        trajectory_shifted_points.push_back(trajectory_shifted_point);
+        ++sampled_points;
       }
-      const auto offset_ns = static_cast<std::int64_t>(
-          std::llround(time_offset_seconds * 1'000'000'000.0));
-      const auto point_time_ns = midpoint_ns + offset_ns;
-      const auto clean_pose =
-          compose(interpolate_pose(trajectory, point_time_ns), extrinsic);
-      const auto time_shifted_pose =
-          compose(interpolate_pose(trajectory,
-                                   point_time_ns +
-                                       parameters.injected_point_time_shift_ns),
-                  extrinsic);
-      auto trajectory_shifted_pose = clean_pose;
-      if (frame_index >= paths.size() / 3U &&
-          frame_index < (2U * paths.size()) / 3U) {
-        trajectory_shifted_pose.translation.x() +=
-            parameters.injected_trajectory_shift_m;
-      }
-      const auto clean_point = transform_point(clean_pose, point);
-      const auto time_shifted_point = transform_point(time_shifted_pose, point);
-      const auto trajectory_shifted_point =
-          transform_point(trajectory_shifted_pose, point);
-      point_time_effect_sum_m += (time_shifted_point - clean_point).norm();
-      trajectory_effect_sum_m +=
-          (trajectory_shifted_point - clean_point).norm();
-      clean_points.push_back(clean_point);
-      time_shifted_points.push_back(time_shifted_point);
-      trajectory_shifted_points.push_back(trajectory_shifted_point);
-      ++sampled_points;
+    }
+    if (!input.eof() || record_index != record_count) {
+      throw input_error(kLidarSource, "binary frame read failed");
     }
     if (clean_points.size() < 100U) {
       throw input_error(kLidarSource, "insufficient structured sampled points");

@@ -1,0 +1,38 @@
+{
+  "byte_count": 24,
+  "byte_offset": 0,
+  "capture_interval_state": "SENSOR_TIME_ONLY",
+  "frame_id": "frame-sha256-0000000000000000000000000000000000000000000000000000000000000000",
+  "parse_status": "PARSED",
+  "payload_record_count": 1,
+  "schema_version": "cartosentry.frame-index-entry.v1",
+  "source_key": "lidar/1000000.bin",
+  "source_ordinal": 0,
+  "source_record_index": null,
+  "stream_id": "stream-lidar-lidar-0000000000000000000000000000000000000000000000000000000000000000",
+  "times": {
+    "capture_end": null,
+    "capture_start": null,
+    "corrected_sensor_time": null,
+    "host_receive_time": null,
+    "sensor_time": {
+      "clock_id": "boreas-unix-utc",
+      "epoch": "UNIX_UTC",
+      "raw": {
+        "decimal_lexeme": null,
+        "encoded_bytes": null,
+        "encoding": "unsigned_integer",
+        "epoch": "UNIX_UTC",
+        "field": "filename_timestamp",
+        "integer_value": "1000000",
+        "maximum_conversion_error_ns": 0.0,
+        "reference": "SCAN_MIDPOINT",
+        "rounding": "exact",
+        "source_key": "lidar/1000000.bin",
+        "unit": "us"
+      },
+      "reference": "SCAN_MIDPOINT",
+      "value_ns": 1000000000
+    }
+  }
+}

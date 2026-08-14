@@ -20,6 +20,11 @@ from .contracts import (
     TimeRounding,
 )
 from .identifiers import make_frame_id, make_road_graph_id, make_synthetic_fixture_id
+from .manifest_boundaries import (
+    ManifestBoundaryError,
+    decode_bounded_json,
+    read_bounded_regular_bytes,
+)
 from .synthetic_models import (
     CylinderLandmark,
     DirectedRoadArc,
@@ -53,6 +58,7 @@ COLUMN_PERIOD_NS: Final = SCAN_PERIOD_NS // AZIMUTH_COLUMNS
 ELEVATION_ANGLES_RAD: Final = (-0.14, -0.07, 0.02, 0.1)
 MAXIMUM_RANGE_M: Final = 50.0
 _SCENARIOS: Final = tuple(SyntheticScenario)
+MAXIMUM_FIXTURE_SET_MANIFEST_BYTES: Final = 1024 * 1024
 
 
 @dataclass(frozen=True)
@@ -741,6 +747,18 @@ def _write_atomically(path: Path, content: bytes) -> None:
         raise
 
 
+def _matches_expected_file(path: Path, expected: bytes, relative: str) -> bool:
+    try:
+        observed = read_bounded_regular_bytes(
+            path,
+            maximum_bytes=len(expected),
+            context=f"fixture file {relative}",
+        )
+    except ManifestBoundaryError:
+        return False
+    return observed == expected
+
+
 def materialize_fixture_set(
     output_root: Path,
     split_manifest_path: Path,
@@ -751,8 +769,7 @@ def materialize_fixture_set(
     stale = sorted(
         relative
         for relative, content in expected.items()
-        if not (output_root / relative).is_file()
-        or (output_root / relative).read_bytes() != content
+        if not _matches_expected_file(output_root / relative, content, relative)
     )
     if not check:
         for relative, content in expected.items():
@@ -765,6 +782,17 @@ def materialize_fixture_set(
         "output_root": output_root.as_posix(),
         "stale_files": stale,
     }
+
+
+def parse_fixture_set_manifest_bytes(content: bytes) -> FixtureSetManifest:
+    """Parse the persisted fixture-set manifest through a bounded boundary."""
+
+    decode_bounded_json(
+        content,
+        maximum_bytes=MAXIMUM_FIXTURE_SET_MANIFEST_BYTES,
+        context="fixture-set manifest",
+    )
+    return FixtureSetManifest.model_validate_json(content)
 
 
 def _distance(left: Vector3, right: Vector3) -> float:
@@ -782,11 +810,14 @@ def qualify_fixture_set(
     byte_mismatches = sorted(
         relative
         for relative, content in expected.items()
-        if not (fixture_root / relative).is_file()
-        or (fixture_root / relative).read_bytes() != content
+        if not _matches_expected_file(fixture_root / relative, content, relative)
     )
-    manifest = FixtureSetManifest.model_validate_json(
-        (fixture_root / "manifest.json").read_text(encoding="utf-8")
+    manifest = parse_fixture_set_manifest_bytes(
+        read_bounded_regular_bytes(
+            fixture_root / "manifest.json",
+            maximum_bytes=MAXIMUM_FIXTURE_SET_MANIFEST_BYTES,
+            context="fixture-set manifest",
+        )
     )
     charter = json.loads(charter_path.read_text(encoding="utf-8"))
     geometry_limit = float(charter["gates"]["geometry.se3_point_roundtrip_m"]["value"])
@@ -854,8 +885,10 @@ __all__ = [
     "COLUMN_PERIOD_NS",
     "DURATION_NS",
     "GENERATOR_VERSION",
+    "MAXIMUM_FIXTURE_SET_MANIFEST_BYTES",
     "generate_fixture",
     "materialize_fixture_set",
+    "parse_fixture_set_manifest_bytes",
     "qualify_fixture_set",
     "render_fixture_set",
     "serialize_fixture",

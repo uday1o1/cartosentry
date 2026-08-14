@@ -57,6 +57,13 @@ from cartosentry.identifiers import (
     make_sequence_id,
     make_stream_id,
 )
+from cartosentry.manifest_boundaries import (
+    MAXIMUM_FRAME_INDEX_LINE_BYTES,
+    MAXIMUM_INGESTION_BUDGET_BYTES,
+    decode_bounded_json,
+    iter_bounded_json_lines,
+    read_bounded_json,
+)
 
 Identifier = Annotated[
     str,
@@ -323,10 +330,24 @@ def _canonical_json(value: object) -> bytes:
     ).encode("utf-8")
 
 
+def parse_ingestion_budget_bytes(content: bytes) -> IngestionBudget:
+    """Validate one in-memory budget through the production manifest boundary."""
+
+    decode_bounded_json(
+        content,
+        maximum_bytes=MAXIMUM_INGESTION_BUDGET_BYTES,
+        context="ingestion budget",
+    )
+    return IngestionBudget.model_validate_json(content)
+
+
 def load_ingestion_budget(path: Path) -> tuple[IngestionBudget, str]:
-    content = path.read_bytes()
-    value = json.loads(content)
-    return IngestionBudget.model_validate(value), hashlib.sha256(content).hexdigest()
+    _, content = read_bounded_json(
+        path,
+        maximum_bytes=MAXIMUM_INGESTION_BUDGET_BYTES,
+        context="ingestion budget",
+    )
+    return parse_ingestion_budget_bytes(content), hashlib.sha256(content).hexdigest()
 
 
 def _write_json(path: Path, value: object) -> str:
@@ -1015,17 +1036,31 @@ def index_boreas_recording(
     )
 
 
+def parse_frame_index_line(content: bytes) -> FrameIndexEntry:
+    """Validate one in-memory JSONL record through the production boundary."""
+
+    decode_bounded_json(
+        content,
+        maximum_bytes=MAXIMUM_FRAME_INDEX_LINE_BYTES,
+        context="frame-index record",
+    )
+    return FrameIndexEntry.model_validate_json(content)
+
+
 def read_frame_index(path: Path) -> Iterator[FrameIndexEntry]:
     """Validate an index incrementally without materializing it."""
 
-    with path.open("r", encoding="utf-8") as stream:
-        for line_number, line in enumerate(stream, start=1):
-            try:
-                yield FrameIndexEntry.model_validate_json(line)
-            except ValueError as error:
-                raise ValueError(
-                    f"invalid frame-index record at line {line_number}"
-                ) from error
+    for line_number, content, _ in iter_bounded_json_lines(
+        path,
+        maximum_line_bytes=MAXIMUM_FRAME_INDEX_LINE_BYTES,
+        context="frame index",
+    ):
+        try:
+            yield parse_frame_index_line(content)
+        except ValueError as error:
+            raise ValueError(
+                f"invalid frame-index record at line {line_number}"
+            ) from error
 
 
 __all__ = [
@@ -1043,5 +1078,7 @@ __all__ = [
     "index_boreas_recording",
     "index_recording",
     "load_ingestion_budget",
+    "parse_frame_index_line",
+    "parse_ingestion_budget_bytes",
     "read_frame_index",
 ]

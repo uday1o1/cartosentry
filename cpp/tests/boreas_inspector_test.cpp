@@ -1,13 +1,32 @@
 #include "cartosentry/ingest/boreas_inspector.hpp"
+#include "cartosentry/contracts/time.hpp"
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
+#include <array>
+#include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <limits>
+#include <span>
 #include <string>
+#include <vector>
 
 using cartosentry::ingest::BoreasFormatError;
+using cartosentry::ingest::parse_boreas_lidar_frame;
 using cartosentry::ingest::parse_decimal_seconds_to_nanoseconds;
+
+namespace {
+
+auto one_lidar_record() -> std::array<std::byte, 24> {
+  const std::array values{1.0F, 2.0F, 3.0F, 0.5F, 1.0F, 0.0F};
+  std::array<std::byte, 24> record{};
+  std::memcpy(record.data(), values.data(), record.size());
+  return record;
+}
+
+}  // namespace
 
 TEST_CASE("decimal Unix seconds preserve the source lexeme exactly") {
   CHECK(parse_decimal_seconds_to_nanoseconds(
@@ -40,6 +59,13 @@ TEST_CASE("the full signed int64 nanosecond domain is supported") {
   CHECK_THROWS_AS(parse_decimal_seconds_to_nanoseconds(
                       "9223372036.854775808", "gps.csv", 2U, "GPSTime"),
                   BoreasFormatError);
+  CHECK_THROWS_AS(parse_decimal_seconds_to_nanoseconds(
+                      std::string(
+                          cartosentry::contracts::kMaximumDecimalSecondsBytes +
+                              1U,
+                          '1'),
+                      "gps.csv", 2U, "GPSTime"),
+                  BoreasFormatError);
 }
 
 TEST_CASE("format errors identify fields without reproducing raw values") {
@@ -55,4 +81,36 @@ TEST_CASE("format errors identify fields without reproducing raw values") {
     CHECK(message.find("GPSTime") != std::string::npos);
     CHECK(message.find(secret) == std::string::npos);
   }
+}
+
+TEST_CASE("Boreas lidar record parser rejects unsafe binary boundaries") {
+  const auto valid = one_lidar_record();
+  const auto parsed = parse_boreas_lidar_frame(valid, "1630597359058594");
+  CHECK(parsed.frame.point_count == 1U);
+  CHECK(parsed.frame.minimum_laser_id == 1U);
+  CHECK(parsed.frame.maximum_laser_id == 1U);
+
+  CHECK_THROWS_AS(parse_boreas_lidar_frame(
+                      std::span(valid).first(valid.size() - 1U),
+                      "1630597359058594"),
+                  BoreasFormatError);
+
+  auto endian_swapped = valid;
+  for (std::size_t field = 0U; field < 6U; ++field) {
+    std::reverse(endian_swapped.begin() + static_cast<std::ptrdiff_t>(field * 4U),
+                 endian_swapped.begin() +
+                     static_cast<std::ptrdiff_t>((field + 1U) * 4U));
+  }
+  CHECK_THROWS_AS(parse_boreas_lidar_frame(endian_swapped,
+                                           "1630597359058594"),
+                  BoreasFormatError);
+
+  constexpr auto oversized_bytes =
+      ((cartosentry::ingest::kMaximumBoreasLidarFrameBytes /
+        cartosentry::ingest::kBoreasLidarRecordBytes) +
+       1U) *
+      cartosentry::ingest::kBoreasLidarRecordBytes;
+  const std::vector<std::byte> oversized(oversized_bytes);
+  CHECK_THROWS_AS(parse_boreas_lidar_frame(oversized, "1630597359058594"),
+                  BoreasFormatError);
 }

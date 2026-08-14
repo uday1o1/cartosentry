@@ -7,10 +7,11 @@ import hashlib
 import json
 import os
 import sqlite3
+import stat
 import tempfile
 import uuid
 from collections.abc import Callable, Iterator, Mapping, Sequence
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path, PurePosixPath
@@ -32,6 +33,10 @@ from cartosentry.identifiers import (
     canonical_sha256,
     make_run_id,
     make_sequence_id,
+)
+from cartosentry.manifest_boundaries import (
+    ManifestBoundaryError,
+    decode_bounded_json,
 )
 
 Identifier = Annotated[
@@ -289,17 +294,106 @@ def _write_json_atomically(path: Path, value: object) -> str:
     return hashlib.sha256(content).hexdigest()
 
 
-def _read_json(path: Path) -> object:
-    if path.is_symlink() or not path.is_file():
-        raise ArtifactIntegrityError(
-            "control artifact is missing or is a symbolic link"
-        )
-    if path.stat().st_size > MAX_CONTROL_FILE_BYTES:
-        raise ArtifactIntegrityError("control artifact exceeds the size limit")
+def _read_bounded_regular_file(path: Path, maximum_bytes: int) -> bytes:
+    flags = os.O_RDONLY
+    flags |= getattr(os, "O_CLOEXEC", 0)
+    flags |= getattr(os, "O_NOFOLLOW", 0)
     try:
-        return json.loads(path.read_bytes())
-    except (OSError, json.JSONDecodeError) as error:
+        descriptor = os.open(path, flags)
+    except OSError as error:
+        raise ArtifactIntegrityError("control artifact is missing or unsafe") from error
+    try:
+        stream = os.fdopen(descriptor, "rb")
+        descriptor = -1
+        with stream:
+            metadata = os.fstat(stream.fileno())
+            if not stat.S_ISREG(metadata.st_mode) or metadata.st_size > maximum_bytes:
+                raise ArtifactIntegrityError(
+                    "control artifact is unsafe or exceeds the size limit"
+                )
+            content = stream.read(maximum_bytes + 1)
+    except BaseException:
+        if descriptor >= 0:
+            with suppress(OSError):
+                os.close(descriptor)
+        raise
+    if len(content) > maximum_bytes:
+        raise ArtifactIntegrityError("control artifact exceeds the size limit")
+    return content
+
+
+def _decode_json(content: bytes) -> object:
+    try:
+        return decode_bounded_json(
+            content,
+            maximum_bytes=MAX_CONTROL_FILE_BYTES,
+            context="control artifact",
+        )
+    except ManifestBoundaryError as error:
         raise ArtifactIntegrityError("control artifact is not valid JSON") from error
+
+
+def parse_run_inputs_bytes(content: bytes) -> RunInputs:
+    """Parse the exact persisted run-input boundary from bounded bytes."""
+
+    _decode_json(content)
+    return RunInputs.model_validate_json(content)
+
+
+def parse_attempt_manifest_bytes(content: bytes) -> AttemptManifest:
+    """Parse the exact persisted stage-attempt boundary from bounded bytes."""
+
+    try:
+        _decode_json(content)
+        return AttemptManifest.model_validate_json(content)
+    except (ArtifactIntegrityError, ValueError) as error:
+        raise ArtifactIntegrityError("attempt manifest is invalid") from error
+
+
+def parse_completion_pointer_bytes(content: bytes) -> CompletionPointer:
+    """Parse the exact persisted stage-completion boundary from bounded bytes."""
+
+    try:
+        _decode_json(content)
+        return CompletionPointer.model_validate_json(content)
+    except (ArtifactIntegrityError, ValueError) as error:
+        raise ArtifactIntegrityError("completion pointer is invalid") from error
+
+
+def _hash_regular_file(path: Path, expected_byte_count: int) -> str:
+    flags = os.O_RDONLY
+    flags |= getattr(os, "O_CLOEXEC", 0)
+    flags |= getattr(os, "O_NOFOLLOW", 0)
+    try:
+        descriptor = os.open(path, flags)
+    except OSError as error:
+        raise ArtifactIntegrityError(
+            "published artifact is missing or unsafe"
+        ) from error
+    digest = hashlib.sha256()
+    observed_byte_count = 0
+    try:
+        stream = os.fdopen(descriptor, "rb")
+        descriptor = -1
+        with stream:
+            metadata = os.fstat(stream.fileno())
+            if not stat.S_ISREG(metadata.st_mode):
+                raise ArtifactIntegrityError("published artifact is not regular")
+            if metadata.st_size != expected_byte_count:
+                raise ArtifactIntegrityError("published artifact size mismatch")
+            while chunk := stream.read(1024 * 1024):
+                observed_byte_count += len(chunk)
+                if observed_byte_count > expected_byte_count:
+                    raise ArtifactIntegrityError("published artifact size changed")
+                digest.update(chunk)
+    except BaseException:
+        if descriptor >= 0:
+            with suppress(OSError):
+                os.close(descriptor)
+        raise
+    if observed_byte_count != expected_byte_count:
+        raise ArtifactIntegrityError("published artifact size changed")
+    return digest.hexdigest()
 
 
 def build_stage_cache_key(
@@ -330,7 +424,9 @@ def build_stage_cache_key(
 
 
 def load_run_inputs(root: Path) -> RunInputs:
-    return RunInputs.model_validate(_read_json(root / RUN_INPUTS_FILE))
+    return parse_run_inputs_bytes(
+        _read_bounded_regular_file(root / RUN_INPUTS_FILE, MAX_CONTROL_FILE_BYTES)
+    )
 
 
 class RunDatabase:
@@ -857,31 +953,20 @@ class RunEngine:
 
     def _verify_attempt_directory(self, directory: Path) -> _PublishedAttempt:
         manifest_path = directory / ATTEMPT_MANIFEST_FILE
-        if manifest_path.is_symlink() or not manifest_path.is_file():
-            raise ArtifactIntegrityError("attempt manifest is missing or unsafe")
         try:
-            manifest_bytes = manifest_path.read_bytes()
-        except OSError as error:
-            raise ArtifactIntegrityError("attempt manifest cannot be read") from error
-        if len(manifest_bytes) > MAX_CONTROL_FILE_BYTES:
-            raise ArtifactIntegrityError("attempt manifest exceeds the size limit")
-        manifest_sha256 = hashlib.sha256(manifest_bytes).hexdigest()
-        try:
-            manifest = AttemptManifest.model_validate_json(manifest_bytes)
-        except ValueError as error:
+            manifest_bytes = _read_bounded_regular_file(
+                manifest_path, MAX_CONTROL_FILE_BYTES
+            )
+            manifest = parse_attempt_manifest_bytes(manifest_bytes)
+        except (ArtifactIntegrityError, ValueError) as error:
             raise ArtifactIntegrityError("attempt manifest is invalid") from error
+        manifest_sha256 = hashlib.sha256(manifest_bytes).hexdigest()
         if directory.name != manifest.attempt_id:
             raise ArtifactIntegrityError("attempt directory identity mismatch")
         observed_keys: set[str] = set()
         for artifact in manifest.artifacts:
             path = directory / PurePosixPath(artifact.relative_path)
-            if path.is_symlink() or not path.is_file():
-                raise ArtifactIntegrityError("published artifact is missing or unsafe")
-            observed_bytes = path.read_bytes()
-            if (
-                len(observed_bytes) != artifact.byte_count
-                or hashlib.sha256(observed_bytes).hexdigest() != artifact.sha256
-            ):
+            if _hash_regular_file(path, artifact.byte_count) != artifact.sha256:
                 raise ArtifactIntegrityError("published artifact hash mismatch")
             observed_keys.add(artifact.artifact_key)
         if observed_keys != {item.artifact_key for item in manifest.artifacts}:
@@ -953,7 +1038,9 @@ class RunEngine:
         expected = pointer.model_dump(mode="json")
         if path.exists():
             try:
-                existing = CompletionPointer.model_validate(_read_json(path))
+                existing = parse_completion_pointer_bytes(
+                    _read_bounded_regular_file(path, MAX_CONTROL_FILE_BYTES)
+                )
                 if existing.model_dump(mode="json") == expected:
                     return False
             except (ArtifactIntegrityError, ValueError):
@@ -1383,5 +1470,8 @@ __all__ = [
     "StageOutputValidator",
     "build_stage_cache_key",
     "load_run_inputs",
+    "parse_attempt_manifest_bytes",
+    "parse_completion_pointer_bytes",
+    "parse_run_inputs_bytes",
     "validate_stage_definitions",
 ]

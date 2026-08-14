@@ -18,6 +18,7 @@ from cartosentry.artifacts import (
     Run,
     canonicalize_portable_artifact,
     validate_artifact,
+    validate_artifact_bytes,
     validate_artifact_json,
 )
 from cartosentry.cli import app
@@ -27,6 +28,7 @@ from cartosentry.identifiers import (
     make_run_id,
     make_sequence_id,
 )
+from cartosentry.manifest_boundaries import MAXIMUM_ARTIFACT_JSON_BYTES
 from pydantic import ValidationError
 from typer.testing import CliRunner
 
@@ -98,6 +100,16 @@ class ArtifactSchemaTest(unittest.TestCase):
                 '{"schema_version":"cartosentry.run.v1",'
                 '"schema_version":"cartosentry.run.v1"}'
             )
+
+    def test_python_artifact_boundary_rejects_unsafe_json(self) -> None:
+        cases = (
+            b"[" * 65 + b"0" + b"]" * 65,
+            b'{"schema_version":NaN}',
+            b" " * (MAXIMUM_ARTIFACT_JSON_BYTES + 1),
+        )
+        for content in cases:
+            with self.subTest(byte_count=len(content)), self.assertRaises(ValueError):
+                validate_artifact_bytes(content)
 
     def test_native_validator_rejects_paths_and_unknown_required_shape(self) -> None:
         run = load_json(VALID_EXAMPLES / "run.json")

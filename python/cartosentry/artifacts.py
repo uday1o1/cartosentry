@@ -27,6 +27,7 @@ from .identifiers import (
     make_sequence_id,
     make_stream_id,
 )
+from .manifest_boundaries import MAXIMUM_ARTIFACT_JSON_BYTES, decode_bounded_json
 
 NonemptyString = Annotated[str, StringConstraints(min_length=1)]
 PortableKey = NonemptyString
@@ -680,34 +681,25 @@ def validate_artifact(value: object) -> Artifact:
     return model.model_validate(value)  # type: ignore[return-value]
 
 
-def _unique_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
-    result: dict[str, object] = {}
-    for key, value in pairs:
-        if key in result:
-            raise ValueError(f"artifact JSON contains duplicate key: {key!r}")
-        result[key] = value
-    return result
+def validate_artifact_bytes(content: bytes) -> Artifact:
+    """Validate the bounded Python artifact boundary from exact source bytes."""
 
-
-def validate_artifact_json(text: str) -> Artifact:
-    try:
-        value = json.loads(text, object_pairs_hook=_unique_object)
-    except json.JSONDecodeError as error:
-        raise ValueError(f"invalid artifact JSON: {error.msg}") from error
+    value = decode_bounded_json(
+        content,
+        maximum_bytes=MAXIMUM_ARTIFACT_JSON_BYTES,
+        context="artifact JSON",
+    )
     if not isinstance(value, dict):
         raise ValueError("artifact JSON root must be an object")
     schema = value.get("schema_version")
     if not isinstance(schema, str) or schema not in ARTIFACT_MODEL_BY_SCHEMA:
         raise ValueError(f"unsupported artifact schema: {schema!r}")
-    normalized = json.dumps(
-        value,
-        allow_nan=False,
-        ensure_ascii=False,
-        separators=(",", ":"),
-        sort_keys=True,
-    )
     model = ARTIFACT_MODEL_BY_SCHEMA[schema]
-    return model.model_validate_json(normalized)  # type: ignore[return-value]
+    return model.model_validate_json(content)  # type: ignore[return-value]
+
+
+def validate_artifact_json(text: str) -> Artifact:
+    return validate_artifact_bytes(text.encode("utf-8"))
 
 
 def canonicalize_portable_artifact(artifact: Artifact) -> str:
@@ -759,5 +751,6 @@ __all__ = [
     "TimestampMetadata",
     "canonicalize_portable_artifact",
     "validate_artifact",
+    "validate_artifact_bytes",
     "validate_artifact_json",
 ]

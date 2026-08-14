@@ -18,6 +18,11 @@ from pydantic import Field, StringConstraints, model_validator
 from .artifacts import SourceInterval
 from .contracts import ContractModel, Sha256
 from .identifiers import assert_portable, canonical_sha256, make_fault_id
+from .manifest_boundaries import (
+    MAXIMUM_ARTIFACT_JSON_BYTES,
+    decode_bounded_json,
+    read_bounded_json,
+)
 from .synthetic_models import SyntheticFixture
 
 FAULT_MATRIX_ID: Literal["cartosentry-v1-core"] = "cartosentry-v1-core"
@@ -25,6 +30,7 @@ FAULT_MANIFEST_SCHEMA: Literal["cartosentry.fault-manifest.v1"] = (
     "cartosentry.fault-manifest.v1"
 )
 OPERATOR_VERSION: Literal["1.0.0"] = "1.0.0"
+MAXIMUM_FAULT_MATRIX_BYTES = 1024 * 1024
 
 Identifier = Annotated[
     str,
@@ -291,8 +297,13 @@ def _typed_parameters(operator_id: FaultOperatorId, raw: object) -> FaultParamet
 def load_fault_registry(matrix_path: Path) -> FaultRegistry:
     """Load and strictly bind the implementation registry to the frozen matrix."""
 
-    content = matrix_path.read_bytes()
-    matrix = json.loads(content)
+    matrix, content = read_bounded_json(
+        matrix_path,
+        maximum_bytes=MAXIMUM_FAULT_MATRIX_BYTES,
+        context="fault matrix",
+    )
+    if not isinstance(matrix, dict):
+        raise ValueError("fault matrix must be an object")
     if matrix.get("fault_matrix_id") != FAULT_MATRIX_ID:
         raise ValueError("fault matrix identifier is not cartosentry-v1-core")
     implemented = {item.value for item in FaultOperatorId}
@@ -771,6 +782,17 @@ def serialize_fault_manifest(manifest: FaultManifest) -> bytes:
     ).encode("utf-8")
 
 
+def parse_fault_manifest_bytes(content: bytes) -> FaultManifest:
+    """Parse the public fault-manifest boundary with frozen safety limits."""
+
+    decode_bounded_json(
+        content,
+        maximum_bytes=MAXIMUM_ARTIFACT_JSON_BYTES,
+        context="fault manifest",
+    )
+    return FaultManifest.model_validate_json(content)
+
+
 def materialize_fault_result(output_root: Path, result: FaultResult) -> None:
     """Atomically publish one derivative and manifest into a new directory."""
 
@@ -797,7 +819,7 @@ def verify_fault_result(
     manifest_bytes: bytes,
     registry: FaultRegistry,
 ) -> dict[str, object]:
-    manifest = FaultManifest.model_validate_json(manifest_bytes)
+    manifest = parse_fault_manifest_bytes(manifest_bytes)
     request = FaultRequest(
         operator_id=manifest.operator_id,
         case_id=manifest.case_id,
@@ -838,6 +860,7 @@ __all__ = [
     "inject_fault",
     "load_fault_registry",
     "materialize_fault_result",
+    "parse_fault_manifest_bytes",
     "serialize_fault_manifest",
     "verify_fault_result",
 ]

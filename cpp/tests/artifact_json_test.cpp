@@ -49,6 +49,24 @@ TEST_CASE("artifact JSON rejects schema downgrade and unknown fields") {
   }
 }
 
+TEST_CASE("artifact JSON rejects duplicate keys at every object depth") {
+  auto duplicate_top_level = std::string{valid_run};
+  duplicate_top_level.insert(
+      duplicate_top_level.rfind('\n'),
+      ",\n  \"profile_id\":\"structural-preflight-v1\"");
+  CHECK_THROWS_AS(contracts::canonicalize_artifact_json(
+                      duplicate_top_level, "cartosentry.run.v1"),
+                  std::invalid_argument);
+
+  auto duplicate_nested = std::string{valid_run};
+  duplicate_nested.replace(duplicate_nested.find("\"configuration_hashes\":{}"),
+                           std::string{"\"configuration_hashes\":{}"}.size(),
+                           "\"configuration_hashes\":{\"gate\":1,\"gate\":1}");
+  CHECK_THROWS_AS(contracts::canonicalize_artifact_json(
+                      duplicate_nested, "cartosentry.run.v1"),
+                  std::invalid_argument);
+}
+
 TEST_CASE("artifact JSON rejects missing fields and portable path leakage") {
   auto missing = std::string{valid_run};
   const auto field = std::string{

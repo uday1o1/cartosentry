@@ -12,6 +12,7 @@ option(CARTOSENTRY_ENABLE_SANITIZERS "Enable address and undefined sanitizers" O
 option(CARTOSENTRY_ENABLE_THREAD_SANITIZER "Enable the thread sanitizer" OFF)
 option(CARTOSENTRY_ENABLE_COVERAGE "Enable compiler coverage instrumentation" OFF)
 option(CARTOSENTRY_ENABLE_CUDA "Enable the optional CUDA backend" OFF)
+option(CARTOSENTRY_BUILD_FUZZERS "Build Clang LibFuzzer targets" OFF)
 
 if(CARTOSENTRY_ENABLE_CUDA)
   message(FATAL_ERROR "CUDA is not selected until the M12 profiling gate")
@@ -25,6 +26,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 include(CTest)
 include(cmake/CartoSentryWarnings.cmake)
 include(cmake/CartoSentrySanitizers.cmake)
+include(cmake/CartoSentryFuzzing.cmake)
 
 find_package(Threads REQUIRED)
 
@@ -65,6 +67,9 @@ target_compile_features(CartoSentryCore PUBLIC cxx_std_20)
 cartosentry_enable_warnings(CartoSentryCore)
 cartosentry_enable_sanitizers(CartoSentryCore)
 cartosentry_enable_coverage(CartoSentryCore)
+if(CARTOSENTRY_BUILD_FUZZERS)
+  cartosentry_enable_fuzzer_coverage(CartoSentryCore)
+endif()
 
 if(CARTOSENTRY_BUILD_PYTHON)
   find_package(pybind11 3.1 CONFIG REQUIRED)
@@ -131,4 +136,28 @@ if(BUILD_TESTING)
   cartosentry_enable_coverage(cartosentry_core_tests)
   include(Catch)
   catch_discover_tests(cartosentry_core_tests)
+endif()
+
+if(CARTOSENTRY_BUILD_FUZZERS)
+  foreach(
+    fuzz_target IN ITEMS
+      artifact_json
+      boreas_lidar
+      decimal_time
+  )
+    add_executable(
+      "cartosentry_fuzz_${fuzz_target}"
+      "cpp/fuzz/${fuzz_target}_fuzz.cpp"
+    )
+    target_link_libraries(
+      "cartosentry_fuzz_${fuzz_target}"
+      PRIVATE CartoSentry::Core
+    )
+    target_compile_features(
+      "cartosentry_fuzz_${fuzz_target}"
+      PRIVATE cxx_std_20
+    )
+    cartosentry_enable_warnings("cartosentry_fuzz_${fuzz_target}")
+    cartosentry_enable_fuzzer("cartosentry_fuzz_${fuzz_target}")
+  endforeach()
 endif()

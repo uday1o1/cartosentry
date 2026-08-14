@@ -1,0 +1,68 @@
+{
+  "schema_version": "cartosentry.fuzz-qualification.v1",
+  "qualification_id": "m2.5-v1",
+  "seed": 20260814,
+  "required_seed_classes": [
+    "clean",
+    "truncated",
+    "oversized",
+    "malformed",
+    "duplicate",
+    "endian-swapped"
+  ],
+  "suites": {
+    "local": {"max_total_time_seconds_per_target": 5},
+    "nightly": {"max_total_time_seconds_per_target": 60}
+  },
+  "limits": {
+    "artifact_json_bytes": 16777216,
+    "boreas_lidar_frame_bytes": 16777216,
+    "decimal_time_bytes": 64,
+    "fault_manifest_bytes": 16777216,
+    "fixture_set_manifest_bytes": 1048576,
+    "ingestion_budget_bytes": 65536,
+    "frame_index_line_bytes": 1048576,
+    "run_control_bytes": 1048576,
+    "fuzzer_max_input_bytes": 16777240,
+    "fuzzer_rss_limit_mb": 2048,
+    "fuzzer_timeout_seconds": 5
+  },
+  "targets": [
+    {
+      "name": "cartosentry_fuzz_artifact_json",
+      "engine": "native-libfuzzer",
+      "binary": "cartosentry_fuzz_artifact_json",
+      "boundary": "portable artifact JSON schemas",
+      "minimum_instrumented_counters": 100,
+      "minimum_covered_edges": 500,
+      "not_applicable_seed_classes": ["endian-swapped"]
+    },
+    {
+      "name": "cartosentry_fuzz_boreas_lidar",
+      "engine": "native-libfuzzer",
+      "binary": "cartosentry_fuzz_boreas_lidar",
+      "boundary": "Boreas little-endian float32 lidar records",
+      "minimum_instrumented_counters": 100,
+      "minimum_covered_edges": 100,
+      "not_applicable_seed_classes": []
+    },
+    {
+      "name": "cartosentry_fuzz_decimal_time",
+      "engine": "native-libfuzzer",
+      "binary": "cartosentry_fuzz_decimal_time",
+      "boundary": "Boreas decimal timestamp lexemes",
+      "minimum_instrumented_counters": 50,
+      "minimum_covered_edges": 50,
+      "not_applicable_seed_classes": ["duplicate", "endian-swapped"]
+    },
+    {
+      "name": "cartosentry_fuzz_python_boundaries",
+      "engine": "atheris",
+      "entrypoint": "scripts/fuzz_python_boundaries.py",
+      "boundary": "Python Boreas lidar, portable artifact, and persisted manifest parsers",
+      "minimum_instrumented_counters": 0,
+      "minimum_covered_edges": 20,
+      "not_applicable_seed_classes": []
+    }
+  ]
+}

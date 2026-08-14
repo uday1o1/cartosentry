@@ -48,6 +48,9 @@ dev = [
   "ruff==0.16.3",
   "scikit-build-core==1.0.3",
 ]
+fuzz = [
+  "atheris==3.1.0 ; platform_machine == 'x86_64' and sys_platform == 'linux'",
+]
 
 [tool.scikit-build]
 minimum-version = "build-system.requires"

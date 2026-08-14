@@ -1,10 +1,13 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <string_view>
 
 namespace cartosentry::contracts {
+
+inline constexpr std::size_t kMaximumDecimalSecondsBytes = 64U;
 
 enum class TimeEpoch {
   unix_utc,
