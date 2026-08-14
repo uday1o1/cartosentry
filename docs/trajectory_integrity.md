@@ -83,3 +83,32 @@ The frozen synthetic corpus is an exhaustive engineering and calibration checkpo
 Bootstrap intervals, interval-degeneracy flags, and confirmatory support are reported, but every confirmatory pass field is null.
 Holm inference is explicitly not applied because this checkpoint forbids a confirmatory claim.
 This result is not a final-test, public-data, or portfolio release claim.
+
+## Threshold change procedure
+
+The M3.5 checkpoint must use the exact immutable M3.2 profile and may not change a threshold, comparison tolerance, event-consolidation rule, support rule, or workload after development or public-review results are visible.
+A proposed pre-unblinding threshold change must be justified only with the frozen `threshold_calibration` partition.
+The change must create a new profile version and immutable hash, update every authority that pins the profile, record the rationale and expected risk in the aggregate charter revision history, and rerun all M3 gates before any development benchmark is reviewed again.
+Development clips, public-review clips, policy-tuning inputs, and final-test inputs may not be used to select or revise trajectory thresholds.
+Any threshold change after final-test unblinding invalidates the candidate and requires a new untouched final partition under a new charter.
+
+## M3.5 temporal checkpoint
+
+Download and verify the ordinary public-full inputs, then run the public checkpoint.
+
+```console
+uv run python scripts/download_public_data.py \
+  --tier public-full \
+  --output-root data/public
+
+uv run cartosentry qualify-temporal-checkpoint \
+  --public-data-root data/public \
+  --output output/temporal-checkpoint.json
+```
+
+`benchmarks/m3_5_temporal_checkpoint.yaml` freezes all authority hashes and selects the start, middle, and end 4,096-sample clips from both the clear and snow development sequences.
+The command reruns every M3.1 gate and the complete M3.2 development and calibration-guard qualification before reading public clips.
+Each public clip passes through the production Boreas adapter and the frozen detector.
+The machine report retains every finding and creates an unresolved review record for any `CRITICAL` or `BLOCKING_ANALYSIS` event.
+Warnings remain visible but are not reclassified as false critical findings.
+This development checkpoint is descriptive and does not make a confirmatory, final-test, or release claim.

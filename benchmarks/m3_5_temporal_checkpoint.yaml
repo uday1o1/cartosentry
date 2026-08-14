@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "checkpoint_id": "m3.5-temporal-integrity-v1",
+  "checkpoint_version": "1.0.0",
+  "freeze_state": "FROZEN_BEFORE_M3_5_IMPLEMENTATION",
+  "hash_contract": "SHA-256 of canonical UTF-8 JSON with immutable_sha256 omitted",
+  "immutable_sha256": "962f40053b159db2b7888b484f262d75221e4d0d281b3679c02bbfda7ba376c7",
+  "claim_scope": "Development-only temporal integrity checkpoint with no confirmatory, final-test, or release claim",
+  "authorities": {
+    "trajectory_profile_file_sha256": "3ef6eba77be9ead4c4d38d092b5bb2a499e91cbc19f134687d4f787c12393ba3",
+    "trajectory_profile_immutable_sha256": "cc00a382071fe3cb88411ff2d0d3b23223198ecd7a24bd559abb9e70a838708e",
+    "trajectory_gate_file_sha256": "ad61c477e52e7ba7e77e026269feb7da85e4bcfca253d62945050b30e2670f7c",
+    "trajectory_gate_immutable_sha256": "7f8a68faddc0afd2f59f59968b9af7e04cfbfbb012759564c6a61a37416e9370",
+    "split_manifest_file_sha256": "ed028d3a7b4062edca754e095a040843a63b8ca45aeb059018dff0b353021aaf",
+    "fault_matrix_file_sha256": "e565290f8e7da79f44d9bf6a9c33fb85c7a21fa345a1f07c5d01fba83460ed24",
+    "numerical_charter_file_sha256": "c993ee0db9ffec8ad7fa987cd64ab86516405d441e038d4dbfce00fdbaf25aec",
+    "aggregate_charter_revision_file_sha256": "7cc4481533750eb96b8dd386885ff903e42d61447e996ad5d9821ca75c2b6aa8",
+    "aggregate_charter_immutable_sha256": "cf4852cbb4d173b7970a9b26a07d0dbc76c671dd9bdb697a247cd08298d55778",
+    "data_manifest_file_sha256": "285f92fdf39ae51e6a183ac44bdde2f04f874ac82e5809947bf44e84a2697955",
+    "source_groups_file_sha256": "d00d8dfdae4306b449c49ad13e8e9ee63d41d46ef955bdf73d0c4cfeedceabc2"
+  },
+  "synthetic_gate": {
+    "required_m3_1_accepted": true,
+    "required_m3_2_development_engineering_gate": true,
+    "required_m3_2_development_claim_status": "DESCRIPTIVE_ONLY",
+    "required_m3_2_calibration_guard_gate": true,
+    "threshold_changes_during_checkpoint_forbidden": true
+  },
+  "public_review": {
+    "source_group_id": "boreas-glen-shields-family-v1",
+    "partition": "development",
+    "clip_length_samples": 4096,
+    "clip_positions": ["start", "middle", "end"],
+    "minimum_clip_count": 6,
+    "blocking_severities": ["CRITICAL", "BLOCKING_ANALYSIS"],
+    "maximum_unresolved_false_critical_findings": 0,
+    "sequences": [
+      {
+        "sequence_id": "boreas-2021-09-02-11-42",
+        "artifact_id": "boreas-public-smoke-clear-v1",
+        "trajectory_source_key": "applanix/gps_post_process.csv",
+        "trajectory_source_sha256": "7314f391b4bd704c838295633bd2139e24dc6596d256b785b9293851f98de124",
+        "weather_tags": ["Sun"]
+      },
+      {
+        "sequence_id": "boreas-2021-01-19-15-08",
+        "artifact_id": "boreas-public-smoke-snow-v1",
+        "trajectory_source_key": "applanix/gps_post_process.csv",
+        "trajectory_source_sha256": "ecf4f7ec3e808fe11fb7d65a4d51cfe3aa39c53f6d41a875e0987faefae81b83",
+        "weather_tags": ["Clouds", "Snow"]
+      }
+    ]
+  },
+  "threshold_change_procedure": {
+    "only_partition": "threshold_calibration",
+    "required_document": "docs/trajectory_integrity.md#threshold-change-procedure",
+    "requires_new_profile_version": true,
+    "requires_new_profile_hash": true,
+    "development_or_public_review_tuning_forbidden": true,
+    "final_test_tuning_forbidden": true
+  }
+}

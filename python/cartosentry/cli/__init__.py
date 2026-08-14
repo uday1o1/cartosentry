@@ -43,6 +43,7 @@ from cartosentry.recovery import qualify_run_recovery, resume_registered_run
 from cartosentry.scheduler import qualify_scheduler
 from cartosentry.spikes import qualify_observability
 from cartosentry.synthetic import materialize_fixture_set, qualify_fixture_set
+from cartosentry.temporal_checkpoint import qualify_temporal_checkpoint
 from cartosentry.trajectory import qualify_reference_trajectory
 from cartosentry.trajectory_integrity_qualification import (
     qualify_trajectory_integrity,
@@ -811,6 +812,162 @@ def qualify_trajectory_integrity_command(
         _write_report(report, output)
     except (OSError, ValueError, ValidationError) as error:
         typer.echo(f"Trajectory integrity qualification failed: {error}", err=True)
+        raise typer.Exit(code=2) from error
+    if not report["accepted"]:
+        raise typer.Exit(code=1)
+
+
+@app.command("qualify-temporal-checkpoint")
+def qualify_temporal_checkpoint_command(
+    public_data_root: Annotated[
+        Path,
+        typer.Option(
+            "--public-data-root",
+            exists=True,
+            file_okay=False,
+            dir_okay=True,
+            readable=True,
+            resolve_path=True,
+            help="Manifest-verified public development data root.",
+        ),
+    ] = Path("data/public"),
+    checkpoint: Annotated[
+        Path,
+        typer.Option(
+            "--checkpoint",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen M3.5 checkpoint contract.",
+        ),
+    ] = Path("benchmarks/m3_5_temporal_checkpoint.yaml"),
+    profile: Annotated[
+        Path,
+        typer.Option(
+            "--profile",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen M3.2 detector profile.",
+        ),
+    ] = Path("profiles/trajectory_integrity_v1.yaml"),
+    trajectory_gate: Annotated[
+        Path,
+        typer.Option(
+            "--trajectory-gate",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen M3.1 continuous-trajectory gate.",
+        ),
+    ] = Path("benchmarks/m3_1_trajectory_gate.yaml"),
+    split_manifest: Annotated[
+        Path,
+        typer.Option(
+            "--split-manifest",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen source-group and partition assignment.",
+        ),
+    ] = Path("benchmarks/split_manifest.yaml"),
+    fault_matrix: Annotated[
+        Path,
+        typer.Option(
+            "--fault-matrix",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen cartosentry-v1-core fault matrix.",
+        ),
+    ] = Path("benchmarks/fault_matrix_v1.yaml"),
+    numerical_charter: Annotated[
+        Path,
+        typer.Option(
+            "--numerical-charter",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen numerical acceptance charter.",
+        ),
+    ] = Path("benchmarks/numerical_charter.yaml"),
+    charter_revisions: Annotated[
+        Path,
+        typer.Option(
+            "--charter-revisions",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen aggregate charter revision history.",
+        ),
+    ] = Path("benchmarks/charter_revisions.yaml"),
+    data_manifest: Annotated[
+        Path,
+        typer.Option(
+            "--data-manifest",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Manifest-bound public data authority.",
+        ),
+    ] = Path("benchmarks/data_manifest.yaml"),
+    source_groups: Annotated[
+        Path,
+        typer.Option(
+            "--source-groups",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen source-group assignment authority.",
+        ),
+    ] = Path("benchmarks/source_groups.yaml"),
+    output: Annotated[
+        Path | None,
+        typer.Option(
+            "--output",
+            file_okay=True,
+            dir_okay=False,
+            resolve_path=True,
+            help="Write the complete machine-readable checkpoint atomically.",
+        ),
+    ] = None,
+) -> None:
+    """Run all frozen M3 gates and review real public development clips."""
+
+    try:
+        report = qualify_temporal_checkpoint(
+            checkpoint_path=checkpoint,
+            public_data_root=public_data_root,
+            profile_path=profile,
+            trajectory_gate_path=trajectory_gate,
+            split_manifest_path=split_manifest,
+            fault_matrix_path=fault_matrix,
+            numerical_charter_path=numerical_charter,
+            charter_revisions_path=charter_revisions,
+            data_manifest_path=data_manifest,
+            source_groups_path=source_groups,
+        )
+        _write_report(report, output)
+    except (OSError, ValueError, ValidationError) as error:
+        typer.echo(f"Temporal checkpoint qualification failed: {error}", err=True)
         raise typer.Exit(code=2) from error
     if not report["accepted"]:
         raise typer.Exit(code=1)
