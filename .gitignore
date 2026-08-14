@@ -1,0 +1,53 @@
+# Operating-system and editor state
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*~
+
+# Python environments and caches
+.venv/
+__pycache__/
+*.py[cod]
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.hypothesis/
+.coverage
+coverage.xml
+htmlcov/
+
+# Native build and packaging outputs
+/build/
+/build-*/
+/_skbuild/
+/dist/
+/*.egg-info/
+CMakeUserPresets.json
+compile_commands.json
+
+# Local data, results, evidence, and profiler output
+/data/
+/runs/
+/artifacts/
+/evidence/
+/benchmark-results/
+*.ncu-rep
+*.nsys-rep
+*.qdrep
+
+# Credentials and local configuration
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.pfx
+credentials.json
+
+# Temporary files
+*.tmp
+*.temp
+*.partial
+*.log
