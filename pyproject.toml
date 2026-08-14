@@ -34,6 +34,9 @@ dependencies = [
   "typer==0.27.1",
 ]
 
+[project.scripts]
+cartosentry = "cartosentry.cli:app"
+
 [dependency-groups]
 dev = [
   "cmake==4.4.2",

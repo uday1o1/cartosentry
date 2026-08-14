@@ -31,7 +31,11 @@ endif()
 
 include(cmake/CartoSentryDependencies.cmake)
 
-add_library(CartoSentryCore STATIC cpp/src/native_check.cpp)
+add_library(
+  CartoSentryCore STATIC
+  cpp/src/boreas_inspector.cpp
+  cpp/src/native_check.cpp
+)
 add_library(CartoSentry::Core ALIAS CartoSentryCore)
 target_include_directories(
   CartoSentryCore
@@ -39,7 +43,10 @@ target_include_directories(
     "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/cpp/include>"
     "$<INSTALL_INTERFACE:include>"
 )
-target_link_libraries(CartoSentryCore PUBLIC CartoSentry::Sophus)
+target_link_libraries(
+  CartoSentryCore
+  PUBLIC CartoSentry::Sophus GeographicLib::GeographicLib
+)
 target_compile_features(CartoSentryCore PUBLIC cxx_std_20)
 cartosentry_enable_warnings(CartoSentryCore)
 cartosentry_enable_sanitizers(CartoSentryCore)
@@ -94,7 +101,11 @@ if(CARTOSENTRY_BUILD_COMPATIBILITY_PROBE)
 endif()
 
 if(BUILD_TESTING)
-  add_executable(cartosentry_core_tests cpp/tests/native_check_test.cpp)
+  add_executable(
+    cartosentry_core_tests
+    cpp/tests/boreas_inspector_test.cpp
+    cpp/tests/native_check_test.cpp
+  )
   target_link_libraries(cartosentry_core_tests PRIVATE CartoSentry::Core Catch2::Catch2WithMain)
   target_compile_features(cartosentry_core_tests PRIVATE cxx_std_20)
   cartosentry_enable_warnings(cartosentry_core_tests)

@@ -41,7 +41,8 @@ Generated images or other derived dataset material are not cleared for public di
 The public-smoke selection contains two development sequences.
 Sequence `boreas-2021-09-02-11-42` supplies a clear-weather turn, postprocessed GPS trajectory, lidar poses, calibration, and ten consecutive lidar frames.
 Sequence `boreas-2021-01-19-15-08` supplies a snow control from the same route family with the same modalities.
-The manifest pins all 34 Boreas object keys individually with exact byte counts and SHA-256 hashes.
+The manifest pins all 35 Boreas object keys individually with exact byte counts and SHA-256 hashes.
+The clear sequence's official `route.html` is a separate immutable artifact so adding the visualization cross-check does not change the accepted clear sensor aggregate.
 
 ### Actual format checks
 
@@ -50,7 +51,7 @@ The selected `lidar_poses.csv` files expose lidar timestamps and postprocessed p
 Latitude and longitude are stored in radians and must be converted to degrees for WGS84 interchange.
 The clear route converts to an observed bounding box from latitude `43.781789450` to `43.801318111` degrees and longitude `-79.482963867` to `-79.464085207` degrees.
 The ten selected lidar files are nonempty actual sensor payloads rather than mocked success fixtures.
-Detailed per-point timing and coordinate qualification remains the M0.4 gate and is not claimed by this spike.
+The [Boreas adapter contract](boreas_adapter.md) records the accepted per-point timing, coordinate, route cross-check, memory, and cross-platform metadata evidence for this exact clear interval.
 
 ### Measured storage rates
 
@@ -95,8 +96,8 @@ The byte caps are enforced by the manifest validator and are separate from runti
 
 | Tier | Current pinned bytes | Hard acquisition cap | Intended use |
 | --- | ---: | ---: | --- |
-| `public-smoke` | 256,618,712 | 512 MiB | Local real-format and integration smoke checks. |
-| `public-full` | 343,289,489 | 64 GiB | Longer correctness windows, full trajectories, and the reserved development case study outside Git. |
+| `public-smoke` | 256,658,511 | 512 MiB | Local real-format and integration smoke checks. |
+| `public-full` | 343,329,288 | 64 GiB | Longer correctness windows, full trajectories, and the reserved development case study outside Git. |
 | `gpu-perf` | 0, to be frozen before M6 | 16 GiB | One lidar-heavy target workload sized from the measured clear rate. |
 
 At the measured clear lidar rate, a 300-second lidar workload is approximately 13.79 GiB before small trajectory and calibration overhead.

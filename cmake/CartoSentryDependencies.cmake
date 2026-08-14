@@ -47,6 +47,40 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(cartosentry_eigen_source cartosentry_sophus_source)
 
+cartosentry_locked_dependency_field(geographiclib_archive geographiclib archive_url)
+cartosentry_locked_dependency_field(
+  geographiclib_archive_sha256 geographiclib archive_sha256
+)
+FetchContent_Declare(
+  cartosentry_geographiclib_source
+  URL "${geographiclib_archive}"
+  URL_HASH "SHA256=${geographiclib_archive_sha256}"
+  DOWNLOAD_EXTRACT_TIMESTAMP FALSE
+  SOURCE_SUBDIR cartosentry-no-build
+)
+FetchContent_MakeAvailable(cartosentry_geographiclib_source)
+
+file(GLOB geographiclib_sources CONFIGURE_DEPENDS
+  "${cartosentry_geographiclib_source_SOURCE_DIR}/src/*.cpp"
+)
+set(geographiclib_generated_include
+  "${PROJECT_BINARY_DIR}/cartosentry-generated/geographiclib"
+)
+file(MAKE_DIRECTORY "${geographiclib_generated_include}/GeographicLib")
+configure_file(
+  "${PROJECT_SOURCE_DIR}/cmake/GeographicLibConfig.h.in"
+  "${geographiclib_generated_include}/GeographicLib/Config.h"
+  @ONLY
+)
+add_library(CartoSentryGeographicLib STATIC ${geographiclib_sources})
+add_library(GeographicLib::GeographicLib ALIAS CartoSentryGeographicLib)
+target_include_directories(
+  CartoSentryGeographicLib SYSTEM PUBLIC
+    "${cartosentry_geographiclib_source_SOURCE_DIR}/include"
+    "${geographiclib_generated_include}"
+)
+target_compile_definitions(CartoSentryGeographicLib PUBLIC GEOGRAPHICLIB_SHARED_LIB=0)
+
 add_library(CartoSentryEigen INTERFACE)
 add_library(CartoSentry::Eigen ALIAS CartoSentryEigen)
 target_include_directories(
@@ -121,17 +155,6 @@ if(CARTOSENTRY_BUILD_COMPATIBILITY_PROBE)
   set(YAML_CPP_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
 
   cartosentry_declare_locked_archive(cartosentry_fmt_source fmt)
-  cartosentry_locked_dependency_field(geographiclib_archive geographiclib archive_url)
-  cartosentry_locked_dependency_field(
-    geographiclib_archive_sha256 geographiclib archive_sha256
-  )
-  FetchContent_Declare(
-    cartosentry_geographiclib_source
-    URL "${geographiclib_archive}"
-    URL_HASH "SHA256=${geographiclib_archive_sha256}"
-    DOWNLOAD_EXTRACT_TIMESTAMP FALSE
-    SOURCE_SUBDIR cartosentry-no-build
-  )
   cartosentry_declare_locked_archive(cartosentry_json_source nlohmann-json)
   cartosentry_declare_locked_archive(cartosentry_opencv_source opencv)
   cartosentry_declare_locked_archive(cartosentry_spdlog_source spdlog)
@@ -140,7 +163,6 @@ if(CARTOSENTRY_BUILD_COMPATIBILITY_PROBE)
 
   FetchContent_MakeAvailable(
     cartosentry_fmt_source
-    cartosentry_geographiclib_source
     cartosentry_json_source
     cartosentry_opencv_source
     cartosentry_spdlog_source
@@ -150,27 +172,6 @@ if(CARTOSENTRY_BUILD_COMPATIBILITY_PROBE)
   foreach(external_target IN ITEMS fmt nlohmann_json opencv_core spdlog yaml-cpp)
     set_property(TARGET "${external_target}" PROPERTY SYSTEM TRUE)
   endforeach()
-
-  file(GLOB geographiclib_sources CONFIGURE_DEPENDS
-    "${cartosentry_geographiclib_source_SOURCE_DIR}/src/*.cpp"
-  )
-  set(geographiclib_generated_include
-    "${PROJECT_BINARY_DIR}/cartosentry-generated/geographiclib"
-  )
-  file(MAKE_DIRECTORY "${geographiclib_generated_include}/GeographicLib")
-  configure_file(
-    "${PROJECT_SOURCE_DIR}/cmake/GeographicLibConfig.h.in"
-    "${geographiclib_generated_include}/GeographicLib/Config.h"
-    @ONLY
-  )
-  add_library(CartoSentryGeographicLib STATIC ${geographiclib_sources})
-  add_library(GeographicLib::GeographicLib ALIAS CartoSentryGeographicLib)
-  target_include_directories(
-    CartoSentryGeographicLib SYSTEM PUBLIC
-      "${cartosentry_geographiclib_source_SOURCE_DIR}/include"
-      "${geographiclib_generated_include}"
-  )
-  target_compile_definitions(CartoSentryGeographicLib PUBLIC GEOGRAPHICLIB_SHARED_LIB=0)
 
   add_library(CartoSentrySQLite STATIC "${cartosentry_sqlite_source_SOURCE_DIR}/sqlite3.c")
   add_library(CartoSentry::SQLite ALIAS CartoSentrySQLite)

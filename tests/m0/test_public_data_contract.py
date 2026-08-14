@@ -39,7 +39,7 @@ class PublicDataContractTest(unittest.TestCase):
 
     def test_repository_contract_is_valid(self) -> None:
         manifest = validate_contract(self.manifest_path, self.groups_path)
-        self.assertEqual(4, len(manifest["artifacts"]))
+        self.assertEqual(5, len(manifest["artifacts"]))
 
     def test_missing_attribution_is_rejected(self) -> None:
         manifest = copy.deepcopy(self.manifest)

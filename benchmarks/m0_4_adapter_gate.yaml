@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "adapter_version": "boreas-public-v1",
+  "sequence_id": "boreas-2021-09-02-11-42",
+  "route_sample_stride_rows": 200,
+  "expected_lidar_frames": 10,
+  "expected_calibrations": 3,
+  "expected_lidar_pose_matches": 10,
+  "minimum_clip_trajectory_rows": 1,
+  "minimum_route_polyline_points": 2,
+  "maximum_route_crosscheck_p95_m": 1.0,
+  "maximum_route_crosscheck_m": 1.5,
+  "maximum_wgs84_local_roundtrip_error_m": 0.001,
+  "maximum_local_coordinate_magnitude_m": 5000.0,
+  "maximum_local_float32_quantization_m": 0.001,
+  "maximum_time_conversion_error_ns": 0.5,
+  "maximum_peak_rss_bytes": 2684354560,
+  "require_road_region_containment": true,
+  "require_nondecreasing_lidar_timestamps": true,
+  "require_finite_lidar_fields": true
+}

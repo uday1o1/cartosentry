@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "manifest_version": "m0.2-v1",
-  "generated_at_utc": "2026-08-14T00:55:00Z",
+  "manifest_version": "m0.4-v1",
+  "generated_at_utc": "2026-08-14T04:23:52Z",
   "source_groups_file": "benchmarks/source_groups.yaml",
   "raw_data_tracked_in_git": false,
   "tiers": {
@@ -119,6 +119,34 @@
         {"key": "boreas-2021-09-02-11-42/lidar/1630597359784424.bin", "bytes": 5115960, "sha256": "68c927517a0d632e0ffef997d867ed9b8148b90f234d35fa434c8ded899c68c2"},
         {"key": "boreas-2021-09-02-11-42/lidar/1630597359888184.bin", "bytes": 5113176, "sha256": "ab5674d7180dfdd303432846b2783178b035e8f4b498451af6afacd3cc71ce9d"},
         {"key": "boreas-2021-09-02-11-42/lidar/1630597359991821.bin", "bytes": 5120784, "sha256": "96b9b4fb8c3accebb3f32550bb329547bbf376e07223acc98d3a30164514c75d"}
+      ]
+    },
+    {
+      "id": "boreas-public-smoke-clear-route-v1",
+      "source_name": "Boreas",
+      "source_url": "https://www.boreas.utias.utoronto.ca/",
+      "source_object_keys": ["boreas-2021-09-02-11-42/route.html"],
+      "retrieved_at_utc": "2026-08-14T04:23:52Z",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "terms_snapshot_sha256": "92368d96fe04291eaa6e56c22faabd9860d34f1d4ce1ecad0f0b3ba9e953a52d",
+      "redistribution": "CC-BY-4.0 permits redistribution with attribution, but CartoSentry does not redistribute the Boreas route visualization.",
+      "attribution": "Burnett et al., Boreas: A Multi-Season Autonomous Driving Dataset, IJRR 2023; route visualization provided by the University of Toronto Institute for Aerospace Studies under CC BY 4.0.",
+      "content_sha256": "aba103a5b1e083ee45cf24bc09331ff34fb7136571dce4a68093867d0155c63c",
+      "content_hash_definition": "SHA-256 over the ordered concatenation of source_object_keys payload bytes.",
+      "expected_bytes": 39799,
+      "partition": "development",
+      "source_group_id": "boreas-glen-shields-family-v1",
+      "source_sequence_ids": ["boreas-2021-09-02-11-42"],
+      "weather_tags": ["Sun"],
+      "route_tags": ["Glen Shields", "Loop", "visualization-crosscheck"],
+      "purpose": "Official route visualization used only as a georeferencing cross-check for the clear public smoke sequence.",
+      "tiers": ["public-smoke", "public-full"],
+      "objects": [
+        {
+          "key": "boreas-2021-09-02-11-42/route.html",
+          "bytes": 39799,
+          "sha256": "aba103a5b1e083ee45cf24bc09331ff34fb7136571dce4a68093867d0155c63c"
+        }
       ]
     },
     {
