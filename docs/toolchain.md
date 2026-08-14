@@ -36,7 +36,9 @@ The core native tests compile the selected Sophus and Eigen pair with Catch2.
 The Python tests call the checked C++ extension through pybind11.
 Sophus 1.0.0 with Eigen 3.4.0 is the only selected `SE(3)` implementation.
 
-Conditional dependencies such as libcurl, libosmium, zstd, nanoflann, CLI11, and RapidCheck have immutable source selections in the lock but are not yet linked into the foundation.
+Libosmium 2.23.1 is linked for streaming OSM XML import through the exact archive identity in the native dependency lock.
+Its XML path uses Expat, BZip2, Zlib, and threads from the qualified platform toolchains.
+Conditional dependencies such as libcurl, zstd, nanoflann, CLI11, RapidCheck, and libosmium's Protozero-backed PBF path have immutable source selections in the lock but are not yet linked into the foundation.
 Their feature-specific integration gates remain authoritative and may reject or replace a selection through a focused dependency commit.
 No feature may claim those integrations merely because a source identity is present in the lock.
 

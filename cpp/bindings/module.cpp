@@ -1,5 +1,6 @@
 #include "cartosentry/core/native_check.hpp"
 #include "cartosentry/ingest/boreas_inspector.hpp"
+#include "cartosentry/spikes/observability.hpp"
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -13,7 +14,7 @@ namespace py = pybind11;
 namespace {
 
 auto geographic_bounds_to_dict(
-    const cartosentry::ingest::GeographicBounds& bounds) -> py::dict {
+    const cartosentry::ingest::GeographicBounds &bounds) -> py::dict {
   py::dict result;
   result["minimum_latitude_deg"] = bounds.minimum_latitude_deg;
   result["maximum_latitude_deg"] = bounds.maximum_latitude_deg;
@@ -22,7 +23,7 @@ auto geographic_bounds_to_dict(
   return result;
 }
 
-auto matrix_to_dict(const cartosentry::ingest::MatrixSummary& matrix)
+auto matrix_to_dict(const cartosentry::ingest::MatrixSummary &matrix)
     -> py::dict {
   py::dict result;
   result["source_key"] = matrix.source_key;
@@ -36,8 +37,8 @@ auto matrix_to_dict(const cartosentry::ingest::MatrixSummary& matrix)
   return result;
 }
 
-auto lidar_frame_to_dict(
-    const cartosentry::ingest::LidarFrameSummary& frame) -> py::dict {
+auto lidar_frame_to_dict(const cartosentry::ingest::LidarFrameSummary &frame)
+    -> py::dict {
   py::dict result;
   result["frame_id"] = frame.frame_id;
   result["source_bytes"] = frame.source_bytes;
@@ -45,10 +46,8 @@ auto lidar_frame_to_dict(
   result["scan_midpoint_ns"] = frame.scan_midpoint_ns;
   result["first_point_ns"] = frame.first_point_ns;
   result["last_point_ns"] = frame.last_point_ns;
-  result["minimum_relative_time_seconds"] =
-      frame.minimum_relative_time_seconds;
-  result["maximum_relative_time_seconds"] =
-      frame.maximum_relative_time_seconds;
+  result["minimum_relative_time_seconds"] = frame.minimum_relative_time_seconds;
+  result["maximum_relative_time_seconds"] = frame.maximum_relative_time_seconds;
   result["minimum_relative_time_bits"] = frame.minimum_relative_time_bits;
   result["maximum_relative_time_bits"] = frame.maximum_relative_time_bits;
   result["minimum_laser_id"] = frame.minimum_laser_id;
@@ -59,7 +58,7 @@ auto lidar_frame_to_dict(
 }
 
 auto inspection_to_dict(
-    const cartosentry::ingest::BoreasInspectionResult& inspection) -> py::dict {
+    const cartosentry::ingest::BoreasInspectionResult &inspection) -> py::dict {
   py::dict result;
   result["schema_version"] = inspection.schema_version;
   result["adapter_version"] = inspection.adapter_version;
@@ -76,21 +75,16 @@ auto inspection_to_dict(
   trajectory["raw_time_unit"] = inspection.trajectory.raw_time_unit;
   trajectory["normalized_time_unit"] =
       inspection.trajectory.normalized_time_unit;
-  trajectory["angular_input_unit"] =
-      inspection.trajectory.angular_input_unit;
-  trajectory["angular_output_unit"] =
-      inspection.trajectory.angular_output_unit;
-  trajectory["angular_conversion"] =
-      inspection.trajectory.angular_conversion;
+  trajectory["angular_input_unit"] = inspection.trajectory.angular_input_unit;
+  trajectory["angular_output_unit"] = inspection.trajectory.angular_output_unit;
+  trajectory["angular_conversion"] = inspection.trajectory.angular_conversion;
   trajectory["vertical_datum"] = inspection.trajectory.vertical_datum;
   trajectory["row_count"] = inspection.trajectory.row_count;
   trajectory["clip_row_count"] = inspection.trajectory.clip_row_count;
   trajectory["first_time_ns"] = inspection.trajectory.first_time_ns;
   trajectory["last_time_ns"] = inspection.trajectory.last_time_ns;
-  trajectory["clip_first_time_ns"] =
-      inspection.trajectory.clip_first_time_ns;
-  trajectory["clip_last_time_ns"] =
-      inspection.trajectory.clip_last_time_ns;
+  trajectory["clip_first_time_ns"] = inspection.trajectory.clip_first_time_ns;
+  trajectory["clip_last_time_ns"] = inspection.trajectory.clip_last_time_ns;
   trajectory["wgs84_bounds"] =
       geographic_bounds_to_dict(inspection.trajectory.wgs84_bounds);
   trajectory["clip_wgs84_bounds"] =
@@ -125,8 +119,7 @@ auto inspection_to_dict(
   lidar["record_layout"] = inspection.lidar.record_layout;
   lidar["byte_order"] = inspection.lidar.byte_order;
   lidar["relative_time_unit"] = inspection.lidar.relative_time_unit;
-  lidar["relative_time_reference"] =
-      inspection.lidar.relative_time_reference;
+  lidar["relative_time_reference"] = inspection.lidar.relative_time_reference;
   lidar["relative_time_rounding"] = inspection.lidar.relative_time_rounding;
   lidar["maximum_time_conversion_error_ns"] =
       inspection.lidar.maximum_time_conversion_error_ns;
@@ -135,7 +128,7 @@ auto inspection_to_dict(
   lidar["first_point_ns"] = inspection.lidar.first_point_ns;
   lidar["last_point_ns"] = inspection.lidar.last_point_ns;
   py::list frames;
-  for (const auto& frame : inspection.lidar.frames) {
+  for (const auto &frame : inspection.lidar.frames) {
     frames.append(lidar_frame_to_dict(frame));
   }
   lidar["frames"] = std::move(frames);
@@ -154,7 +147,7 @@ auto inspection_to_dict(
   result["lidar_poses"] = std::move(poses);
 
   py::list calibrations;
-  for (const auto& matrix : inspection.calibrations) {
+  for (const auto &matrix : inspection.calibrations) {
     calibrations.append(matrix_to_dict(matrix));
   }
   result["calibrations"] = std::move(calibrations);
@@ -164,14 +157,118 @@ auto inspection_to_dict(
   return result;
 }
 
-}  // namespace
+auto synthetic_scenario_to_dict(
+    const cartosentry::spikes::SyntheticScenarioResult &scenario) -> py::dict {
+  py::dict result;
+  result["scenario_id"] = scenario.scenario_id;
+  result["observability"] = scenario.observability;
+  result["moving"] = scenario.moving;
+  result["structured"] = scenario.structured;
+  result["clean_alignment_rmse_m"] = scenario.clean_alignment_rmse_m;
+  result["point_time_shift_alignment_rmse_m"] =
+      scenario.point_time_shift_alignment_rmse_m;
+  result["trajectory_shift_alignment_rmse_m"] =
+      scenario.trajectory_shift_alignment_rmse_m;
+  result["point_time_shift_separated"] = scenario.point_time_shift_separated;
+  result["trajectory_shift_separated"] = scenario.trajectory_shift_separated;
+  return result;
+}
+
+auto synthetic_scenarios_to_list(
+    const std::vector<cartosentry::spikes::SyntheticScenarioResult> &scenarios)
+    -> py::list {
+  py::list result;
+  for (const auto &scenario : scenarios) {
+    result.append(synthetic_scenario_to_dict(scenario));
+  }
+  return result;
+}
+
+auto tiny_route_to_dict(const cartosentry::spikes::TinyRouteResult &route)
+    -> py::dict {
+  py::dict result;
+  result["exact_arc_path"] = route.exact_arc_path;
+  result["exact_cost"] = route.exact_cost;
+  result["brute_force_cost"] = route.brute_force_cost;
+  result["exact_route_valid"] = route.exact_route_valid;
+  result["exact_matches_brute_force"] = route.exact_matches_brute_force;
+  result["explored_states"] = route.explored_states;
+  return result;
+}
+
+auto observability_to_dict(
+    const cartosentry::spikes::ObservabilitySpikeResult &spike) -> py::dict {
+  py::dict result;
+  result["schema_version"] = spike.schema_version;
+  result["spike_version"] = spike.spike_version;
+  result["synthetic_scenarios"] =
+      synthetic_scenarios_to_list(spike.synthetic_scenarios);
+
+  py::dict alignment;
+  alignment["sequence_id"] = spike.public_alignment.sequence_id;
+  alignment["point_time_source"] = spike.public_alignment.point_time_source;
+  alignment["trajectory_pose_convention"] =
+      spike.public_alignment.trajectory_pose_convention;
+  alignment["lidar_frames"] = spike.public_alignment.lidar_frames;
+  alignment["sampled_points"] = spike.public_alignment.sampled_points;
+  alignment["minimum_speed_mps"] = spike.public_alignment.minimum_speed_mps;
+  alignment["maximum_speed_mps"] = spike.public_alignment.maximum_speed_mps;
+  alignment["heading_change_rad"] = spike.public_alignment.heading_change_rad;
+  alignment["clean_alignment_mean_m"] =
+      spike.public_alignment.clean_alignment_mean_m;
+  alignment["point_time_shift_alignment_mean_m"] =
+      spike.public_alignment.point_time_shift_alignment_mean_m;
+  alignment["trajectory_shift_alignment_mean_m"] =
+      spike.public_alignment.trajectory_shift_alignment_mean_m;
+  alignment["point_time_transform_effect_mean_m"] =
+      spike.public_alignment.point_time_transform_effect_mean_m;
+  alignment["trajectory_transform_effect_mean_m"] =
+      spike.public_alignment.trajectory_transform_effect_mean_m;
+  alignment["observable_motion"] = spike.public_alignment.observable_motion;
+  alignment["observable_structure"] =
+      spike.public_alignment.observable_structure;
+  alignment["point_time_shift_separated"] =
+      spike.public_alignment.point_time_shift_separated;
+  alignment["trajectory_shift_separated"] =
+      spike.public_alignment.trajectory_shift_separated;
+  result["public_alignment"] = std::move(alignment);
+
+  py::dict map_match;
+  map_match["graph_import_profile"] =
+      spike.public_map_match.graph_import_profile;
+  map_match["distance_coverage_method"] =
+      spike.public_map_match.distance_coverage_method;
+  map_match["imported_nodes"] = spike.public_map_match.imported_nodes;
+  map_match["imported_ways"] = spike.public_map_match.imported_ways;
+  map_match["imported_directed_arcs"] =
+      spike.public_map_match.imported_directed_arcs;
+  map_match["excluded_ways"] = spike.public_map_match.excluded_ways;
+  map_match["moving_observations"] = spike.public_map_match.moving_observations;
+  map_match["confident_observations"] =
+      spike.public_map_match.confident_observations;
+  map_match["candidate_moving_distance_m"] =
+      spike.public_map_match.candidate_moving_distance_m;
+  map_match["confident_moving_distance_m"] =
+      spike.public_map_match.confident_moving_distance_m;
+  map_match["confident_distance_fraction"] =
+      spike.public_map_match.confident_distance_fraction;
+  map_match["confident_lateral_p95_m"] =
+      spike.public_map_match.confident_lateral_p95_m;
+  result["public_map_match"] = std::move(map_match);
+  result["tiny_route"] = tiny_route_to_dict(spike.tiny_route);
+  result["elapsed_seconds"] = spike.elapsed_seconds;
+  return result;
+}
+
+} // namespace
 
 PYBIND11_MODULE(_core, module) {
   module.doc() = "Checked native CartoSentry foundation";
   py::register_exception<cartosentry::ingest::BoreasFormatError>(
       module, "BoreasFormatError", PyExc_ValueError);
   module.def("native_self_check", &cartosentry::core::native_self_check);
-  module.def("checked_translation_norm", &cartosentry::core::checked_translation_norm);
+  module.def("checked_translation_norm",
+             &cartosentry::core::checked_translation_norm);
   module.def("native_build_info", [] {
     const auto info = cartosentry::core::native_build_info();
     py::dict result;
@@ -183,8 +280,8 @@ PYBIND11_MODULE(_core, module) {
   });
   module.def(
       "inspect_boreas_sequence",
-      [](const std::string& sequence_root, const std::string& route_html_path,
-         const std::array<double, 4>& road_region,
+      [](const std::string &sequence_root, const std::string &route_html_path,
+         const std::array<double, 4> &road_region,
          std::size_t route_sample_stride_rows) {
         cartosentry::ingest::BoreasInspectionResult inspection;
         {
@@ -201,4 +298,57 @@ PYBIND11_MODULE(_core, module) {
       },
       py::arg("sequence_root"), py::arg("route_html_path"),
       py::arg("road_region"), py::arg("route_sample_stride_rows"));
+  module.def(
+      "run_synthetic_observability_suite",
+      [](std::int64_t injected_point_time_shift_ns,
+         double injected_trajectory_shift_m,
+         double minimum_alignment_separation_m) {
+        return synthetic_scenarios_to_list(
+            cartosentry::spikes::run_synthetic_observability_suite(
+                cartosentry::spikes::ObservabilityParameters{
+                    injected_point_time_shift_ns, injected_trajectory_shift_m,
+                    1U, 1U, 1.0, 1.0, 1.0, 0.0, 0.0,
+                    minimum_alignment_separation_m}));
+      },
+      py::arg("injected_point_time_shift_ns"),
+      py::arg("injected_trajectory_shift_m"),
+      py::arg("minimum_alignment_separation_m"));
+  module.def("solve_tiny_required_route", [] {
+    return tiny_route_to_dict(cartosentry::spikes::solve_tiny_required_route());
+  });
+  module.def(
+      "run_observability_spike",
+      [](const std::string &sequence_root, const std::string &road_graph_path,
+         std::int64_t injected_point_time_shift_ns,
+         double injected_trajectory_shift_m, std::size_t lidar_point_stride,
+         std::size_t map_trajectory_stride_rows,
+         double candidate_search_radius_m, double confident_lateral_distance_m,
+         double confident_heading_error_rad, double confident_score_separation,
+         double minimum_moving_speed_mps,
+         double minimum_alignment_separation_m) {
+        cartosentry::spikes::ObservabilitySpikeResult spike;
+        {
+          py::gil_scoped_release release;
+          spike = cartosentry::spikes::run_observability_spike(
+              std::filesystem::path(sequence_root),
+              std::filesystem::path(road_graph_path),
+              cartosentry::spikes::ObservabilityParameters{
+                  injected_point_time_shift_ns, injected_trajectory_shift_m,
+                  lidar_point_stride, map_trajectory_stride_rows,
+                  candidate_search_radius_m, confident_lateral_distance_m,
+                  confident_heading_error_rad, confident_score_separation,
+                  minimum_moving_speed_mps, minimum_alignment_separation_m});
+        }
+        return observability_to_dict(spike);
+      },
+      py::arg("sequence_root"), py::arg("road_graph_path"),
+      py::arg("injected_point_time_shift_ns"),
+      py::arg("injected_trajectory_shift_m"), py::arg("lidar_point_stride"),
+      py::arg("map_trajectory_stride_rows"),
+      py::arg("candidate_search_radius_m"),
+      py::arg("confident_lateral_distance_m"),
+      py::arg("confident_heading_error_rad"),
+      py::arg("confident_score_separation"),
+      py::arg("minimum_moving_speed_mps"),
+      py::arg("minimum_alignment_separation_m"));
 }

@@ -96,6 +96,33 @@ target_include_directories(
 )
 target_link_libraries(CartoSentrySophus INTERFACE CartoSentry::Eigen)
 
+cartosentry_locked_dependency_field(libosmium_archive libosmium archive_url)
+cartosentry_locked_dependency_field(
+  libosmium_archive_sha256 libosmium archive_sha256
+)
+FetchContent_Declare(
+  cartosentry_libosmium_source
+  URL "${libosmium_archive}"
+  URL_HASH "SHA256=${libosmium_archive_sha256}"
+  DOWNLOAD_EXTRACT_TIMESTAMP FALSE
+  SOURCE_SUBDIR cartosentry-no-build
+)
+FetchContent_MakeAvailable(cartosentry_libosmium_source)
+find_package(BZip2 REQUIRED)
+find_package(EXPAT REQUIRED)
+find_package(Threads REQUIRED)
+find_package(ZLIB REQUIRED)
+add_library(CartoSentryOsmium INTERFACE)
+add_library(CartoSentry::Osmium ALIAS CartoSentryOsmium)
+target_include_directories(
+  CartoSentryOsmium SYSTEM INTERFACE
+  "${cartosentry_libosmium_source_SOURCE_DIR}/include"
+)
+target_link_libraries(
+  CartoSentryOsmium INTERFACE
+  BZip2::BZip2 EXPAT::EXPAT Threads::Threads ZLIB::ZLIB
+)
+
 if(BUILD_TESTING)
   cartosentry_locked_dependency_field(catch_archive catch2 archive_url)
   cartosentry_locked_dependency_field(catch_archive_sha256 catch2 archive_sha256)

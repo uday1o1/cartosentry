@@ -10,6 +10,8 @@ RUN printf '%s\n' \
     && apt-get install --yes --no-install-recommends \
       build-essential=12.9 \
       g++=4:12.2.0-3 \
+      libbz2-dev=1.0.8-5+b1 \
+      libexpat1-dev=2.5.0-1+deb12u2 \
       ninja-build=1.11.1-2~deb12u1 \
       zlib1g-dev=1:1.2.13.dfsg-1 \
     && rm -rf /var/lib/apt/lists/*

@@ -35,6 +35,7 @@ add_library(
   CartoSentryCore STATIC
   cpp/src/boreas_inspector.cpp
   cpp/src/native_check.cpp
+  cpp/src/observability.cpp
 )
 add_library(CartoSentry::Core ALIAS CartoSentryCore)
 target_include_directories(
@@ -45,7 +46,10 @@ target_include_directories(
 )
 target_link_libraries(
   CartoSentryCore
-  PUBLIC CartoSentry::Sophus GeographicLib::GeographicLib
+  PUBLIC
+    CartoSentry::Osmium
+    CartoSentry::Sophus
+    GeographicLib::GeographicLib
 )
 target_compile_features(CartoSentryCore PUBLIC cxx_std_20)
 cartosentry_enable_warnings(CartoSentryCore)
@@ -105,6 +109,7 @@ if(BUILD_TESTING)
     cartosentry_core_tests
     cpp/tests/boreas_inspector_test.cpp
     cpp/tests/native_check_test.cpp
+    cpp/tests/observability_test.cpp
   )
   target_link_libraries(cartosentry_core_tests PRIVATE CartoSentry::Core Catch2::Catch2WithMain)
   target_compile_features(cartosentry_core_tests PRIVATE cxx_std_20)

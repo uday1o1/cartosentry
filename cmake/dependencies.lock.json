@@ -80,6 +80,9 @@
       "source_url": "https://github.com/osmcode/libosmium",
       "source_ref": "v2.23.1",
       "source_commit": "97dccf105391d410701ae8bd52170dc0ee041373",
+      "archive_url": "https://github.com/osmcode/libosmium/archive/97dccf105391d410701ae8bd52170dc0ee041373.tar.gz",
+      "archive_sha256": "dd3aaf4c8b5540e8e1d4e13a4aecf3a79d00db1759d2eeaac226377fa64d4190",
+      "archive_bytes": 568569,
       "license": "BSL-1.0",
       "role": "streaming OpenStreetMap parsing"
     },

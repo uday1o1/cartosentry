@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "spike_version": "m0.5-observability-v1",
+  "sequence_id": "boreas-2021-09-02-11-42",
+  "graph_import_profile": "m0.5-directed-candidate-v1",
+  "distance_coverage_method": "endpoint-half-distance-v1",
+  "parameters": {
+    "injected_point_time_shift_ns": 100000000,
+    "injected_trajectory_shift_m": 1.0,
+    "lidar_point_stride": 128,
+    "map_trajectory_stride_rows": 200,
+    "candidate_search_radius_m": 30.0,
+    "confident_lateral_distance_m": 8.0,
+    "confident_heading_error_rad": 0.7853981633974483,
+    "confident_score_separation": 0.15,
+    "minimum_moving_speed_mps": 1.0,
+    "minimum_alignment_separation_m": 0.05
+  },
+  "required_observable_scenarios": [
+    "turning",
+    "moving"
+  ],
+  "required_nonobservable_controls": [
+    "static",
+    "sparse_structure"
+  ],
+  "expected_scenario_ids": [
+    "straight",
+    "turning",
+    "static",
+    "sparse_structure",
+    "moving"
+  ],
+  "expected_synthetic_scenarios": 5,
+  "minimum_lidar_frames": 10,
+  "minimum_sampled_points": 5000,
+  "minimum_imported_directed_arcs": 100,
+  "minimum_confident_public_moving_distance_fraction": 0.85,
+  "require_public_observable_motion": true,
+  "require_public_observable_structure": true,
+  "require_public_point_time_separation": true,
+  "require_public_trajectory_separation": true,
+  "require_exact_route_validation": true,
+  "require_exact_route_brute_force_match": true
+}

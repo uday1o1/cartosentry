@@ -12,6 +12,7 @@ import typer
 from pydantic import ValidationError
 
 from cartosentry.adapters import inspect_boreas
+from cartosentry.spikes import qualify_observability
 
 app = typer.Typer(
     name="cartosentry",
@@ -119,6 +120,70 @@ def inspect_boreas_command(
         _write_report(report, output)
     except (OSError, ValueError, ValidationError) as error:
         typer.echo(f"Boreas inspection failed: {error}", err=True)
+        raise typer.Exit(code=2) from error
+    if not report["accepted"]:
+        raise typer.Exit(code=1)
+
+
+@app.command("qualify-observability")
+def qualify_observability_command(
+    sequence_root: Annotated[
+        Path,
+        typer.Argument(
+            exists=True,
+            file_okay=False,
+            dir_okay=True,
+            readable=True,
+            resolve_path=True,
+            help="Root of the pinned Boreas development sequence.",
+        ),
+    ],
+    road_graph: Annotated[
+        Path,
+        typer.Option(
+            "--road-graph",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Pinned OSM XML road-graph extract.",
+        ),
+    ] = Path("data/public/road_graphs/toronto-glen-shields-v1.osm"),
+    gate: Annotated[
+        Path,
+        typer.Option(
+            "--gate",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen M0.5 observability acceptance gate.",
+        ),
+    ] = Path("benchmarks/m0_5_observability_gate.yaml"),
+    output: Annotated[
+        Path | None,
+        typer.Option(
+            "--output",
+            file_okay=True,
+            dir_okay=False,
+            resolve_path=True,
+            help="Write the JSON report atomically instead of printing it.",
+        ),
+    ] = None,
+) -> None:
+    """Qualify motion compensation, map candidates, and tiny routing."""
+
+    try:
+        report = qualify_observability(
+            sequence_root,
+            road_graph_path=road_graph,
+            gate_path=gate,
+        )
+        _write_report(report, output)
+    except (OSError, ValueError, ValidationError) as error:
+        typer.echo(f"Observability qualification failed: {error}", err=True)
         raise typer.Exit(code=2) from error
     if not report["accepted"]:
         raise typer.Exit(code=1)
