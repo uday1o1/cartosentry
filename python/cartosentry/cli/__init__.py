@@ -12,7 +12,12 @@ from typing import Annotated
 import typer
 from pydantic import ValidationError
 
-from cartosentry.adapters import inspect_boreas
+from cartosentry.adapters import (
+    BoreasAdapter,
+    inspect_boreas,
+    qualify_boreas_adapter,
+    source_group_for_sequence,
+)
 from cartosentry.artifacts import (
     canonicalize_portable_artifact,
     validate_artifact_json,
@@ -230,6 +235,66 @@ def inspect_boreas_command(
         _write_report(report, output)
     except (OSError, ValueError, ValidationError) as error:
         typer.echo(f"Boreas inspection failed: {error}", err=True)
+        raise typer.Exit(code=2) from error
+    if not report["accepted"]:
+        raise typer.Exit(code=1)
+
+
+@app.command("qualify-boreas-adapter")
+def qualify_boreas_adapter_command(
+    sequence_root: Annotated[
+        Path,
+        typer.Argument(
+            exists=True,
+            file_okay=False,
+            dir_okay=True,
+            readable=True,
+            resolve_path=True,
+            help="Root of one locally materialized Boreas sequence.",
+        ),
+    ],
+    split_manifest: Annotated[
+        Path,
+        typer.Option(
+            "--split-manifest",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen source-group assignment.",
+        ),
+    ] = Path("benchmarks/split_manifest.yaml"),
+    maximum_lidar_frames: Annotated[
+        int | None,
+        typer.Option(
+            "--maximum-lidar-frames",
+            min=1,
+            help="Optional bounded smoke subset; defaults to every local frame.",
+        ),
+    ] = None,
+    output: Annotated[
+        Path | None,
+        typer.Option(
+            "--output",
+            file_okay=True,
+            dir_okay=False,
+            resolve_path=True,
+            help="Write the deterministic qualification report atomically.",
+        ),
+    ] = None,
+) -> None:
+    """Exercise the production Boreas adapter through sequential views."""
+
+    try:
+        source_group_id = source_group_for_sequence(sequence_root.name, split_manifest)
+        report = qualify_boreas_adapter(
+            BoreasAdapter(sequence_root, source_group_id=source_group_id),
+            maximum_lidar_frames=maximum_lidar_frames,
+        )
+        _write_report(report, output)
+    except (OSError, ValueError, ValidationError) as error:
+        typer.echo(f"Boreas adapter qualification failed: {error}", err=True)
         raise typer.Exit(code=2) from error
     if not report["accepted"]:
         raise typer.Exit(code=1)

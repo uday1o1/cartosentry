@@ -26,6 +26,54 @@ The command exits with status `0` only when every gate check passes, status `1` 
 The output is installed atomically when `--output` is used.
 No absolute source path or raw malformed value is included in a successful report or native parser error.
 
+## Production normalized interface
+
+Milestone 2.1 adds the `BoreasAdapter` read-only interface for the mapping-focused trajectory, lidar, lidar-pose, and calibration inputs.
+It implements the common adapter protocol in `cartosentry.adapters.base` and returns strict frozen views.
+The public views contain portable source keys and source provenance but never local filesystem paths.
+
+Trajectory and lidar-pose CSV files are opened only when their iterator is advanced.
+Each row is parsed, validated, yielded, and released before the next row is read.
+Lidar frame enumeration reads only filenames and file sizes and returns immutable payload handles.
+The point iterator and frame scanner then read each selected lidar file in fixed groups of 4,096 records without materializing a point cloud or full sequence.
+
+The trajectory view retains every raw CSV field, the exact `GPSTime` decimal lexeme, source ENU position and altitude, velocity, roll-pitch-heading-derived named transform, angular velocity, acceleration, and source latitude and longitude radians.
+Latitude and longitude are exposed in WGS84 degrees with the conversion recorded.
+WGS84 altitude remains absent because the dataset altitude datum is not established, while the source altitude remains available in the dataset ENU pose.
+
+The lidar point view retains all six float32 bit patterns.
+Its time view records the time-offset bits, exact integer nanosecond conversion, scan-midpoint reference, maximum conversion error, and checked absolute Unix UTC point time.
+Frame capture bounds remain explicitly `DERIVED_BY_POINT_SCAN` because Boreas documents the filename as the scan midpoint and stores the firing support in per-point offsets.
+The adapter does not invent a scan interval before those offsets are inspected.
+
+Run the production qualification over every locally materialized frame:
+
+```console
+uv run cartosentry qualify-boreas-adapter \
+  data/public/boreas-2021-09-02-11-42 \
+  --split-manifest benchmarks/split_manifest.yaml
+```
+
+The command resolves source-group membership only from the frozen split manifest.
+`--maximum-lidar-frames` may bound a development smoke check, but omission means every available local frame is parsed.
+
+The actual clear public-smoke input produced the following M2.1 evidence:
+
+| Normalized view | Observed result |
+| --- | ---: |
+| Trajectory samples | 214,719 |
+| Lidar pose samples | 9,967 |
+| Lidar frames checked | 10 |
+| Lidar points checked | 2,131,876 |
+| Frame midpoint and lidar-pose matches | 10 of 10 |
+| Parsed calibrations | 3 |
+| Maximum point-time conversion error | 0.5 ns |
+
+The camera, radar, and raw IMU inputs are not normalized by the V1 adapter.
+When those optional source directories or files are absent they are reported as `MISSING_OPTIONAL`.
+If such an input is present while its parser remains outside V1 it is reported as `UNSUPPORTED`.
+The unknown trajectory altitude datum is always reported as `UNSUPPORTED`, and no substitute altitude field is manufactured.
+
 ## Time and point layout
 
 Boreas filenames are interpreted as integer microseconds since the Unix UTC epoch and are normalized to signed 64-bit nanoseconds by checked integer multiplication.
