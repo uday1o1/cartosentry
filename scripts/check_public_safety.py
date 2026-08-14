@@ -6,10 +6,10 @@ from __future__ import annotations
 import argparse
 import ipaddress
 import os
-from pathlib import Path
 import re
 import subprocess
 import sys
+from pathlib import Path
 from urllib.parse import urlsplit
 
 MAX_SCAN_BYTES = 8 * 1024 * 1024
@@ -33,7 +33,9 @@ ALLOWED_LOCAL_HOSTS = frozenset({"127.0.0.1", "::1", "localhost"})
 
 def _configured_private_labels() -> frozenset[str]:
     configured = os.environ.get("CARTOSENTRY_PRIVATE_DOMAIN_LABELS", "")
-    additions = {value.strip().lower() for value in configured.split(",") if value.strip()}
+    additions = {
+        value.strip().lower() for value in configured.split(",") if value.strip()
+    }
     return DEFAULT_PRIVATE_DOMAIN_LABELS | additions
 
 
@@ -98,7 +100,9 @@ def _read_candidate(path: Path, root: Path) -> str | None:
         resolved = path.resolve(strict=True)
         resolved.relative_to(root)
     except (FileNotFoundError, ValueError):
-        raise ValueError(f"refusing to scan path outside the repository: {path}") from None
+        raise ValueError(
+            f"refusing to scan path outside the repository: {path}"
+        ) from None
 
     if not resolved.is_file():
         return None
@@ -145,9 +149,13 @@ def self_test() -> int:
             print(f"self-test failed to detect {expected_rule}", file=sys.stderr)
             return 1
 
-    safe_sample = "Public docs: https://nvidia.github.io/ncore/data/formats and /data/demo"
+    safe_sample = (
+        "Public docs: https://nvidia.github.io/ncore/data/formats and /data/demo"
+    )
     if violations(safe_sample):
-        print("self-test rejected a public source or generic data path", file=sys.stderr)
+        print(
+            "self-test rejected a public source or generic data path", file=sys.stderr
+        )
         return 1
     if not _is_private_host("docs.restricted.example", frozenset({"restricted"})):
         print("self-test ignored a configured private-domain label", file=sys.stderr)
@@ -159,14 +167,20 @@ def self_test() -> int:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("paths", nargs="*", type=Path, help="repository-relative files")
-    parser.add_argument("--self-test", action="store_true", help="exercise positive and negative controls")
+    parser.add_argument(
+        "--self-test",
+        action="store_true",
+        help="exercise positive and negative controls",
+    )
     args = parser.parse_args()
 
     if args.self_test:
         return self_test()
 
     root = Path(__file__).resolve().parents[1]
-    paths = [root / path for path in args.paths] if args.paths else _repository_files(root)
+    paths = (
+        [root / path for path in args.paths] if args.paths else _repository_files(root)
+    )
     return scan(paths, root)
 
 

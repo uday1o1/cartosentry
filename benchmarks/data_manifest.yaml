@@ -1,0 +1,248 @@
+{
+  "schema_version": 1,
+  "manifest_version": "m0.2-v1",
+  "generated_at_utc": "2026-08-14T00:55:00Z",
+  "source_groups_file": "benchmarks/source_groups.yaml",
+  "raw_data_tracked_in_git": false,
+  "tiers": {
+    "public-smoke": {
+      "maximum_bytes": 536870912,
+      "purpose": "The smallest real clear-weather, snow, calibration, trajectory, lidar, and road-graph inputs used by local and CI-facing smoke workflows."
+    },
+    "public-full": {
+      "maximum_bytes": 68719476736,
+      "purpose": "Longer real-data development windows and the reserved development case study used for correctness and public reporting."
+    },
+    "gpu-perf": {
+      "maximum_bytes": 17179869184,
+      "purpose": "A later frozen lidar-heavy performance window sized from measured Boreas storage rates and qualified only on the target GPU."
+    }
+  },
+  "provenance_sources": [
+    {
+      "name": "Boreas data license",
+      "url": "https://raw.githubusercontent.com/utiasASRL/pyboreas/e968198cd564ccfca5ad256624c80e0e584e7150/DATA_LICENSE.md",
+      "retrieved_at_utc": "2026-08-14T00:36:16Z",
+      "expected_bytes": 315,
+      "sha256": "92368d96fe04291eaa6e56c22faabd9860d34f1d4ce1ecad0f0b3ba9e953a52d"
+    },
+    {
+      "name": "Boreas data reference",
+      "url": "https://raw.githubusercontent.com/utiasASRL/pyboreas/e968198cd564ccfca5ad256624c80e0e584e7150/DATA_REFERENCE.md",
+      "retrieved_at_utc": "2026-08-14T00:36:16Z",
+      "expected_bytes": 14035,
+      "sha256": "66b597c4b83ef65b5433d71da909f636ba47be0ad7193d5034e8a55715555d1b"
+    },
+    {
+      "name": "Boreas download instructions",
+      "url": "https://raw.githubusercontent.com/utiasASRL/pyboreas/e968198cd564ccfca5ad256624c80e0e584e7150/download.md",
+      "retrieved_at_utc": "2026-08-14T00:36:16Z",
+      "expected_bytes": 1708,
+      "sha256": "65b5d4b7b47d509096ed955bbacb62327f6864f0f7776de5eb252acf3981d630"
+    },
+    {
+      "name": "Boreas route and weather metadata bundle",
+      "url": "https://www.boreas.utias.utoronto.ca/static/js/651.d5b5f707.chunk.js",
+      "retrieved_at_utc": "2026-08-14T00:42:25Z",
+      "expected_bytes": 37545,
+      "sha256": "f83b313107b15ca52ecc0f869645572888a34de3d08c965cf03b9f74064f3ca4"
+    },
+    {
+      "name": "Boreas sequence size metadata",
+      "url": "https://www.boreas.utias.utoronto.ca/static/sequenceSizes.json",
+      "retrieved_at_utc": "2026-08-14T00:42:14Z",
+      "expected_bytes": 23746,
+      "sha256": "21c240014d2b6daf784c40332d8c85aaeacced28b9e4d2ddebd3d9b084cdcfb8"
+    },
+    {
+      "name": "Open Data Commons ODbL 1.0",
+      "url": "https://opendatacommons.org/licenses/odbl/1-0/",
+      "retrieved_at_utc": "2026-08-14T00:52:51Z",
+      "expected_bytes": 51176,
+      "sha256": "b8d8aebb21bf405f93f6e21bbf0d8f0a749844f9812ec58692f189add6402b47"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "boreas-public-smoke-clear-v1",
+      "source_name": "Boreas",
+      "source_url": "https://www.boreas.utias.utoronto.ca/",
+      "source_object_keys": [
+        "boreas-2021-09-02-11-42/applanix/gps_post_process.csv",
+        "boreas-2021-09-02-11-42/applanix/lidar_poses.csv",
+        "boreas-2021-09-02-11-42/calib/camera0_intrinsics.yaml",
+        "boreas-2021-09-02-11-42/calib/P_camera.txt",
+        "boreas-2021-09-02-11-42/calib/T_applanix_lidar.txt",
+        "boreas-2021-09-02-11-42/calib/T_camera_lidar.txt",
+        "boreas-2021-09-02-11-42/calib/T_radar_lidar.txt",
+        "boreas-2021-09-02-11-42/lidar/1630597359058594.bin",
+        "boreas-2021-09-02-11-42/lidar/1630597359162354.bin",
+        "boreas-2021-09-02-11-42/lidar/1630597359265869.bin",
+        "boreas-2021-09-02-11-42/lidar/1630597359369629.bin",
+        "boreas-2021-09-02-11-42/lidar/1630597359473389.bin",
+        "boreas-2021-09-02-11-42/lidar/1630597359577026.bin",
+        "boreas-2021-09-02-11-42/lidar/1630597359680786.bin",
+        "boreas-2021-09-02-11-42/lidar/1630597359784424.bin",
+        "boreas-2021-09-02-11-42/lidar/1630597359888184.bin",
+        "boreas-2021-09-02-11-42/lidar/1630597359991821.bin"
+      ],
+      "retrieved_at_utc": "2026-08-14T00:47:48Z",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "terms_snapshot_sha256": "92368d96fe04291eaa6e56c22faabd9860d34f1d4ce1ecad0f0b3ba9e953a52d",
+      "redistribution": "CC-BY-4.0 permits redistribution with attribution, but CartoSentry does not redistribute Boreas sensor payloads.",
+      "attribution": "Burnett et al., Boreas: A Multi-Season Autonomous Driving Dataset, IJRR 2023; data provided by the University of Toronto Institute for Aerospace Studies under CC BY 4.0.",
+      "content_sha256": "dcfe205b4e86222491b4dd061fb22ed65f72328ed38d286b8efd8d3aaae60fd3",
+      "content_hash_definition": "SHA-256 over the ordered concatenation of source_object_keys payload bytes.",
+      "expected_bytes": 131213623,
+      "partition": "development",
+      "source_group_id": "boreas-glen-shields-family-v1",
+      "source_sequence_ids": ["boreas-2021-09-02-11-42"],
+      "weather_tags": ["Sun"],
+      "route_tags": ["Glen Shields", "Loop"],
+      "purpose": "Clear-weather public smoke input with a real turn, synchronized postprocessed trajectory, calibration, and ten consecutive lidar frames.",
+      "tiers": ["public-smoke", "public-full"],
+      "objects": [
+        {"key": "boreas-2021-09-02-11-42/applanix/gps_post_process.csv", "bytes": 77453207, "sha256": "7314f391b4bd704c838295633bd2139e24dc6596d256b785b9293851f98de124"},
+        {"key": "boreas-2021-09-02-11-42/applanix/lidar_poses.csv", "bytes": 2593799, "sha256": "9ad5e18499219ff663bbdac4c0fe8c20d255ba3231804078cba82738ab4a5630"},
+        {"key": "boreas-2021-09-02-11-42/calib/camera0_intrinsics.yaml", "bytes": 288, "sha256": "0abf24afd9c122c4ae3e242adb663be00783b6aba1f5b85b19122f7c7d0533f6"},
+        {"key": "boreas-2021-09-02-11-42/calib/P_camera.txt", "bytes": 253, "sha256": "1d17385929583172e63ed65b190bc9771b047ab96f8579750dab084cce24f975"},
+        {"key": "boreas-2021-09-02-11-42/calib/T_applanix_lidar.txt", "bytes": 401, "sha256": "e32772bcc7d617c62db0c3047e896e3626760d3f148fa83e26ad24b0c8f024db"},
+        {"key": "boreas-2021-09-02-11-42/calib/T_camera_lidar.txt", "bytes": 249, "sha256": "6e6451f9dfabc42b1bb65e437d890a471412c62b12ad9dc995bf16b36b605bdc"},
+        {"key": "boreas-2021-09-02-11-42/calib/T_radar_lidar.txt", "bytes": 402, "sha256": "ab2f6cf96814af97178fc7a44b04d67625397467e782cb3143e1af5f174b88e4"},
+        {"key": "boreas-2021-09-02-11-42/lidar/1630597359058594.bin", "bytes": 5124384, "sha256": "2ea877407de8d8c2a039daa6914fd7db8b0988a35f1bc69a2772fb4efc1bc743"},
+        {"key": "boreas-2021-09-02-11-42/lidar/1630597359162354.bin", "bytes": 5134536, "sha256": "a6df2874d4330d4292e7a885054cf1d562010433f824e6a1f3d152f8133080fb"},
+        {"key": "boreas-2021-09-02-11-42/lidar/1630597359265869.bin", "bytes": 5111856, "sha256": "3c6276eff511b438b7d15460e4d2de082ceaf2b0efc4d34ae46fc309e9c2a4a0"},
+        {"key": "boreas-2021-09-02-11-42/lidar/1630597359369629.bin", "bytes": 5089152, "sha256": "2b21fec9183d82803a97d02602b580c874d7d30ba4b0e9ea578406229a84473e"},
+        {"key": "boreas-2021-09-02-11-42/lidar/1630597359473389.bin", "bytes": 5101320, "sha256": "07057439472aade70e69fec500b738b734a4ae6b36f2b7d1288cae91aa022c6b"},
+        {"key": "boreas-2021-09-02-11-42/lidar/1630597359577026.bin", "bytes": 5127696, "sha256": "bb7cf0258c966461f1eede2c660ba65bfe489369f0ce30472a17b7cd74a094b0"},
+        {"key": "boreas-2021-09-02-11-42/lidar/1630597359680786.bin", "bytes": 5126160, "sha256": "4e19e149a811272bb419ac01517151e8b7fd1de62c77a53f558a230385e12088"},
+        {"key": "boreas-2021-09-02-11-42/lidar/1630597359784424.bin", "bytes": 5115960, "sha256": "68c927517a0d632e0ffef997d867ed9b8148b90f234d35fa434c8ded899c68c2"},
+        {"key": "boreas-2021-09-02-11-42/lidar/1630597359888184.bin", "bytes": 5113176, "sha256": "ab5674d7180dfdd303432846b2783178b035e8f4b498451af6afacd3cc71ce9d"},
+        {"key": "boreas-2021-09-02-11-42/lidar/1630597359991821.bin", "bytes": 5120784, "sha256": "96b9b4fb8c3accebb3f32550bb329547bbf376e07223acc98d3a30164514c75d"}
+      ]
+    },
+    {
+      "id": "boreas-public-smoke-snow-v1",
+      "source_name": "Boreas",
+      "source_url": "https://www.boreas.utias.utoronto.ca/",
+      "source_object_keys": [
+        "boreas-2021-01-19-15-08/applanix/gps_post_process.csv",
+        "boreas-2021-01-19-15-08/applanix/lidar_poses.csv",
+        "boreas-2021-01-19-15-08/calib/camera0_intrinsics.yaml",
+        "boreas-2021-01-19-15-08/calib/P_camera.txt",
+        "boreas-2021-01-19-15-08/calib/T_applanix_lidar.txt",
+        "boreas-2021-01-19-15-08/calib/T_camera_lidar.txt",
+        "boreas-2021-01-19-15-08/calib/T_radar_lidar.txt",
+        "boreas-2021-01-19-15-08/lidar/1611086977038635.bin",
+        "boreas-2021-01-19-15-08/lidar/1611086977142456.bin",
+        "boreas-2021-01-19-15-08/lidar/1611086977246185.bin",
+        "boreas-2021-01-19-15-08/lidar/1611086977349915.bin",
+        "boreas-2021-01-19-15-08/lidar/1611086977453735.bin",
+        "boreas-2021-01-19-15-08/lidar/1611086977557465.bin",
+        "boreas-2021-01-19-15-08/lidar/1611086977661163.bin",
+        "boreas-2021-01-19-15-08/lidar/1611086977764984.bin",
+        "boreas-2021-01-19-15-08/lidar/1611086977868714.bin",
+        "boreas-2021-01-19-15-08/lidar/1611086977972473.bin"
+      ],
+      "retrieved_at_utc": "2026-08-14T00:47:48Z",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "terms_snapshot_sha256": "92368d96fe04291eaa6e56c22faabd9860d34f1d4ce1ecad0f0b3ba9e953a52d",
+      "redistribution": "CC-BY-4.0 permits redistribution with attribution, but CartoSentry does not redistribute Boreas sensor payloads.",
+      "attribution": "Burnett et al., Boreas: A Multi-Season Autonomous Driving Dataset, IJRR 2023; data provided by the University of Toronto Institute for Aerospace Studies under CC BY 4.0.",
+      "content_sha256": "b876f6550edf4aad8fb803ac378945776d1028c31e38230f791ef3611ec328b4",
+      "content_hash_definition": "SHA-256 over the ordered concatenation of source_object_keys payload bytes.",
+      "expected_bytes": 123990456,
+      "partition": "development",
+      "source_group_id": "boreas-glen-shields-family-v1",
+      "source_sequence_ids": ["boreas-2021-01-19-15-08"],
+      "weather_tags": ["Clouds", "Snow"],
+      "route_tags": ["Glen Shields", "Loop"],
+      "purpose": "Snow public smoke input for a same-corridor precipitation control with synchronized postprocessed trajectory, calibration, and ten consecutive lidar frames.",
+      "tiers": ["public-smoke", "public-full"],
+      "objects": [
+        {"key": "boreas-2021-01-19-15-08/applanix/gps_post_process.csv", "bytes": 70980942, "sha256": "ecf4f7ec3e808fe11fb7d65a4d51cfe3aa39c53f6d41a875e0987faefae81b83"},
+        {"key": "boreas-2021-01-19-15-08/applanix/lidar_poses.csv", "bytes": 2367177, "sha256": "c0266b6795d610e6cc18dfb5f46a1ff34a3d5d9d76c0fd94a987da4dd815013a"},
+        {"key": "boreas-2021-01-19-15-08/calib/camera0_intrinsics.yaml", "bytes": 288, "sha256": "0abf24afd9c122c4ae3e242adb663be00783b6aba1f5b85b19122f7c7d0533f6"},
+        {"key": "boreas-2021-01-19-15-08/calib/P_camera.txt", "bytes": 253, "sha256": "1d17385929583172e63ed65b190bc9771b047ab96f8579750dab084cce24f975"},
+        {"key": "boreas-2021-01-19-15-08/calib/T_applanix_lidar.txt", "bytes": 401, "sha256": "e32772bcc7d617c62db0c3047e896e3626760d3f148fa83e26ad24b0c8f024db"},
+        {"key": "boreas-2021-01-19-15-08/calib/T_camera_lidar.txt", "bytes": 249, "sha256": "6e6451f9dfabc42b1bb65e437d890a471412c62b12ad9dc995bf16b36b605bdc"},
+        {"key": "boreas-2021-01-19-15-08/calib/T_radar_lidar.txt", "bytes": 402, "sha256": "ab2f6cf96814af97178fc7a44b04d67625397467e782cb3143e1af5f174b88e4"},
+        {"key": "boreas-2021-01-19-15-08/lidar/1611086977038635.bin", "bytes": 5110128, "sha256": "a053e6db9220b5abc6db78434b28a632fbdce9093ac8722d696b68be7157b205"},
+        {"key": "boreas-2021-01-19-15-08/lidar/1611086977142456.bin", "bytes": 5108184, "sha256": "46ec097a710705ff984cb7141f63ca66cd28d7a051abb4d156e842b3680fbce9"},
+        {"key": "boreas-2021-01-19-15-08/lidar/1611086977246185.bin", "bytes": 5085432, "sha256": "fea68963756ccb21afb97abf95790bf11a76e81d1dcb42d1127082fb7669e1b7"},
+        {"key": "boreas-2021-01-19-15-08/lidar/1611086977349915.bin", "bytes": 5061792, "sha256": "fcb72a4c22236f84d76d491f93a5e4002f2a47583c857e070cb268f63c6670e6"},
+        {"key": "boreas-2021-01-19-15-08/lidar/1611086977453735.bin", "bytes": 5036616, "sha256": "6153486c4c3488fb22f508e4291d25eb36ec9c7da69b072b837bd5df924d9417"},
+        {"key": "boreas-2021-01-19-15-08/lidar/1611086977557465.bin", "bytes": 5030568, "sha256": "bb2213fef44188df79d7db32201c4c9b00c305d25fc7e1637aefc0094ad25a1b"},
+        {"key": "boreas-2021-01-19-15-08/lidar/1611086977661163.bin", "bytes": 5016768, "sha256": "e6d3da1832f5c6c4f501cf1eee579924e4d2c7d3f895e686b4967fbeff8ba508"},
+        {"key": "boreas-2021-01-19-15-08/lidar/1611086977764984.bin", "bytes": 5018904, "sha256": "38e24d2c7bf298e9d86da5dbcf5f7ba1d7c86951f8962db6e9a9113cdcd116af"},
+        {"key": "boreas-2021-01-19-15-08/lidar/1611086977868714.bin", "bytes": 5078832, "sha256": "976f886f59f5fcf4b230786dc56ca827a76739acaa8bb1986587427f35f4a52e"},
+        {"key": "boreas-2021-01-19-15-08/lidar/1611086977972473.bin", "bytes": 5093520, "sha256": "c4e242cbb4aca442053b774c0d43f83b75e5ec080c832b948e00e48f9e6fc744"}
+      ]
+    },
+    {
+      "id": "boreas-reserved-development-case-study-v1",
+      "source_name": "Boreas",
+      "source_url": "https://www.boreas.utias.utoronto.ca/",
+      "source_object_keys": [
+        "boreas-2021-08-05-13-34/applanix/gps_post_process.csv",
+        "boreas-2021-08-05-13-34/applanix/lidar_poses.csv"
+      ],
+      "retrieved_at_utc": "2026-08-14T00:45:45Z",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "terms_snapshot_sha256": "92368d96fe04291eaa6e56c22faabd9860d34f1d4ce1ecad0f0b3ba9e953a52d",
+      "redistribution": "CC-BY-4.0 permits redistribution with attribution, but CartoSentry does not redistribute Boreas sensor payloads.",
+      "attribution": "Burnett et al., Boreas: A Multi-Season Autonomous Driving Dataset, IJRR 2023; data provided by the University of Toronto Institute for Aerospace Studies under CC BY 4.0.",
+      "content_sha256": "b15aa4dc68f9623c12814d8da3d9b04d4bfe1647259a1bc4f8b2fafd5de49a2c",
+      "content_hash_definition": "SHA-256 over the ordered concatenation of source_object_keys payload bytes.",
+      "expected_bytes": 86670777,
+      "partition": "development",
+      "source_group_id": "boreas-glen-shields-family-v1",
+      "source_sequence_ids": ["boreas-2021-08-05-13-34"],
+      "weather_tags": ["Sun", "Clouds"],
+      "route_tags": ["Glen Shields", "Loop"],
+      "purpose": "A reserved development case study whose bytes and hashes are pinned now but whose content is not used for threshold or parameter selection until its declared case-study run.",
+      "tiers": ["public-full"],
+      "objects": [
+        {"key": "boreas-2021-08-05-13-34/applanix/gps_post_process.csv", "bytes": 83852364, "sha256": "9a8fc4d98624ceb0434b33c5f540e0b757376f3f963fa576f0d0fc2aee1a9704"},
+        {"key": "boreas-2021-08-05-13-34/applanix/lidar_poses.csv", "bytes": 2818413, "sha256": "47a9e52b2d2d99c69bbf9a19446c7f17fc77c304db1d2a5058cf6d5db1c58be4"}
+      ]
+    },
+    {
+      "id": "osm-toronto-glen-shields-v1",
+      "source_name": "OpenStreetMap",
+      "source_url": "https://www.openstreetmap.org/",
+      "source_object_keys": ["overpass:toronto-glen-shields-v1@2026-08-14T00:47:44Z"],
+      "retrieved_at_utc": "2026-08-14T00:49:55Z",
+      "license_url": "https://opendatacommons.org/licenses/odbl/1-0/",
+      "terms_snapshot_sha256": "b8d8aebb21bf405f93f6e21bbf0d8f0a749844f9812ec58692f189add6402b47",
+      "redistribution": "The extract is an ODbL database; attribution and ODbL share-alike obligations apply to public database redistribution and derivative databases.",
+      "attribution": "Contains information from OpenStreetMap, which is made available under the Open Database License.",
+      "content_sha256": "4218be930d42d4b1fcfcf811f366a8837e4b220ffa7fdbd6415820e3a0527600",
+      "content_hash_definition": "SHA-256 over the ordered concatenation of source_object_keys payload bytes.",
+      "expected_bytes": 1414633,
+      "partition": "development",
+      "source_group_id": "boreas-glen-shields-family-v1",
+      "source_sequence_ids": [],
+      "weather_tags": [],
+      "route_tags": ["Glen Shields", "Toronto", "bounded-extract"],
+      "purpose": "A pinned road-graph extract surrounding the real development route for map construction and public smoke workflows.",
+      "tiers": ["public-smoke", "public-full"],
+      "objects": [
+        {
+          "key": "road_graphs/toronto-glen-shields-v1.osm",
+          "source_key": "overpass:toronto-glen-shields-v1@2026-08-14T00:47:44Z",
+          "bytes": 1414633,
+          "sha256": "4218be930d42d4b1fcfcf811f366a8837e4b220ffa7fdbd6415820e3a0527600",
+          "method": "overpass-post",
+          "url": "https://overpass-api.de/api/interpreter",
+          "normalization": "overpass-osm-base-v1",
+          "snapshot_utc": "2026-08-14T00:47:44Z",
+          "query_path": "benchmarks/road_graphs/toronto_glen_shields_v1.overpassql",
+          "query_sha256": "69e6b1765d7f1f9517cbc4c7365f9caca63d4e67ee1e51c554ce07b1feaa3690",
+          "polygon_path": "benchmarks/road_graphs/toronto_glen_shields_v1.polygon.json",
+          "polygon_sha256": "ad617dc1e59522aaf0076e53b7ddd465a13002b5bed9cab2b3a15f6e81a2ffdd"
+        }
+      ]
+    }
+  ]
+}

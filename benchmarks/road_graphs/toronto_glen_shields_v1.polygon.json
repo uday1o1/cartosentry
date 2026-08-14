@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "id": "toronto-glen-shields-v1",
+  "coordinate_reference_system": "EPSG:4326",
+  "description": "A rectangular acquisition boundary around the Boreas Glen Shields development route with a small mapping margin.",
+  "coordinates": [
+    [-79.4855, 43.7795],
+    [-79.4615, 43.7795],
+    [-79.4615, 43.8035],
+    [-79.4855, 43.8035],
+    [-79.4855, 43.7795]
+  ]
+}

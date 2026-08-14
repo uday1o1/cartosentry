@@ -2077,7 +2077,7 @@ Focused commit: `spike: retire mapping observability risks`.
 
 ### M0.6: Freeze evaluation charter `v0`
 
-Create `benchmarks/source_groups.yaml`, `benchmarks/split_manifest.yaml`, `benchmarks/numerical_charter.yaml`, `benchmarks/fault_matrix_v1.yaml`, and `benchmarks/fallback_tree.yaml`.
+Validate the source-group assignments already frozen before M0.2 data inspection without moving any group, and create `benchmarks/split_manifest.yaml`, `benchmarks/numerical_charter.yaml`, `benchmarks/fault_matrix_v1.yaml`, and `benchmarks/fallback_tree.yaml`.
 Set the fault-matrix identifier to `cartosentry-v1-core` and reject every operator outside its enumerated V1 allowlist.
 Assign every real sequence and synthetic seed family to development, threshold calibration, policy tuning, or final test.
 Select the event-overlap rule, bootstrap unit, bootstrap seed, bootstrap replicates, warmup, repetitions, performance hosts, and first profile thresholds.

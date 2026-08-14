@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "assignment_version": "m0.2-v1",
+  "assigned_at_utc": "2026-08-14T00:41:23Z",
+  "assignment_basis": "Official Boreas download-page route and weather metadata only; no sensor payload was decoded before assignment.",
+  "assignment_source_url": "https://www.boreas.utias.utoronto.ca/static/js/651.d5b5f707.chunk.js",
+  "assignment_source_sha256": "f83b313107b15ca52ecc0f869645572888a34de3d08c965cf03b9f74064f3ca4",
+  "partition_policy": {
+    "immutable_after_inspection": true,
+    "derivatives_inherit_partition": true,
+    "clips_inherit_partition": true,
+    "adapters_do_not_change_partition": true,
+    "cross_partition_source_groups_forbidden": true
+  },
+  "source_groups": [
+    {
+      "source_group_id": "boreas-glen-shields-family-v1",
+      "partition": "development",
+      "partition_locked": true,
+      "route_family": "Glen Shields",
+      "claim_scope": "within-corridor development and weather comparison only",
+      "sequences": [
+        {
+          "sequence_id": "boreas-2021-01-26-10-59",
+          "weather_tags": ["Overcast", "Snow", "Snowing"],
+          "route_tags": ["Glen Shields", "Loop"],
+          "roles": ["candidate-excluded"],
+          "capability_status": "excluded_missing_required_public_postprocessed_trajectory"
+        },
+        {
+          "sequence_id": "boreas-2021-01-19-15-08",
+          "weather_tags": ["Clouds", "Snow"],
+          "route_tags": ["Glen Shields", "Loop"],
+          "roles": ["precipitation-control", "repeated-route-member"]
+        },
+        {
+          "sequence_id": "boreas-2021-08-05-13-34",
+          "weather_tags": ["Sun", "Clouds"],
+          "route_tags": ["Glen Shields", "Loop"],
+          "roles": ["reserved-development-case-study", "repeated-route-member"]
+        },
+        {
+          "sequence_id": "boreas-2021-09-02-11-42",
+          "weather_tags": ["Sun"],
+          "route_tags": ["Glen Shields", "Loop"],
+          "roles": ["clear-weather-development", "public-smoke", "repeated-route-member"]
+        }
+      ]
+    },
+    {
+      "source_group_id": "boreas-alternate-family-v1",
+      "partition": "final_test",
+      "partition_locked": true,
+      "route_family": "Alternate",
+      "claim_scope": "held-out route case study; no development or threshold selection",
+      "sequences": [
+        {
+          "sequence_id": "boreas-2021-09-09-15-28",
+          "weather_tags": ["Sun", "Clouds"],
+          "route_tags": ["Alternate", "Construction", "Loop"],
+          "roles": ["candidate-excluded"],
+          "capability_status": "excluded_missing_required_public_postprocessed_trajectory"
+        }
+      ]
+    }
+  ]
+}
