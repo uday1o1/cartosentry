@@ -3,6 +3,7 @@
 #include "cartosentry/contracts/geometry.hpp"
 #include "cartosentry/contracts/time.hpp"
 #include "cartosentry/ingest/boreas_inspector.hpp"
+#include "cartosentry/scheduler/qualification.hpp"
 #include "cartosentry/spikes/observability.hpp"
 
 #include <pybind11/pybind11.h>
@@ -327,6 +328,34 @@ auto observability_to_dict(
   return result;
 }
 
+auto scheduler_qualification_to_dict(
+    const cartosentry::scheduler::SchedulerQualification &qualification)
+    -> py::dict {
+  py::dict result;
+  result["accepted"] = qualification.accepted;
+  result["resident_byte_budget"] = qualification.resident_byte_budget;
+  result["peak_resident_bytes"] = qualification.peak_resident_bytes;
+  result["mixed_completed_units"] = qualification.mixed_completed_units;
+  result["mixed_imu_units"] = qualification.mixed_imu_units;
+  result["mixed_lidar_units"] = qualification.mixed_lidar_units;
+  result["deterministic_replay_equal"] =
+      qualification.deterministic_replay_equal;
+  result["deterministic_execution_order"] =
+      qualification.deterministic_execution_order;
+  result["backpressure_observed"] = qualification.backpressure_observed;
+  result["isolated_failed_units"] = qualification.isolated_failed_units;
+  result["isolated_completed_units"] = qualification.isolated_completed_units;
+  result["structured_error_codes"] = qualification.structured_error_codes;
+  result["cancelled_units"] = qualification.cancelled_units;
+  result["outstanding_units_after_cancel"] =
+      qualification.outstanding_units_after_cancel;
+  result["resident_bytes_after_cancel"] =
+      qualification.resident_bytes_after_cancel;
+  result["completion_pointer_exists"] =
+      qualification.completion_pointer_exists;
+  return result;
+}
+
 } // namespace
 
 PYBIND11_MODULE(_core, module) {
@@ -506,6 +535,27 @@ PYBIND11_MODULE(_core, module) {
   module.def("solve_tiny_required_route", [] {
     return tiny_route_to_dict(cartosentry::spikes::solve_tiny_required_route());
   });
+  module.def(
+      "qualify_bounded_scheduler",
+      [](const std::string &output_root, std::size_t worker_count,
+         std::size_t resident_byte_budget, std::size_t mixed_unit_count,
+         std::size_t lidar_stride, std::size_t imu_estimated_bytes,
+         std::size_t lidar_estimated_bytes) {
+        cartosentry::scheduler::SchedulerQualification qualification;
+        {
+          py::gil_scoped_release release;
+          qualification = cartosentry::scheduler::qualify_bounded_scheduler(
+              std::filesystem::path(output_root),
+              cartosentry::scheduler::SchedulerQualificationParameters{
+                  worker_count, resident_byte_budget, mixed_unit_count,
+                  lidar_stride, imu_estimated_bytes, lidar_estimated_bytes});
+        }
+        return scheduler_qualification_to_dict(qualification);
+      },
+      py::arg("output_root"), py::arg("worker_count"),
+      py::arg("resident_byte_budget"), py::arg("mixed_unit_count"),
+      py::arg("lidar_stride"), py::arg("imu_estimated_bytes"),
+      py::arg("lidar_estimated_bytes"));
   module.def(
       "run_observability_spike",
       [](const std::string &sequence_root, const std::string &road_graph_path,

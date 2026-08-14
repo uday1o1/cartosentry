@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "suite_id": "m2.3-v1",
+  "worker_count": 4,
+  "resident_byte_budget": 32768,
+  "mixed_unit_count": 2000,
+  "lidar_stride": 10,
+  "imu_estimated_bytes": 64,
+  "lidar_estimated_bytes": 4096
+}

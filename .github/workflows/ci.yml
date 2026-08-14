@@ -86,6 +86,9 @@ jobs:
           uv run cmake --preset sanitizer
           uv run cmake --build --preset sanitizer -j 4
           uv run ctest --preset sanitizer
+          uv run cmake --preset thread-sanitizer
+          uv run cmake --build --preset thread-sanitizer -j 4
+          uv run ctest --preset thread-sanitizer
 
       - name: Build and install release artifacts
         shell: bash

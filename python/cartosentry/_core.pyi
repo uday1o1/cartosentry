@@ -6,6 +6,24 @@ class NativeBuildInfo(TypedDict):
     se3_implementation: str
     cxx_standard: int
 
+class SchedulerQualificationResult(TypedDict):
+    accepted: bool
+    resident_byte_budget: int
+    peak_resident_bytes: int
+    mixed_completed_units: int
+    mixed_imu_units: int
+    mixed_lidar_units: int
+    deterministic_replay_equal: bool
+    deterministic_execution_order: list[str]
+    backpressure_observed: bool
+    isolated_failed_units: int
+    isolated_completed_units: int
+    structured_error_codes: list[str]
+    cancelled_units: int
+    outstanding_units_after_cancel: int
+    resident_bytes_after_cancel: int
+    completion_pointer_exists: bool
+
 def native_self_check() -> bool: ...
 def canonicalize_artifact_json(input_json: str, expected_schema: str) -> str: ...
 def checked_translation_norm(translation: tuple[float, float, float]) -> float: ...
@@ -90,6 +108,15 @@ def run_synthetic_observability_suite(
     minimum_alignment_separation_m: float,
 ) -> list[dict[str, Any]]: ...
 def solve_tiny_required_route() -> dict[str, Any]: ...
+def qualify_bounded_scheduler(
+    output_root: str,
+    worker_count: int,
+    resident_byte_budget: int,
+    mixed_unit_count: int,
+    lidar_stride: int,
+    imu_estimated_bytes: int,
+    lidar_estimated_bytes: int,
+) -> SchedulerQualificationResult: ...
 def run_observability_spike(
     sequence_root: str,
     road_graph_path: str,

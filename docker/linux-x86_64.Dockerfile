@@ -52,7 +52,10 @@ RUN uv run cmake --preset developer -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja \
     && uv run ctest --preset release \
     && uv run cmake --preset sanitizer -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja \
     && uv run cmake --build --preset sanitizer -j 1 \
-    && uv run ctest --preset sanitizer
+    && uv run ctest --preset sanitizer \
+    && uv run cmake --preset thread-sanitizer -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja \
+    && uv run cmake --build --preset thread-sanitizer -j 1 \
+    && uv run ctest --preset thread-sanitizer
 
 RUN uv run cmake --preset compatibility -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja \
     && uv run cmake --build --preset compatibility -j 1 \

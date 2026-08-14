@@ -35,6 +35,7 @@ from cartosentry.ingestion import (
     load_ingestion_budget,
 )
 from cartosentry.qualification import qualify_contracts
+from cartosentry.scheduler import qualify_scheduler
 from cartosentry.spikes import qualify_observability
 from cartosentry.synthetic import materialize_fixture_set, qualify_fixture_set
 
@@ -366,6 +367,42 @@ def index_boreas_command(
         _write_report(report.portable_dict(), None)
     except (OSError, ValueError, ValidationError) as error:
         typer.echo(f"Boreas indexing failed: {error}", err=True)
+        raise typer.Exit(code=2) from error
+    if not report.accepted:
+        raise typer.Exit(code=1)
+
+
+@app.command("qualify-scheduler")
+def qualify_scheduler_command(
+    output_root: Annotated[
+        Path,
+        typer.Argument(
+            file_okay=False,
+            dir_okay=True,
+            resolve_path=True,
+            help="New output directory for cancellation safety evidence.",
+        ),
+    ],
+    suite_path: Annotated[
+        Path,
+        typer.Option(
+            "--suite",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen mixed-modality scheduler stress suite.",
+        ),
+    ] = Path("benchmarks/scheduler_stress.yaml"),
+) -> None:
+    """Stress the native byte-budgeted scheduler and cancellation path."""
+
+    try:
+        report = qualify_scheduler(output_root, suite_path)
+        _write_report(report.portable_dict(), None)
+    except (OSError, ValueError, ValidationError) as error:
+        typer.echo(f"Scheduler qualification failed: {error}", err=True)
         raise typer.Exit(code=2) from error
     if not report.accepted:
         raise typer.Exit(code=1)

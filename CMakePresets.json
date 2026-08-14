@@ -41,6 +41,14 @@
       }
     },
     {
+      "name": "thread-sanitizer",
+      "inherits": "developer",
+      "cacheVariables": {
+        "CARTOSENTRY_BUILD_PYTHON": "OFF",
+        "CARTOSENTRY_ENABLE_THREAD_SANITIZER": "ON"
+      }
+    },
+    {
       "name": "compatibility",
       "inherits": "developer",
       "cacheVariables": {
@@ -66,6 +74,7 @@
     {"name": "developer", "configurePreset": "developer"},
     {"name": "release", "configurePreset": "release"},
     {"name": "sanitizer", "configurePreset": "sanitizer"},
+    {"name": "thread-sanitizer", "configurePreset": "thread-sanitizer"},
     {"name": "compatibility", "configurePreset": "compatibility"},
     {"name": "coverage", "configurePreset": "coverage"}
   ],
@@ -83,6 +92,11 @@
     {
       "name": "sanitizer",
       "configurePreset": "sanitizer",
+      "output": {"outputOnFailure": true}
+    },
+    {
+      "name": "thread-sanitizer",
+      "configurePreset": "thread-sanitizer",
       "output": {"outputOnFailure": true}
     },
     {

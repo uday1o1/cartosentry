@@ -9,6 +9,7 @@ option(
   OFF
 )
 option(CARTOSENTRY_ENABLE_SANITIZERS "Enable address and undefined sanitizers" OFF)
+option(CARTOSENTRY_ENABLE_THREAD_SANITIZER "Enable the thread sanitizer" OFF)
 option(CARTOSENTRY_ENABLE_COVERAGE "Enable compiler coverage instrumentation" OFF)
 option(CARTOSENTRY_ENABLE_CUDA "Enable the optional CUDA backend" OFF)
 
@@ -25,6 +26,8 @@ include(CTest)
 include(cmake/CartoSentryWarnings.cmake)
 include(cmake/CartoSentrySanitizers.cmake)
 
+find_package(Threads REQUIRED)
+
 if(CARTOSENTRY_BUILD_PYTHON OR CARTOSENTRY_BUILD_COMPATIBILITY_PROBE)
   find_package(Python 3.12 EXACT COMPONENTS Interpreter Development.Module REQUIRED)
 endif()
@@ -34,10 +37,12 @@ include(cmake/CartoSentryDependencies.cmake)
 add_library(
   CartoSentryCore STATIC
   cpp/src/boreas_inspector.cpp
+  cpp/src/bounded_scheduler.cpp
   cpp/src/artifact_json.cpp
   cpp/src/geometry.cpp
   cpp/src/native_check.cpp
   cpp/src/observability.cpp
+  cpp/src/scheduler_qualification.cpp
   cpp/src/time.cpp
 )
 add_library(CartoSentry::Core ALIAS CartoSentryCore)
@@ -54,6 +59,7 @@ target_link_libraries(
     CartoSentry::Sophus
     GeographicLib::GeographicLib
     nlohmann_json::nlohmann_json
+    Threads::Threads
 )
 target_compile_features(CartoSentryCore PUBLIC cxx_std_20)
 cartosentry_enable_warnings(CartoSentryCore)
@@ -113,6 +119,7 @@ if(BUILD_TESTING)
     cartosentry_core_tests
     cpp/tests/boreas_inspector_test.cpp
     cpp/tests/artifact_json_test.cpp
+    cpp/tests/bounded_scheduler_test.cpp
     cpp/tests/contracts_test.cpp
     cpp/tests/native_check_test.cpp
     cpp/tests/observability_test.cpp
