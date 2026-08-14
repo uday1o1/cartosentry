@@ -218,6 +218,10 @@ def validate_dependency_contract(
         raise DependencyLockError(
             "Linux qualification image must use the frozen snapshot"
         )
+    if "git=1:2.39.5-0+deb12u3" not in dockerfile:
+        raise DependencyLockError(
+            "Linux qualification image must pin Git for release-state validation"
+        )
     if "uv-0.11.23" not in dockerfile or "sha256=7a85330d" not in dockerfile:
         raise DependencyLockError(
             "Linux qualification uv wheel must be versioned and hashed"

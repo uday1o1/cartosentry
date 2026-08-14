@@ -1,0 +1,275 @@
+{
+  "schema_version": 1,
+  "fallback_tree_version": "v0",
+  "freeze_state": "FROZEN_PRE_UNBLINDING",
+  "selection_rule": "For each claim track, select the first branch in priority order whose population, support, multiplicity, and numerical gates all pass in the same one-shot execution.",
+  "post_result_changes_forbidden": [
+    "population",
+    "fault family",
+    "severity",
+    "metric",
+    "statistical bound",
+    "gate",
+    "multiplicity method",
+    "claim wording"
+  ],
+  "claim_tracks": [
+    {
+      "track_id": "v1-supported-fault-detection",
+      "branches": [
+        {
+          "branch_id": "fault-primary-all-v1",
+          "priority": 1,
+          "population": "All eligible final-test sensor-map synthetic families and eligible injected real source groups.",
+          "supported_fault_families": [
+            "trajectory.timestamp_discontinuity",
+            "trajectory.position_jump",
+            "lidar.point_time_shift",
+            "lidar.ring_loss",
+            "lidar.azimuth_sector_loss",
+            "lidar.calibration_perturbation"
+          ],
+          "severity": "fault-matrix cases labeled detectable",
+          "metric": "event recall and false CRITICAL findings per eligible clean sensor-hour",
+          "statistical_bound": "recall one-sided lower 95 percent and harm one-sided upper 95 percent",
+          "gate_keys": [
+            "content.supported_fault_recall",
+            "content.false_critical_per_clean_sensor_hour"
+          ],
+          "minimum_support": "12 clusters and 30 injected events per claimed fault and severity stratum; 12 clean clusters and 3 clean sensor-hours",
+          "multiplicity": "Holm within trajectory-v1 and lidar-v1 confirmatory families at family-wise alpha 0.05",
+          "claim_wording": "CartoSentry detected the six predeclared V1 trajectory and lidar fault families at supported detectable severities while meeting the frozen clean false-critical bound."
+        },
+        {
+          "branch_id": "fault-narrow-structural-v1",
+          "priority": 2,
+          "population": "All eligible final-test families for trajectory timestamp discontinuity, lidar point-time shift, ring loss, and sector loss.",
+          "supported_fault_families": [
+            "trajectory.timestamp_discontinuity",
+            "lidar.point_time_shift",
+            "lidar.ring_loss",
+            "lidar.azimuth_sector_loss"
+          ],
+          "severity": "fault-matrix cases labeled detectable",
+          "metric": "event recall and false CRITICAL findings per eligible clean sensor-hour",
+          "statistical_bound": "recall one-sided lower 95 percent and harm one-sided upper 95 percent",
+          "gate_keys": [
+            "content.supported_fault_recall",
+            "content.false_critical_per_clean_sensor_hour"
+          ],
+          "minimum_support": "12 clusters and 30 injected events per claimed fault and severity stratum; 12 clean clusters and 3 clean sensor-hours",
+          "multiplicity": "Holm over this predeclared four-member family at family-wise alpha 0.05",
+          "claim_wording": "CartoSentry detected the predeclared structural and lidar-coverage V1 faults at supported detectable severities while meeting the frozen clean false-critical bound."
+        },
+        {
+          "branch_id": "fault-narrow-generated-only-v1",
+          "priority": 3,
+          "population": "Eligible final-test synthetic sensor-map families only.",
+          "supported_fault_families": [
+            "trajectory.timestamp_discontinuity",
+            "trajectory.position_jump",
+            "lidar.point_time_shift",
+            "lidar.ring_loss",
+            "lidar.azimuth_sector_loss",
+            "lidar.calibration_perturbation"
+          ],
+          "severity": "fault-matrix cases labeled detectable",
+          "metric": "event recall",
+          "statistical_bound": "one-sided lower 95 percent",
+          "gate_keys": ["content.supported_fault_recall"],
+          "minimum_support": "12 synthetic families and 30 injected events per claimed fault and severity stratum",
+          "multiplicity": "Holm within trajectory-v1 and lidar-v1 confirmatory families at family-wise alpha 0.05",
+          "claim_wording": "On the predeclared generated suite, CartoSentry detected the six V1 trajectory and lidar fault families at supported detectable severities."
+        },
+        {
+          "branch_id": "fault-descriptive-no-accuracy-claim",
+          "priority": 4,
+          "population": "Executed final-test fault cases with explicit support reporting.",
+          "supported_fault_families": ["none_confirmatory"],
+          "severity": "reported per executed case",
+          "metric": "descriptive point estimates and support only",
+          "statistical_bound": "none",
+          "gate_keys": [],
+          "minimum_support": "none for a descriptive result",
+          "multiplicity": "not applicable",
+          "claim_wording": "CartoSentry produced descriptive V1 fault-analysis results, but the frozen support or accuracy gates did not permit a confirmatory detection claim."
+        }
+      ]
+    },
+    {
+      "track_id": "v1-directed-map-matching",
+      "branches": [
+        {
+          "branch_id": "map-primary-synthetic-and-public",
+          "priority": 1,
+          "population": "All eligible final-test synthetic map families and at least 12 independently adjudicated public source groups.",
+          "supported_fault_families": ["off_map", "parallel_road", "ramp", "overpass", "directed_turn"],
+          "severity": "all predeclared generated map scenarios",
+          "metric": "synthetic directed-arc accuracy, synthetic off-map F1, and public adjudicated directed-arc agreement",
+          "statistical_bound": "one-sided lower 95 percent for benefit metrics",
+          "gate_keys": ["map.synthetic_directed_arc_accuracy", "map.synthetic_off_map_f1"],
+          "minimum_support": "12 synthetic families and 12 adjudicated public source groups",
+          "multiplicity": "Holm within map-readiness-routing-v1 at family-wise alpha 0.05",
+          "claim_wording": "CartoSentry met the frozen directed map-matching gates on generated truth and independently adjudicated public routes."
+        },
+        {
+          "branch_id": "map-narrow-synthetic-only",
+          "priority": 2,
+          "population": "All eligible final-test synthetic map families.",
+          "supported_fault_families": ["off_map", "parallel_road", "ramp", "overpass", "directed_turn"],
+          "severity": "all predeclared generated map scenarios",
+          "metric": "directed-arc accuracy and off-map F1",
+          "statistical_bound": "one-sided lower 95 percent",
+          "gate_keys": ["map.synthetic_directed_arc_accuracy", "map.synthetic_off_map_f1"],
+          "minimum_support": "12 synthetic families",
+          "multiplicity": "Holm within map-readiness-routing-v1 at family-wise alpha 0.05",
+          "claim_wording": "CartoSentry met the frozen directed map-matching gates on the predeclared generated truth suite."
+        },
+        {
+          "branch_id": "map-narrow-public-candidate-demo",
+          "priority": 3,
+          "population": "The pinned development public route only.",
+          "supported_fault_families": ["none"],
+          "severity": "not applicable",
+          "metric": "confident moving-distance candidate coverage",
+          "statistical_bound": "deterministic selected-route measurement",
+          "gate_keys": ["map.public_confident_moving_distance_fraction"],
+          "minimum_support": "the complete pinned development route",
+          "multiplicity": "not applicable",
+          "claim_wording": "On the pinned development route, CartoSentry produced confident directed-road candidates for at least 85 percent of selected moving distance; this is not a final map-matching accuracy claim."
+        }
+      ]
+    },
+    {
+      "track_id": "v1-readiness-correctness",
+      "branches": [
+        {
+          "branch_id": "readiness-primary-generated-truth",
+          "priority": 1,
+          "population": "All eligible final-test generated readiness cases and mandatory policy mutations.",
+          "supported_fault_families": ["cartosentry-v1-core"],
+          "severity": "mandatory critical detectable cases",
+          "metric": "mandatory false pass, missing-evidence UNKNOWN, and policy mutation transition rates",
+          "statistical_bound": "deterministic exhaustive plus exact one-sided upper 95 percent for zero cluster failures",
+          "gate_keys": [
+            "readiness.generated_mandatory_false_pass_count",
+            "readiness.missing_evidence_unknown_fraction",
+            "readiness.policy_mutation_transition_fraction"
+          ],
+          "minimum_support": "30 independent generated scenario families for false-pass and every schema-driven mutation case",
+          "multiplicity": "Holm within map-readiness-routing-v1 at family-wise alpha 0.05",
+          "claim_wording": "CartoSentry produced no false PASS for mandatory critical generated truth and returned UNKNOWN whenever mandatory evidence was missing."
+        },
+        {
+          "branch_id": "readiness-narrow-deterministic-contract",
+          "priority": 2,
+          "population": "All schema-driven mandatory evidence and policy mutation cases.",
+          "supported_fault_families": ["schema_contract_only"],
+          "severity": "not applicable",
+          "metric": "missing-evidence UNKNOWN and policy mutation transition rates",
+          "statistical_bound": "deterministic exhaustive",
+          "gate_keys": [
+            "readiness.missing_evidence_unknown_fraction",
+            "readiness.policy_mutation_transition_fraction"
+          ],
+          "minimum_support": "every frozen deterministic case",
+          "multiplicity": "not applicable",
+          "claim_wording": "CartoSentry's deterministic policy contract returned UNKNOWN for missing mandatory evidence and changed verdicts for every frozen mandatory mutation."
+        }
+      ]
+    },
+    {
+      "track_id": "v1-recollection-routing",
+      "branches": [
+        {
+          "branch_id": "routing-primary-improvement",
+          "priority": 1,
+          "population": "At least 30 final-test scenario graphs from 12 independent routing families.",
+          "supported_fault_families": ["directed_required_arc_recollection"],
+          "severity": "all frozen nontrivial routing scenarios",
+          "metric": "median distance reduction versus greedy, required coverage, invalid traversals, and discontinuities",
+          "statistical_bound": "improvement one-sided lower 95 percent; harms deterministic zero",
+          "gate_keys": [
+            "routing.median_distance_reduction_vs_greedy",
+            "routing.required_reachable_arc_coverage",
+            "routing.graph_profile_invalid_traversal_count",
+            "routing.discontinuity_count"
+          ],
+          "minimum_support": "30 scenario graphs from 12 routing families",
+          "multiplicity": "Holm within map-readiness-routing-v1 at family-wise alpha 0.05",
+          "claim_wording": "CartoSentry's deterministic recollection heuristic preserved every reachable requirement and reduced median route distance by at least 10 percent versus greedy without invalid traversal."
+        },
+        {
+          "branch_id": "routing-narrow-valid-coverage",
+          "priority": 2,
+          "population": "Every eligible final-test routing graph.",
+          "supported_fault_families": ["directed_required_arc_recollection"],
+          "severity": "all frozen reachable scenarios",
+          "metric": "required coverage, invalid traversals, discontinuities, and exact tiny cost",
+          "statistical_bound": "deterministic exhaustive",
+          "gate_keys": [
+            "routing.required_reachable_arc_coverage",
+            "routing.graph_profile_invalid_traversal_count",
+            "routing.discontinuity_count",
+            "routing.tiny_optimal_cost_error"
+          ],
+          "minimum_support": "every frozen deterministic routing case",
+          "multiplicity": "not applicable",
+          "claim_wording": "CartoSentry generated continuous directed recollection routes that covered every reachable requirement on the frozen suite; no optimization-improvement claim is made."
+        }
+      ]
+    },
+    {
+      "track_id": "v1-cpu-performance",
+      "branches": [
+        {
+          "branch_id": "performance-primary-full-workflow",
+          "priority": 1,
+          "population": "Five measured release runs after one warmup on the frozen Linux CPU host and public-full workload.",
+          "supported_fault_families": ["cartosentry-v1-core"],
+          "severity": "complete frozen workload",
+          "metric": "full workflow real-time factor, peak RSS, RSS growth, and resume hash equality",
+          "statistical_bound": "throughput one-sided lower 95 percent; memory one-sided upper 95 percent; resume deterministic zero",
+          "gate_keys": [
+            "performance.full_hdmap_lidar_realtime_factor",
+            "performance.peak_rss_bytes",
+            "performance.rss_growth_one_to_ten_minute",
+            "performance.resume_semantic_hash_mismatch_count"
+          ],
+          "minimum_support": "one warmup and five complete measured runs on the bound primary host",
+          "multiplicity": "Holm within the predeclared CPU performance family at family-wise alpha 0.05",
+          "claim_wording": "On the frozen Linux CPU host, the full hdmap-lidar-v1 workflow met recording-time throughput, memory, scaling, and deterministic resume gates."
+        },
+        {
+          "branch_id": "performance-narrow-structural-preflight",
+          "priority": 2,
+          "population": "Five measured release runs after one warmup on the frozen Linux CPU host and structural-preflight workload.",
+          "supported_fault_families": ["structural_only"],
+          "severity": "complete frozen workload",
+          "metric": "structural preflight real-time factor and peak RSS",
+          "statistical_bound": "throughput one-sided lower 95 percent and memory one-sided upper 95 percent",
+          "gate_keys": [
+            "performance.structural_preflight_realtime_factor",
+            "performance.peak_rss_bytes"
+          ],
+          "minimum_support": "one warmup and five complete measured runs on the bound primary host",
+          "multiplicity": "Holm within the predeclared CPU performance family at family-wise alpha 0.05",
+          "claim_wording": "On the frozen Linux CPU host, CartoSentry's structural preflight met the frozen throughput and memory gates; no full-workflow real-time claim is made."
+        },
+        {
+          "branch_id": "performance-descriptive-only",
+          "priority": 3,
+          "population": "Completed measured runs with environment identity and support reported.",
+          "supported_fault_families": ["none_confirmatory"],
+          "severity": "not applicable",
+          "metric": "descriptive wall time, throughput, and memory",
+          "statistical_bound": "reported but not gate-eligible",
+          "gate_keys": [],
+          "minimum_support": "none for a descriptive result",
+          "multiplicity": "not applicable",
+          "claim_wording": "CartoSentry reports descriptive CPU performance for the measured environment, but no frozen performance claim passed."
+        }
+      ]
+    }
+  ]
+}

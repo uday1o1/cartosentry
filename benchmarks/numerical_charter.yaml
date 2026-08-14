@@ -1,0 +1,507 @@
+{
+  "schema_version": 1,
+  "charter_version": "v0",
+  "immutable_sha256": "baf5adfe9fe97b9d4de453adfec359bce0a9ad345f905f6abbe0cd796eaaddeb",
+  "hash_contract": "SHA-256 of canonical UTF-8 JSON with immutable_sha256 omitted",
+  "freeze_state": "FROZEN_PRE_UNBLINDING",
+  "split_manifest_path": "benchmarks/split_manifest.yaml",
+  "statistics": {
+    "confidence_level": 0.95,
+    "two_sided_interval": "clustered percentile bootstrap",
+    "minimum_benefit_decision_bound": "one_sided_lower_95",
+    "maximum_harm_decision_bound": "one_sided_upper_95",
+    "bootstrap_unit_by_domain": {
+      "real_and_injected_sensor": "source_group_id",
+      "synthetic_sensor_and_map": "synthetic_family_id",
+      "routing": "scenario_graph_family_id",
+      "downstream_follow_on": "independent_drive_id",
+      "performance": "complete_measured_run"
+    },
+    "bootstrap_seed": 2026081401,
+    "bootstrap_replicates": 10000,
+    "missing_cluster_behavior": "exclude only by predeclared eligibility rule and report the exclusion",
+    "degenerate_resample_behavior": "report a degenerate interval and fail any confirmatory gate",
+    "cluster_splitting_forbidden": true,
+    "confirmatory_families": [
+      {
+        "family_id": "trajectory-v1",
+        "members": ["trajectory structural", "trajectory position"],
+        "multiplicity": "Holm at family-wise alpha 0.05"
+      },
+      {
+        "family_id": "lidar-v1",
+        "members": ["lidar point-time", "lidar coverage", "lidar calibration"],
+        "multiplicity": "Holm at family-wise alpha 0.05"
+      },
+      {
+        "family_id": "map-readiness-routing-v1",
+        "members": ["map matching", "readiness", "routing"],
+        "multiplicity": "Holm at family-wise alpha 0.05"
+      }
+    ],
+    "unlisted_slices": "EXPLORATORY"
+  },
+  "event_matching": {
+    "interval_convention": "half_open",
+    "overlap_metric": "interval_intersection_over_union",
+    "minimum_iou": 0.5,
+    "assignment": "deterministic one-to-one maximum IoU, then earliest truth interval, then earliest finding identifier",
+    "boundary_metrics": ["absolute_start_error", "absolute_end_error"]
+  },
+  "confirmatory_support": {
+    "minimum_independent_clusters": 12,
+    "minimum_injected_events_per_fault_severity_stratum": 30,
+    "minimum_clean_clusters": 12,
+    "minimum_clean_sensor_hours": 3.0,
+    "minimum_public_hmm_adjudicated_source_groups": 12,
+    "minimum_routing_scenario_graphs": 30,
+    "minimum_routing_graph_families": 12,
+    "minimum_downstream_informative_source_groups": 8,
+    "insufficient_support_result": "DESCRIPTIVE_ONLY"
+  },
+  "performance_protocol": {
+    "warmup_runs": 1,
+    "measured_repetitions": 5,
+    "build_type": "Release",
+    "primary_cpu_host": {
+      "host_profile_id": "linux-x86_64-cpu-primary-v0",
+      "platform": "linux/amd64",
+      "identity_state": "MUST_BE_BOUND_BEFORE_BLOCKING_PERFORMANCE",
+      "emulated_hosts_forbidden": true,
+      "required_record": [
+        "cpu_model",
+        "physical_core_count",
+        "memory_bytes",
+        "storage_type",
+        "operating_system",
+        "compiler",
+        "build_flags",
+        "python_version",
+        "dependency_lock_sha256",
+        "input_sha256",
+        "thermal_and_power_notes"
+      ]
+    },
+    "development_host": {
+      "host_profile_id": "macos-arm64-development-v0",
+      "claim_eligible": false
+    },
+    "required_metrics": [
+      "wall_time_seconds",
+      "cpu_time_seconds",
+      "peak_rss_bytes",
+      "bytes_read",
+      "processed_frames",
+      "processed_recording_seconds",
+      "queue_backpressure_seconds",
+      "output_bytes"
+    ]
+  },
+  "gates": {
+    "geometry.wgs84_local_roundtrip_m": {
+      "operator": "max_le",
+      "value": 0.001,
+      "unit": "m",
+      "decision_bound": "deterministic_exhaustive",
+      "responsible_metric": "maximum horizontal WGS84 to local to WGS84 round-trip error",
+      "rationale": "Preserve millimeter-scale local georeferencing within the supported region."
+    },
+    "geometry.se3_point_roundtrip_m": {
+      "operator": "max_le",
+      "value": 1e-9,
+      "unit": "m",
+      "decision_bound": "deterministic_exhaustive",
+      "responsible_metric": "maximum SE(3) composition and inverse point round-trip error",
+      "rationale": "Detect transform direction and numerical implementation errors in float64."
+    },
+    "geometry.rotation_orthonormality_frobenius": {
+      "operator": "max_le",
+      "value": 1e-9,
+      "unit": "dimensionless",
+      "decision_bound": "deterministic_exhaustive",
+      "responsible_metric": "rotation orthonormality Frobenius error",
+      "rationale": "Reject matrices that are not proper rigid rotations."
+    },
+    "geometry.quaternion_norm_deviation": {
+      "operator": "max_le",
+      "value": 1e-6,
+      "unit": "dimensionless",
+      "decision_bound": "deterministic_exhaustive",
+      "responsible_metric": "quaternion norm deviation before normalization",
+      "rationale": "Permit recoverable serialization noise while rejecting invalid rotations."
+    },
+    "geometry.cpu_gpu_point_parity_m": {
+      "operator": "max_le",
+      "value": 0.0001,
+      "unit": "m",
+      "decision_bound": "deterministic_exhaustive",
+      "responsible_metric": "maximum CPU and optional GPU local point difference",
+      "rationale": "Keep the optional backend within sub-millimeter detector parity.",
+      "track": "optional_cuda"
+    },
+    "time.persisted_integer_mismatch_count": {
+      "operator": "max_le",
+      "value": 0,
+      "unit": "count",
+      "decision_bound": "deterministic_exhaustive",
+      "responsible_metric": "persisted timestamp integer round-trip mismatch count",
+      "rationale": "Timestamp serialization must be exact."
+    },
+    "time.common_resampling_rate_hz": {
+      "operator": "max_le",
+      "value": 200,
+      "unit": "Hz",
+      "decision_bound": "configuration",
+      "responsible_metric": "selected common IMU and trajectory resampling rate",
+      "rationale": "Avoid manufacturing support beyond the highest common source rate.",
+      "track": "follow_on_imu"
+    },
+    "time.alignment_lag_search_ms": {
+      "operator": "range_eq",
+      "value": [-500, 500],
+      "unit": "ms",
+      "decision_bound": "configuration",
+      "responsible_metric": "evaluated alignment lag search interval",
+      "rationale": "Cover expected acquisition offsets without unbounded search.",
+      "track": "follow_on_imu"
+    },
+    "time.observable_injection_range_ms": {
+      "operator": "range_eq",
+      "value": [30, 300],
+      "unit": "ms",
+      "decision_bound": "configuration",
+      "responsible_metric": "eligible injected observable time-offset severity",
+      "rationale": "Freeze the confirmatory offset population before evaluation.",
+      "track": "follow_on_imu"
+    },
+    "time.offset_estimation_median_absolute_error_ms": {
+      "operator": "median_le",
+      "value": 10,
+      "unit": "ms",
+      "decision_bound": "one_sided_upper_95",
+      "responsible_metric": "median absolute observable offset estimation error",
+      "rationale": "Require useful recovery relative to the supported injected offsets.",
+      "track": "follow_on_imu"
+    },
+    "time.low_excitation_not_observable_fraction": {
+      "operator": "fraction_ge",
+      "value": 0.95,
+      "unit": "fraction",
+      "decision_bound": "one_sided_lower_95",
+      "responsible_metric": "fraction of low-excitation windows classified NOT_OBSERVABLE",
+      "rationale": "Prevent weak motion from being reported as passing evidence.",
+      "track": "follow_on_imu"
+    },
+    "time.passing_observable_offset_ms": {
+      "operator": "abs_max_le",
+      "value": 15,
+      "unit": "ms",
+      "decision_bound": "one_sided_upper_95",
+      "responsible_metric": "absolute estimated passing offset on observable windows",
+      "rationale": "Freeze the starting synchronized-state threshold.",
+      "track": "follow_on_imu"
+    },
+    "structural.event_recall": {
+      "operator": "fraction_ge",
+      "value": 0.95,
+      "unit": "fraction",
+      "decision_bound": "one_sided_lower_95",
+      "responsible_metric": "structural corruption and timestamp-fault event recall",
+      "rationale": "Required structural faults must rarely be missed."
+    },
+    "structural.event_precision": {
+      "operator": "fraction_ge",
+      "value": 0.95,
+      "unit": "fraction",
+      "decision_bound": "one_sided_lower_95",
+      "responsible_metric": "structural corruption and timestamp-fault event precision",
+      "rationale": "Structural findings must remain actionable."
+    },
+    "structural.truncation_detection_fraction": {
+      "operator": "fraction_eq",
+      "value": 1.0,
+      "unit": "fraction",
+      "decision_bound": "deterministic_exhaustive",
+      "responsible_metric": "fraction of required-record byte truncations rejected",
+      "rationale": "No truncated required record may be silently accepted."
+    },
+    "structural.fuzz_failure_count": {
+      "operator": "max_le",
+      "value": 0,
+      "unit": "count",
+      "decision_bound": "deterministic_exhaustive",
+      "responsible_metric": "fuzz crashes, sanitizer findings, timeout amplification, or unbounded allocations",
+      "rationale": "Custom parsers must fail safely on hostile bytes."
+    },
+    "content.supported_fault_recall": {
+      "operator": "fraction_ge",
+      "value": 0.85,
+      "unit": "fraction",
+      "decision_bound": "one_sided_lower_95",
+      "responsible_metric": "supported V1 lidar and trajectory event recall by fault family and severity",
+      "rationale": "Freeze the minimum confirmatory detection benefit."
+    },
+    "content.false_critical_per_clean_sensor_hour": {
+      "operator": "rate_le",
+      "value": 1.0,
+      "unit": "findings_per_sensor_hour",
+      "decision_bound": "one_sided_upper_95",
+      "responsible_metric": "false CRITICAL findings divided by eligible clean sensor-hours",
+      "rationale": "Limit review burden and false rejection of clean coverage."
+    },
+    "content.event_boundary_median_stride": {
+      "operator": "median_le",
+      "value": 1.0,
+      "unit": "detector_stride",
+      "decision_bound": "one_sided_upper_95",
+      "responsible_metric": "median absolute event boundary error",
+      "rationale": "Fault localization must match detector temporal resolution."
+    },
+    "content.spatial_affected_bin_f1": {
+      "operator": "fraction_ge",
+      "value": 0.90,
+      "unit": "fraction",
+      "decision_bound": "one_sided_lower_95",
+      "responsible_metric": "affected directed-road-bin F1",
+      "rationale": "Recollection scope must preserve the injected spatial truth."
+    },
+    "map.synthetic_directed_arc_accuracy": {
+      "operator": "fraction_ge",
+      "value": 0.95,
+      "unit": "fraction",
+      "decision_bound": "one_sided_lower_95",
+      "responsible_metric": "synthetic directed-arc accuracy",
+      "rationale": "Directed matching is foundational to road-localized readiness."
+    },
+    "map.synthetic_off_map_f1": {
+      "operator": "fraction_ge",
+      "value": 0.90,
+      "unit": "fraction",
+      "decision_bound": "one_sided_lower_95",
+      "responsible_metric": "synthetic off-map state F1",
+      "rationale": "Missing-road cases must not be forced onto the graph."
+    },
+    "map.tiny_path_mismatch_count": {
+      "operator": "max_le",
+      "value": 0,
+      "unit": "count",
+      "decision_bound": "deterministic_exhaustive",
+      "responsible_metric": "non-ambiguous hand-authored tiny graph path mismatches",
+      "rationale": "Every reviewable tiny path must match exactly."
+    },
+    "map.public_confident_moving_distance_fraction": {
+      "operator": "fraction_ge",
+      "value": 0.85,
+      "unit": "fraction",
+      "decision_bound": "deterministic_selected_route",
+      "responsible_metric": "endpoint-half-distance-v1 confident moving-distance coverage",
+      "rationale": "The public demonstration must have enough adjudicable directed-road support."
+    },
+    "topology.synthetic_precision": {
+      "operator": "fraction_ge",
+      "value": 0.90,
+      "unit": "fraction",
+      "decision_bound": "one_sided_lower_95",
+      "responsible_metric": "synthetic topology-hypothesis precision",
+      "rationale": "Freeze a future topology claim without allowing it to block V1.",
+      "track": "follow_on_topology"
+    },
+    "topology.synthetic_recall": {
+      "operator": "fraction_ge",
+      "value": 0.80,
+      "unit": "fraction",
+      "decision_bound": "one_sided_lower_95",
+      "responsible_metric": "synthetic topology-hypothesis recall",
+      "rationale": "Freeze a future supported mutation population.",
+      "track": "follow_on_topology"
+    },
+    "topology.endpoint_error_bins": {
+      "operator": "median_le",
+      "value": 1.0,
+      "unit": "road_bin_length",
+      "decision_bound": "one_sided_upper_95",
+      "responsible_metric": "median topology endpoint localization error",
+      "rationale": "Keep future hypotheses spatially reviewable.",
+      "track": "follow_on_topology"
+    },
+    "topology.false_hypotheses_per_unchanged_km": {
+      "operator": "rate_le",
+      "value": 0.1,
+      "unit": "hypotheses_per_km",
+      "decision_bound": "one_sided_upper_95",
+      "responsible_metric": "false hypotheses per unchanged synthetic kilometer",
+      "rationale": "Limit future false map-change suggestions.",
+      "track": "follow_on_topology"
+    },
+    "readiness.policy_mutation_transition_fraction": {
+      "operator": "fraction_eq",
+      "value": 1.0,
+      "unit": "fraction",
+      "decision_bound": "deterministic_exhaustive",
+      "responsible_metric": "mandatory policy mutations with expected verdict transitions",
+      "rationale": "Every mandatory evidence dependency must affect verdicts as specified."
+    },
+    "readiness.generated_mandatory_false_pass_count": {
+      "operator": "max_le",
+      "value": 0,
+      "unit": "failed_scenario_groups",
+      "decision_bound": "clopper_pearson_upper_95_le_0.10_with_at_least_30_families",
+      "responsible_metric": "generated mandatory-critical scenario groups falsely passed",
+      "rationale": "A mandatory critical fault must never yield a passing readiness verdict."
+    },
+    "readiness.missing_evidence_unknown_fraction": {
+      "operator": "fraction_eq",
+      "value": 1.0,
+      "unit": "fraction",
+      "decision_bound": "deterministic_exhaustive",
+      "responsible_metric": "schema-driven missing mandatory evidence cases yielding UNKNOWN",
+      "rationale": "Missing evidence must never be converted into a pass."
+    },
+    "readiness.requirement_record_coverage": {
+      "operator": "fraction_eq",
+      "value": 1.0,
+      "unit": "fraction",
+      "decision_bound": "deterministic_exhaustive",
+      "responsible_metric": "verdict requirements with evidence or missing-evidence records",
+      "rationale": "Every verdict input must be explainable."
+    },
+    "routing.required_reachable_arc_coverage": {
+      "operator": "fraction_eq",
+      "value": 1.0,
+      "unit": "fraction",
+      "decision_bound": "deterministic_exhaustive",
+      "responsible_metric": "required reachable arcs covered by accepted unbudgeted plans",
+      "rationale": "Accepted plans must cover every reachable requirement."
+    },
+    "routing.graph_profile_invalid_traversal_count": {
+      "operator": "max_le",
+      "value": 0,
+      "unit": "count",
+      "decision_bound": "deterministic_exhaustive",
+      "responsible_metric": "graph-profile-invalid directions or transitions",
+      "rationale": "Routes may not violate directed graph rules."
+    },
+    "routing.discontinuity_count": {
+      "operator": "max_le",
+      "value": 0,
+      "unit": "count",
+      "decision_bound": "deterministic_exhaustive",
+      "responsible_metric": "route continuity errors",
+      "rationale": "Every exported route must be traversable as a continuous walk."
+    },
+    "routing.tiny_optimal_cost_error": {
+      "operator": "max_le",
+      "value": 0.0,
+      "unit": "cost_units",
+      "decision_bound": "deterministic_exhaustive",
+      "responsible_metric": "absolute exact-solver cost minus brute-force optimal cost",
+      "rationale": "The exact solver is the correctness oracle for tiny cases."
+    },
+    "routing.heuristic_worse_than_greedy_count": {
+      "operator": "max_le",
+      "value": 0,
+      "unit": "scenario_graphs",
+      "decision_bound": "deterministic_frozen_suite",
+      "responsible_metric": "standard scenarios where the production heuristic costs more than greedy",
+      "rationale": "The production heuristic must never regress the baseline on the frozen suite."
+    },
+    "routing.median_distance_reduction_vs_greedy": {
+      "operator": "fraction_ge",
+      "value": 0.10,
+      "unit": "fraction",
+      "decision_bound": "one_sided_lower_95",
+      "responsible_metric": "median route-distance reduction versus deterministic greedy",
+      "rationale": "Require a practically visible optimization benefit."
+    },
+    "routing.budget_requirement_accounting": {
+      "operator": "fraction_eq",
+      "value": 1.0,
+      "unit": "fraction",
+      "decision_bound": "deterministic_exhaustive",
+      "responsible_metric": "requirements marked covered, deferred, or unreachable",
+      "rationale": "Budgeted routing may defer work but may not silently omit it."
+    },
+    "performance.structural_preflight_realtime_factor": {
+      "operator": "ratio_ge",
+      "value": 3.0,
+      "unit": "recording_seconds_per_wall_second",
+      "decision_bound": "one_sided_lower_95",
+      "responsible_metric": "structural preflight processed recording duration divided by wall duration",
+      "rationale": "Preflight should finish materially faster than data acquisition."
+    },
+    "performance.full_hdmap_lidar_realtime_factor": {
+      "operator": "ratio_ge",
+      "value": 1.0,
+      "unit": "recording_seconds_per_wall_second",
+      "decision_bound": "one_sided_lower_95",
+      "responsible_metric": "full hdmap-lidar-v1 processed duration divided by wall duration",
+      "rationale": "The complete CPU workflow must keep pace with recording time."
+    },
+    "performance.peak_rss_bytes": {
+      "operator": "max_le",
+      "value": 2684354560,
+      "unit": "bytes",
+      "decision_bound": "one_sided_upper_95",
+      "responsible_metric": "peak resident set size on the frozen public-full workload",
+      "rationale": "Keep the workflow viable on a workstation with bounded memory."
+    },
+    "performance.rss_growth_one_to_ten_minute": {
+      "operator": "fraction_lt",
+      "value": 0.15,
+      "unit": "fraction",
+      "decision_bound": "one_sided_upper_95",
+      "responsible_metric": "steady-state peak RSS growth from one to ten logical minutes",
+      "rationale": "Detect unbounded retention after buffers reach steady state."
+    },
+    "performance.resume_semantic_hash_mismatch_count": {
+      "operator": "max_le",
+      "value": 0,
+      "unit": "count",
+      "decision_bound": "deterministic_exhaustive",
+      "responsible_metric": "semantic artifact hash mismatches between uninterrupted and resumed runs",
+      "rationale": "Resume must not change scientific output."
+    },
+    "downstream.recovery_fraction": {
+      "operator": "fraction_ge",
+      "value": 0.50,
+      "unit": "fraction",
+      "decision_bound": "one_sided_lower_95",
+      "responsible_metric": "uncapped downstream loss recovery fraction",
+      "rationale": "Freeze the future practical downstream benefit claim.",
+      "track": "follow_on_downstream"
+    },
+    "downstream.unaffected_distance_discard_fraction": {
+      "operator": "fraction_le",
+      "value": 0.10,
+      "unit": "fraction",
+      "decision_bound": "one_sided_upper_95",
+      "responsible_metric": "eligible unaffected usable distance discarded by filtering",
+      "rationale": "Limit harm from overly broad filtering.",
+      "track": "follow_on_downstream"
+    },
+    "downstream.improvement_over_random_removal": {
+      "operator": "value_gt",
+      "value": 0.0,
+      "unit": "primary_loss_units",
+      "decision_bound": "one_sided_lower_95",
+      "responsible_metric": "paired primary-loss improvement over equal-size random removal",
+      "rationale": "The future utility benefit must exceed arbitrary removal.",
+      "track": "follow_on_downstream"
+    },
+    "cuda.end_to_end_speedup": {
+      "operator": "ratio_ge",
+      "value": 1.5,
+      "unit": "ratio",
+      "decision_bound": "one_sided_lower_95",
+      "responsible_metric": "CPU wall time divided by GPU wall time including transfers and synchronization",
+      "rationale": "Optional CUDA complexity requires meaningful end-to-end benefit.",
+      "track": "optional_cuda"
+    }
+  },
+  "changes_from_plan_starting_values": [],
+  "m0_evidence_notes": [
+    "M0.4 retained the 2.5 GiB provisional RSS limit after the public clip used less than 50 MiB on both correctness platforms.",
+    "M0.5 retained the 0.85 public confident moving-distance requirement and observed 0.906143524 with endpoint-half-distance-v1.",
+    "M0.5 perturbation-effect separation of 0.05 m remains a spike qualification threshold and is not promoted to a production detector gate."
+  ]
+}

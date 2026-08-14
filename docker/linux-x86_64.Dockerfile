@@ -30,6 +30,11 @@ COPY pyproject.toml uv.lock .python-version README.md LICENSE ./
 RUN CMAKE_GENERATOR='Unix Makefiles' \
   uv sync --frozen --no-install-project --python 3.12.13
 
+RUN apt-get -o Acquire::Check-Valid-Until=false update \
+    && apt-get install --yes --no-install-recommends \
+      git=1:2.39.5-0+deb12u3 \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY . .
 
 RUN CMAKE_GENERATOR='Unix Makefiles' uv sync --frozen --python 3.12.13 \

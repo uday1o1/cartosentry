@@ -31,6 +31,7 @@ The optional CUDA preset intentionally fails closed until the M12 profiling gate
 Every source archive consumed by the M0.3 build also has an exact byte count and SHA-256 digest.
 `uv.lock` records the exact Python resolution and wheel or source hashes for both mandatory platforms.
 
+The qualification image pins Git 2.39.5 for clean-commit verification by the final-test unblinding gate.
 The compatibility executable compiles and calls the locked GeographicLib, OpenCV, Arrow, SQLite, nlohmann/json, yaml-cpp, spdlog, and fmt releases together.
 The core native tests compile the selected Sophus and Eigen pair with Catch2.
 The Python tests call the checked C++ extension through pybind11.

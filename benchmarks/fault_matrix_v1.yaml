@@ -1,0 +1,177 @@
+{
+  "schema_version": 1,
+  "fault_matrix_id": "cartosentry-v1-core",
+  "matrix_version": "v0",
+  "scope": "V1 trajectory and lidar contracts only",
+  "fault_id_contract": {
+    "algorithm": "sha256",
+    "canonical_fields": [
+      "fault_matrix_id",
+      "operator_id",
+      "case_id",
+      "source_family_id",
+      "source_identity_sha256"
+    ],
+    "prefix": "fault-sha256-"
+  },
+  "v1_operator_allowlist": [
+    "trajectory.timestamp_discontinuity",
+    "trajectory.position_jump",
+    "lidar.point_time_shift",
+    "lidar.ring_loss",
+    "lidar.azimuth_sector_loss",
+    "lidar.calibration_perturbation"
+  ],
+  "operators": [
+    {
+      "operator_id": "trajectory.timestamp_discontinuity",
+      "contract_field": "trajectory sample timestamp",
+      "ground_truth": "half-open interval beginning at the first shifted sample",
+      "cases": [
+        {
+          "case_id": "timestamp-gap-20ms-below",
+          "severity": "below_threshold",
+          "parameters": {"gap_ns": 20000000, "affected_samples": 1}
+        },
+        {
+          "case_id": "timestamp-gap-50ms-near",
+          "severity": "near_threshold",
+          "parameters": {"gap_ns": 50000000, "affected_samples": 1}
+        },
+        {
+          "case_id": "timestamp-gap-250ms-detectable",
+          "severity": "detectable",
+          "parameters": {"gap_ns": 250000000, "affected_samples": 5}
+        }
+      ]
+    },
+    {
+      "operator_id": "trajectory.position_jump",
+      "contract_field": "T_enu_ref_applanix translation",
+      "ground_truth": "injected translation interval",
+      "cases": [
+        {
+          "case_id": "position-jump-0p05m-below",
+          "severity": "below_threshold",
+          "parameters": {"translation_m": [0.05, 0.0, 0.0], "duration_s": 0.5}
+        },
+        {
+          "case_id": "position-jump-0p5m-near",
+          "severity": "near_threshold",
+          "parameters": {"translation_m": [0.5, 0.0, 0.0], "duration_s": 2.0}
+        },
+        {
+          "case_id": "position-jump-2m-detectable",
+          "severity": "detectable",
+          "parameters": {"translation_m": [2.0, 0.0, 0.0], "duration_s": 5.0}
+        }
+      ]
+    },
+    {
+      "operator_id": "lidar.point_time_shift",
+      "contract_field": "float32 point time relative to scan midpoint",
+      "ground_truth": "all shifted points and their source frame intervals",
+      "cases": [
+        {
+          "case_id": "point-time-10ms-below",
+          "severity": "below_threshold",
+          "parameters": {"shift_ns": 10000000, "duration_frames": 5}
+        },
+        {
+          "case_id": "point-time-30ms-near",
+          "severity": "near_threshold",
+          "parameters": {"shift_ns": 30000000, "duration_frames": 10}
+        },
+        {
+          "case_id": "point-time-100ms-detectable",
+          "severity": "detectable",
+          "parameters": {"shift_ns": 100000000, "duration_frames": 20}
+        },
+        {
+          "case_id": "point-time-300ms-detectable",
+          "severity": "detectable",
+          "parameters": {"shift_ns": 300000000, "duration_frames": 50}
+        }
+      ]
+    },
+    {
+      "operator_id": "lidar.ring_loss",
+      "contract_field": "declared lidar ring identifier",
+      "ground_truth": "removed ring identifiers and affected source frames",
+      "cases": [
+        {
+          "case_id": "ring-loss-1-short",
+          "severity": "below_threshold",
+          "parameters": {"ring_count": 1, "duration_frames": 5}
+        },
+        {
+          "case_id": "ring-loss-4-medium",
+          "severity": "near_threshold",
+          "parameters": {"ring_count": 4, "duration_frames": 20}
+        },
+        {
+          "case_id": "ring-loss-16-long",
+          "severity": "detectable",
+          "parameters": {"ring_count": 16, "duration_frames": 50}
+        }
+      ]
+    },
+    {
+      "operator_id": "lidar.azimuth_sector_loss",
+      "contract_field": "lidar point azimuth",
+      "ground_truth": "removed azimuth interval and affected source frames",
+      "cases": [
+        {
+          "case_id": "sector-loss-5deg-short",
+          "severity": "below_threshold",
+          "parameters": {"start_deg": 30.0, "width_deg": 5.0, "duration_frames": 5}
+        },
+        {
+          "case_id": "sector-loss-30deg-medium",
+          "severity": "near_threshold",
+          "parameters": {"start_deg": 30.0, "width_deg": 30.0, "duration_frames": 20}
+        },
+        {
+          "case_id": "sector-loss-90deg-long",
+          "severity": "detectable",
+          "parameters": {"start_deg": 30.0, "width_deg": 90.0, "duration_frames": 50}
+        }
+      ]
+    },
+    {
+      "operator_id": "lidar.calibration_perturbation",
+      "contract_field": "T_applanix_lidar",
+      "ground_truth": "perturbed extrinsic and all derived point intervals",
+      "cases": [
+        {
+          "case_id": "extrinsic-0p01m-0p1deg-below",
+          "severity": "below_threshold",
+          "parameters": {"translation_m": [0.01, 0.0, 0.0], "yaw_deg": 0.1}
+        },
+        {
+          "case_id": "extrinsic-0p1m-1deg-near",
+          "severity": "near_threshold",
+          "parameters": {"translation_m": [0.1, 0.0, 0.0], "yaw_deg": 1.0}
+        },
+        {
+          "case_id": "extrinsic-0p5m-5deg-detectable",
+          "severity": "detectable",
+          "parameters": {"translation_m": [0.5, 0.0, 0.0], "yaw_deg": 5.0}
+        }
+      ]
+    }
+  ],
+  "explicitly_rejected_follow_on_operators": [
+    "imu.time_shift",
+    "imu.bias_step",
+    "camera.frozen_frames",
+    "camera.blur",
+    "camera.exposure",
+    "camera_lidar.extrinsic_perturbation",
+    "radar.doppler_scale",
+    "cross_modal.clock_shift",
+    "topology.missing_road",
+    "topology.wrong_direction"
+  ],
+  "operator_policy": "An operator is valid only when its exact identifier appears in v1_operator_allowlist and operators. Namespace similarity is not sufficient."
+}

@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "split_version": "v0",
+  "source_group_assignment_version": "m0.2-v1",
+  "source_groups_sha256": "d00d8dfdae4306b449c49ad13e8e9ee63d41d46ef955bdf73d0c4cfeedceabc2",
+  "data_manifest_sha256": "285f92fdf39ae51e6a183ac44bdde2f04f874ac82e5809947bf44e84a2697955",
+  "partition_order": [
+    "development",
+    "threshold_calibration",
+    "policy_tuning",
+    "final_test"
+  ],
+  "partition_policy": {
+    "source_group_is_indivisible": true,
+    "derivatives_inherit_source_partition": true,
+    "fault_derivatives_inherit_clean_source_partition": true,
+    "cross_partition_source_groups_forbidden": true,
+    "ordinary_commands_forbid_final_test": true,
+    "final_test_requires_recorded_unblinding_event": true
+  },
+  "real_source_groups": [
+    {
+      "source_group_id": "boreas-glen-shields-family-v1",
+      "partition": "development",
+      "sequence_ids": [
+        "boreas-2021-01-26-10-59",
+        "boreas-2021-01-19-15-08",
+        "boreas-2021-08-05-13-34",
+        "boreas-2021-09-02-11-42"
+      ]
+    },
+    {
+      "source_group_id": "boreas-alternate-family-v1",
+      "partition": "final_test",
+      "sequence_ids": [
+        "boreas-2021-09-09-15-28"
+      ],
+      "eligibility": "excluded_missing_required_public_postprocessed_trajectory",
+      "claim_effect": "cannot contribute to a confirmatory V1 real-data claim"
+    }
+  ],
+  "synthetic_family_sets": [
+    {
+      "family_set_id": "sensor-map-development-v0",
+      "domain": "trajectory_lidar_map_matching",
+      "partition": "development",
+      "family_prefix": "sensor-map-dev",
+      "family_count": 8,
+      "seed_start": 10000
+    },
+    {
+      "family_set_id": "routing-development-v0",
+      "domain": "directed_required_arc_routing",
+      "partition": "development",
+      "family_prefix": "routing-dev",
+      "family_count": 4,
+      "seed_start": 11000
+    },
+    {
+      "family_set_id": "sensor-map-threshold-v0",
+      "domain": "trajectory_lidar_map_matching",
+      "partition": "threshold_calibration",
+      "family_prefix": "sensor-map-cal",
+      "family_count": 12,
+      "seed_start": 20000
+    },
+    {
+      "family_set_id": "routing-threshold-v0",
+      "domain": "directed_required_arc_routing",
+      "partition": "threshold_calibration",
+      "family_prefix": "routing-cal",
+      "family_count": 12,
+      "seed_start": 21000
+    },
+    {
+      "family_set_id": "sensor-map-policy-v0",
+      "domain": "trajectory_lidar_map_matching",
+      "partition": "policy_tuning",
+      "family_prefix": "sensor-map-policy",
+      "family_count": 12,
+      "seed_start": 30000
+    },
+    {
+      "family_set_id": "routing-policy-v0",
+      "domain": "directed_required_arc_routing",
+      "partition": "policy_tuning",
+      "family_prefix": "routing-policy",
+      "family_count": 12,
+      "seed_start": 31000
+    },
+    {
+      "family_set_id": "sensor-map-final-v0",
+      "domain": "trajectory_lidar_map_matching",
+      "partition": "final_test",
+      "family_prefix": "sensor-map-final",
+      "family_count": 30,
+      "seed_start": 40000,
+      "access_state": "SEALED"
+    },
+    {
+      "family_set_id": "routing-final-v0",
+      "domain": "directed_required_arc_routing",
+      "partition": "final_test",
+      "family_prefix": "routing-final",
+      "family_count": 12,
+      "seed_start": 41000,
+      "access_state": "SEALED"
+    }
+  ],
+  "seed_expansion": {
+    "family_id": "family_prefix + '-' + zero_padded_one_based_index",
+    "seed": "seed_start + zero_based_index",
+    "cluster_id": "family_id",
+    "zero_padding": 3
+  },
+  "ordinary_development_partitions": [
+    "development",
+    "threshold_calibration",
+    "policy_tuning"
+  ],
+  "final_test_access": {
+    "command": "uv run python scripts/evaluation_charter.py unblind --release-binding RELEASE_BINDING.json --authorization-file AUTHORIZATION.txt --event-log EXTERNAL_EVENT.json --confirmation UNBLIND_FINAL_TEST",
+    "event_log_must_be_outside_repository": true,
+    "requires_clean_exact_commit": true,
+    "requires_all_frozen_hashes": true,
+    "ordinary_selection_error": "final_test is sealed until an unblinding event is recorded"
+  }
+}
