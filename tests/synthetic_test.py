@@ -18,6 +18,7 @@ from cartosentry.synthetic import (
     parse_fixture_set_manifest_bytes,
     qualify_fixture_set,
     render_fixture_set,
+    sensor_map_family_assignments,
 )
 from cartosentry.synthetic_models import (
     MotionState,
@@ -141,6 +142,52 @@ def test_fixed_version_and_seed_render_to_identical_bytes() -> None:
     first = render_fixture_set(SPLIT_MANIFEST)
     second = render_fixture_set(SPLIT_MANIFEST)
     assert first == second
+
+
+def test_threshold_calibration_set_is_derived_exactly_from_split() -> None:
+    assignments = sensor_map_family_assignments(SPLIT_MANIFEST, "threshold_calibration")
+    assert len(assignments) == 12
+    assert [family for family, _scenario, _seed in assignments] == [
+        f"sensor-map-cal-{index:03d}" for index in range(1, 13)
+    ]
+    assert [seed for _family, _scenario, seed in assignments] == list(
+        range(20000, 20012)
+    )
+    rendered = render_fixture_set(SPLIT_MANIFEST, partition="threshold_calibration")
+    manifest = json.loads(rendered["manifest.json"])
+    assert manifest["partition"] == "threshold_calibration"
+    assert len(manifest["fixtures"]) == 12
+    for record in manifest["fixtures"]:
+        fixture = SyntheticFixture.model_validate_json(
+            rendered[record["relative_path"]]
+        )
+        assert fixture.partition == "threshold_calibration"
+
+
+def test_split_partition_mismatch_is_rejected(tmp_path: Path) -> None:
+    split = json.loads(SPLIT_MANIFEST.read_text())
+    family_set = next(
+        item
+        for item in split["synthetic_family_sets"]
+        if item["family_set_id"] == "sensor-map-threshold-v0"
+    )
+    family_set["partition"] = "development"
+    invalid = tmp_path / "split.json"
+    invalid.write_text(json.dumps(split))
+    with pytest.raises(ValueError, match="partition does not match"):
+        sensor_map_family_assignments(invalid, "threshold_calibration")
+
+
+def test_source_velocity_is_independent_and_persisted() -> None:
+    by_scenario = {item.scenario: item for item in _fixtures()}
+    stationary = by_scenario[SyntheticScenario.STATIONARY]
+    assert {pose.source_velocity_world_mps for pose in stationary.trajectory} == {
+        (0.0, 0.0, 0.0)
+    }
+    moving = by_scenario[SyntheticScenario.STRAIGHT]
+    assert {pose.source_velocity_world_mps for pose in moving.trajectory} == {
+        (5.0, 0.0, 0.0)
+    }
 
 
 @given(st.integers(min_value=0, max_value=(2**64) - 1))

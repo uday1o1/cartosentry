@@ -20,8 +20,11 @@ from cartosentry.synthetic import generate_fixture, serialize_fixture
 from cartosentry.synthetic_models import SyntheticScenario
 
 REPRESENTATIVE_CASES = {
-    FaultOperatorId.TIMESTAMP_DISCONTINUITY: "timestamp-gap-20ms-below",
+    FaultOperatorId.TIMESTAMP_DISCONTINUITY: "timestamp-gap-50ms-below",
     FaultOperatorId.POSITION_JUMP: "position-jump-0p05m-below",
+    FaultOperatorId.POSITION_FREEZE: "position-freeze-0p25s-below",
+    FaultOperatorId.POSITION_BIAS: "position-bias-0p25m-below",
+    FaultOperatorId.POSITION_DRIFT: "position-drift-0p1m-below",
     FaultOperatorId.POINT_TIME_SHIFT: "point-time-10ms-below",
     FaultOperatorId.RING_LOSS: "ring-loss-1-short",
     FaultOperatorId.AZIMUTH_SECTOR_LOSS: "sector-loss-5deg-short",

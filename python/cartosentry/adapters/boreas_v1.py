@@ -6,7 +6,7 @@ import csv
 import hashlib
 import math
 import struct
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from pathlib import Path
 from typing import Final
 
@@ -154,26 +154,50 @@ def parse_boreas_lidar_frame_bytes(
 ) -> int:
     """Validate one bounded Boreas frame without retaining decoded points."""
 
-    byte_count = len(content)
-    if (
-        byte_count == 0
-        or byte_count > MAXIMUM_BOREAS_LIDAR_FRAME_BYTES
-        or byte_count % LIDAR_RECORD_BYTES != 0
-    ):
+    return sum(
+        1
+        for _index, _values, _bits in iter_boreas_lidar_records(
+            (content,), source_key=source_key
+        )
+    )
+
+
+def iter_boreas_lidar_records(
+    chunks: Iterable[bytes], *, source_key: str = "lidar/frame.bin"
+) -> Iterator[tuple[int, tuple[float, ...], tuple[int, ...]]]:
+    """Decode one bounded frame from arbitrary chunks through the production path."""
+
+    total_bytes = 0
+    record_index = 0
+    pending = b""
+    for chunk in chunks:
+        total_bytes += len(chunk)
+        if total_bytes > MAXIMUM_BOREAS_LIDAR_FRAME_BYTES:
+            raise _error(
+                source_key,
+                record_index + 1,
+                "record_layout",
+                "byte count must be a bounded nonzero multiple of 24",
+            )
+        block = pending + chunk
+        complete_bytes = len(block) - (len(block) % LIDAR_RECORD_BYTES)
+        view = memoryview(block)
+        for offset in range(0, complete_bytes, LIDAR_RECORD_BYTES):
+            values, bits = decode_boreas_lidar_record(
+                view[offset : offset + LIDAR_RECORD_BYTES],
+                source_key=source_key,
+                record_number=record_index + 1,
+            )
+            yield record_index, values, bits
+            record_index += 1
+        pending = bytes(view[complete_bytes:])
+    if total_bytes == 0 or pending:
         raise _error(
             source_key,
-            0,
+            record_index + 1,
             "record_layout",
             "byte count must be a bounded nonzero multiple of 24",
         )
-    view = memoryview(content)
-    for offset in range(0, byte_count, LIDAR_RECORD_BYTES):
-        decode_boreas_lidar_record(
-            view[offset : offset + LIDAR_RECORD_BYTES],
-            source_key=source_key,
-            record_number=offset // LIDAR_RECORD_BYTES + 1,
-        )
-    return byte_count // LIDAR_RECORD_BYTES
 
 
 def _float(lexeme: str, source_key: str, record: int, field: str) -> float:
@@ -780,25 +804,15 @@ class BoreasAdapter:
         record_index = 0
         try:
             with path.open("rb") as stream:
-                while chunk := stream.read(
-                    LIDAR_RECORD_BYTES * LIDAR_RECORDS_PER_CHUNK
+                chunks = iter(
+                    lambda: stream.read(LIDAR_RECORD_BYTES * LIDAR_RECORDS_PER_CHUNK),
+                    b"",
+                )
+                for record_index, values, bits in iter_boreas_lidar_records(
+                    chunks, source_key=expected_key
                 ):
-                    if len(chunk) % LIDAR_RECORD_BYTES:
-                        raise _error(
-                            expected_key,
-                            record_index + 1,
-                            "record_layout",
-                            "partial record encountered",
-                        )
-                    view = memoryview(chunk)
-                    for offset in range(0, len(chunk), LIDAR_RECORD_BYTES):
-                        record_index += 1
-                        values, bits = decode_boreas_lidar_record(
-                            view[offset : offset + LIDAR_RECORD_BYTES],
-                            source_key=expected_key,
-                            record_number=record_index,
-                        )
-                        yield record_index - 1, values, bits
+                    yield record_index, values, bits
+                record_index += 1
         except OSError as error:
             raise _error(expected_key, 0, "", "binary read failed") from error
         if record_index != frame.payload.record_count:
@@ -1035,6 +1049,7 @@ __all__ = [
     "BoreasAdapter",
     "BoreasAdapterError",
     "decode_boreas_lidar_record",
+    "iter_boreas_lidar_records",
     "parse_boreas_lidar_frame_bytes",
     "qualify_boreas_adapter",
     "source_group_for_sequence",

@@ -16,6 +16,7 @@ from cartosentry.adapters import (
 from cartosentry.adapters.base import CapabilityState
 from cartosentry.adapters.boreas_v1 import (
     MAXIMUM_BOREAS_LIDAR_FRAME_BYTES,
+    iter_boreas_lidar_records,
     parse_boreas_lidar_frame_bytes,
 )
 from cartosentry.cli import app
@@ -304,6 +305,7 @@ def test_invalid_lidar_payload_names_source_without_echoing_value(
 def test_python_lidar_binary_boundary_is_bounded_and_exact(tmp_path: Path) -> None:
     clean = struct.pack("<6f", 1.0, 2.0, 3.0, 0.5, 1.0, 0.0)
     assert parse_boreas_lidar_frame_bytes(clean) == 1
+    assert len(list(iter_boreas_lidar_records((clean[:7], clean[7:])))) == 1
     with pytest.raises(BoreasAdapterError, match="bounded nonzero multiple"):
         parse_boreas_lidar_frame_bytes(clean[:-1])
 
@@ -313,6 +315,26 @@ def test_python_lidar_binary_boundary_is_bounded_and_exact(tmp_path: Path) -> No
         stream.truncate(MAXIMUM_BOREAS_LIDAR_FRAME_BYTES + 1)
     with pytest.raises(BoreasAdapterError, match="bounded nonzero multiple"):
         next(_adapter(sequence).frames())
+
+
+def test_production_lidar_decoder_rejects_oversized_forged_handle(
+    tmp_path: Path,
+) -> None:
+    adapter = _adapter(_build_fixture(tmp_path))
+    frame = next(adapter.frames())
+    oversized_bytes = MAXIMUM_BOREAS_LIDAR_FRAME_BYTES + 24
+    oversized = frame.model_copy(
+        update={
+            "payload": frame.payload.model_copy(
+                update={
+                    "byte_count": oversized_bytes,
+                    "record_count": oversized_bytes // 24,
+                }
+            )
+        }
+    )
+    with pytest.raises(BoreasAdapterError, match="source changed after enumeration"):
+        list(adapter.lidar_points(oversized))
 
 
 def test_tiny_end_to_end_qualification_and_public_cli(tmp_path: Path) -> None:

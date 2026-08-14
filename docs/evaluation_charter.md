@@ -1,7 +1,8 @@
-# Evaluation charter v0
+# Evaluation charter v1
 
 CartoSentry freezes its evaluation identities, numerical decisions, fault scope, and claim fallbacks before confirmatory implementation work begins.
-The machine-readable authority is `benchmarks/split_manifest.yaml`, `benchmarks/numerical_charter.yaml`, `benchmarks/fault_matrix_v1.yaml`, and `benchmarks/fallback_tree.yaml`.
+The machine-readable authority is `benchmarks/split_manifest.yaml`, `benchmarks/numerical_charter.yaml`, `benchmarks/fault_matrix_v1.yaml`, `benchmarks/fallback_tree.yaml`, and `benchmarks/charter_revisions.yaml`.
+Aggregate charter v1 binds split manifest v0, numerical charter v0, fault matrix v1, and fallback tree v1 through the revision record.
 
 ## Partition discipline
 
@@ -65,7 +66,8 @@ Apple Silicon and emulated Linux runs are development evidence and cannot satisf
 ## Fault and claim scope
 
 The V1 fault identifier is `cartosentry-v1-core`.
-Only its six exact trajectory and lidar operators are accepted.
+Only its nine exact trajectory and lidar operators are accepted.
+The exact scope is timestamp discontinuity, position jump, position freeze, position bias, position drift, lidar point-time shift, ring loss, azimuth-sector loss, and lidar calibration perturbation.
 Every other operator, including the listed follow-on examples, is rejected before an identifier can be derived.
 Fault identifiers bind the matrix, operator, case, source family, and source content SHA-256 through canonical JSON.
 
@@ -75,6 +77,10 @@ Selecting a narrower branch changes the stated population and evidence scope, bu
 ## Changes from the starting plan
 
 No starting numerical value was changed.
+Aggregate charter v1 records a pre-unblinding fault-scope revision for the M3.2 trajectory operators.
+The revision changes fault matrix v0 to v1 and fallback tree v0 to v1 while leaving split and numerical charter v0 unchanged.
+`benchmarks/charter_revisions.yaml` records the rationale, affected detectors, observed partitions, expected risk, predecessor component hashes, new component hashes, and their aggregate hash chain.
+The validator rejects a stale fallback tree, a broken revision chain, an unrecorded component change, or an aggregate version that does not bind the current files.
 The existing final public Boreas sequence is currently excluded because its pinned public post-processed trajectory is unavailable, so it cannot support a confirmatory real-data V1 claim.
 This eligibility finding was recorded during M0.2 without moving the sequence or source group.
 The pre-M0.2 partition assignment and its exact file hash remain unchanged.

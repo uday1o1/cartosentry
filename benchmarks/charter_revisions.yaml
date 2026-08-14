@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "charter_id": "cartosentry-v1-evaluation",
+  "current_version": "v1",
+  "freeze_state": "FROZEN_PRE_UNBLINDING",
+  "aggregate_hash_contract": "SHA-256 of canonical UTF-8 JSON for the component_file_sha256 mapping",
+  "current_aggregate_sha256": "cf4852cbb4d173b7970a9b26a07d0dbc76c671dd9bdb697a247cd08298d55778",
+  "current_component_versions": {
+    "split_manifest": "v0",
+    "numerical_charter": "v0",
+    "fault_matrix": "v1",
+    "fallback_tree": "v1"
+  },
+  "current_component_file_sha256": {
+    "split_manifest": "ed028d3a7b4062edca754e095a040843a63b8ca45aeb059018dff0b353021aaf",
+    "numerical_charter": "c993ee0db9ffec8ad7fa987cd64ab86516405d441e038d4dbfce00fdbaf25aec",
+    "fault_matrix": "e565290f8e7da79f44d9bf6a9c33fb85c7a21fa345a1f07c5d01fba83460ed24",
+    "fallback_tree": "46bc8e859d9f6fa3f736add59d84b824ec629073afbaa1d13e0ee298f9995a24"
+  },
+  "revisions": [
+    {
+      "version": "v1",
+      "predecessor_version": "v0",
+      "recorded_at_utc": "2026-08-14T18:03:56Z",
+      "unblinding_state": "PRE_UNBLINDING",
+      "rationale": "Complete the trajectory fault scope required by M3.2, correct timestamp discontinuity injection so it cannot create an unintended exit regression, align jump duration with the detector support contract, and keep the claim fallback tree synchronized with the exact V1 allowlist.",
+      "affected_detectors": [
+        "trajectory.timestamp_discontinuity",
+        "trajectory.position_jump",
+        "trajectory.position_freeze",
+        "trajectory.position_bias",
+        "trajectory.position_drift"
+      ],
+      "data_partitions": [
+        "development",
+        "threshold_calibration"
+      ],
+      "expected_risk": "The added cases can expose threshold and event-consolidation defects, while the timestamp and jump corrections can change expected event boundaries. Final-test identities remain sealed and no final-test observations informed this revision.",
+      "predecessor_aggregate_sha256": "abaeef227f10d258e3655ffb0542dbfd562ed8a542c795fe9c5ae76c1a59cf9c",
+      "predecessor_component_file_sha256": {
+        "split_manifest": "ed028d3a7b4062edca754e095a040843a63b8ca45aeb059018dff0b353021aaf",
+        "numerical_charter": "c993ee0db9ffec8ad7fa987cd64ab86516405d441e038d4dbfce00fdbaf25aec",
+        "fault_matrix": "2ac715c37f007c05dad619e5ce6b955f2b022bb834cc76e0d4442d59831b1a1c",
+        "fallback_tree": "025c20d44758a1f44c07ea84ab4947d2f90beb5896bf9c278bbcefed114a1915"
+      },
+      "new_aggregate_sha256": "cf4852cbb4d173b7970a9b26a07d0dbc76c671dd9bdb697a247cd08298d55778",
+      "new_component_file_sha256": {
+        "split_manifest": "ed028d3a7b4062edca754e095a040843a63b8ca45aeb059018dff0b353021aaf",
+        "numerical_charter": "c993ee0db9ffec8ad7fa987cd64ab86516405d441e038d4dbfce00fdbaf25aec",
+        "fault_matrix": "e565290f8e7da79f44d9bf6a9c33fb85c7a21fa345a1f07c5d01fba83460ed24",
+        "fallback_tree": "46bc8e859d9f6fa3f736add59d84b824ec629073afbaa1d13e0ee298f9995a24"
+      }
+    }
+  ]
+}

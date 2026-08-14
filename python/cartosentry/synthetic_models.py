@@ -30,6 +30,9 @@ NonnegativeInt = Annotated[int, Field(ge=0)]
 PositiveInt = Annotated[int, Field(gt=0)]
 PositiveFloat = Annotated[float, Field(gt=0.0)]
 Vector3 = tuple[float, float, float]
+type SyntheticPartition = Literal[
+    "development", "threshold_calibration", "policy_tuning"
+]
 Matrix4 = tuple[
     float,
     float,
@@ -222,6 +225,7 @@ class SyntheticRig(ContractModel):
 class TrajectoryPose(ContractModel):
     time: TimePoint
     world_from_rig: SyntheticTransform
+    source_velocity_world_mps: Vector3
     directed_arc_id: Identifier | None
     motion_state: MotionState
 
@@ -297,10 +301,10 @@ class SyntheticTruth(ContractModel):
 class SyntheticFixture(ContractModel):
     schema_version: Literal["cartosentry.synthetic-fixture.v1"]
     fixture_id: StableId
-    generator_version: Literal["1.0.1"]
+    generator_version: Literal["1.0.2"]
     seed: NonnegativeInt
     synthetic_family_id: Identifier
-    partition: Literal["development"]
+    partition: SyntheticPartition
     scenario: SyntheticScenario
     sample_period_ns: PositiveInt
     world: SyntheticWorld
@@ -399,8 +403,8 @@ class FixtureFileRecord(ContractModel):
 
 class FixtureSetManifest(ContractModel):
     schema_version: Literal["cartosentry.synthetic-fixture-set.v1"]
-    generator_version: Literal["1.0.1"]
-    partition: Literal["development"]
+    generator_version: Literal["1.0.2"]
+    partition: SyntheticPartition
     split_manifest_sha256: Sha256
     fixtures: tuple[FixtureFileRecord, ...]
 
@@ -431,6 +435,7 @@ __all__ = [
     "ScenarioFeature",
     "SpinningLidarConfig",
     "SyntheticFixture",
+    "SyntheticPartition",
     "SyntheticRig",
     "SyntheticScenario",
     "SyntheticTransform",

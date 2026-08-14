@@ -281,6 +281,7 @@ def reference_samples_from_synthetic(
         ReferenceSample(
             time=pose.time,
             world_from_rig=_rigid_from_synthetic(pose.world_from_rig),
+            source_velocity_world_mps=pose.source_velocity_world_mps,
         )
         for pose in fixture.trajectory
     )
@@ -923,6 +924,8 @@ def _with_position_outlier(
             translation_m=(x, y + displacement_m, z),
             rotation=selected.world_from_rig.rotation,
         ),
+        source_velocity_world_mps=selected.source_velocity_world_mps,
+        geographic=selected.geographic,
     )
     return tuple(result)
 

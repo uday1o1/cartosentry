@@ -1,0 +1,207 @@
+{
+  "schema_version": 1,
+  "profile_id": "trajectory-integrity-v1",
+  "profile_version": "1.0.1",
+  "threshold_freeze_state": "FROZEN_BEFORE_M3_2_IMPLEMENTATION",
+  "qualification_freeze_state": "FROZEN_AFTER_PREACCEPTANCE_AUDIT_BEFORE_M3_2_ACCEPTANCE",
+  "hash_contract": "SHA-256 of canonical UTF-8 JSON with immutable_sha256 omitted",
+  "immutable_sha256": "cc00a382071fe3cb88411ff2d0d3b23223198ecd7a24bd559abb9e70a838708e",
+  "reference_trajectory_gate_sha256": "7f8a68faddc0afd2f59f59968b9af7e04cfbfbb012759564c6a61a37416e9370",
+  "thresholds": {
+    "timestamp.duplicate_count": {
+      "operator": "max_le",
+      "value": 0.0,
+      "unit": "count",
+      "responsible_metric": "number of consecutive source samples with identical canonical timestamps",
+      "rationale": "Duplicate trajectory epochs make interpolation and ordering ambiguous."
+    },
+    "timestamp.regression_count": {
+      "operator": "max_le",
+      "value": 0.0,
+      "unit": "count",
+      "responsible_metric": "number of consecutive source samples whose canonical timestamp decreases",
+      "rationale": "A postprocessed reference trajectory must remain strictly ordered."
+    },
+    "trajectory.coordinate_continuity_mismatch_count": {
+      "operator": "max_le",
+      "value": 0.0,
+      "unit": "count",
+      "responsible_metric": "time-domain, frame-name, and coordinate-support mismatches across source trajectory samples",
+      "rationale": "A continuous trajectory must retain one explicit time domain and one named transform frame pair."
+    },
+    "timestamp.maximum_gap_ns": {
+      "operator": "max_le",
+      "value": 100000000.0,
+      "unit": "ns",
+      "responsible_metric": "elapsed time between consecutive source trajectory samples",
+      "rationale": "Match the frozen continuous-trajectory support ceiling."
+    },
+    "trajectory.position_jump_residual_m": {
+      "operator": "max_le",
+      "value": 1.0,
+      "unit": "m",
+      "responsible_metric": "position increment residual after source-velocity prediction",
+      "rationale": "Detect meter-scale discontinuities without rejecting the declared near-threshold case."
+    },
+    "trajectory.reference_position_residual_m": {
+      "operator": "max_le",
+      "value": 1.5,
+      "unit": "m",
+      "responsible_metric": "local position residual against declared independent or paired-coordinate support",
+      "rationale": "Expose large bias-compatible disagreement only when reference support is declared."
+    },
+    "trajectory.velocity_residual_mps": {
+      "operator": "max_le",
+      "value": 0.75,
+      "unit": "m/s",
+      "responsible_metric": "robust position derivative minus source velocity",
+      "rationale": "Detect sustained drift while allowing small postprocessed self-consistency residuals."
+    },
+    "trajectory.maximum_speed_mps": {
+      "operator": "max_le",
+      "value": 70.0,
+      "unit": "m/s",
+      "responsible_metric": "magnitude of robust local-world velocity",
+      "rationale": "Reject implausible road-vehicle speeds without tuning to one route."
+    },
+    "trajectory.maximum_acceleration_mps2": {
+      "operator": "max_le",
+      "value": 15.0,
+      "unit": "m/s^2",
+      "responsible_metric": "magnitude of robust local-world acceleration",
+      "rationale": "Flag severe kinematic discontinuities above ordinary road motion."
+    },
+    "trajectory.maximum_jerk_mps3": {
+      "operator": "max_le",
+      "value": 100.0,
+      "unit": "m/s^3",
+      "responsible_metric": "magnitude of robust local-world jerk",
+      "rationale": "Localize severe position discontinuities while tolerating analytic stop boundaries."
+    },
+    "trajectory.maximum_yaw_rate_radps": {
+      "operator": "abs_max_le",
+      "value": 1.5,
+      "unit": "rad/s",
+      "responsible_metric": "absolute robust yaw rate",
+      "rationale": "Retain the one-radian-per-second analytic turn with margin."
+    },
+    "trajectory.freeze_observed_speed_mps": {
+      "operator": "max_le",
+      "value": 0.1,
+      "unit": "m/s",
+      "responsible_metric": "observed position increment speed during source-supported motion",
+      "rationale": "Identify position hold while remaining above numerical position noise."
+    },
+    "trajectory.freeze_source_speed_mps": {
+      "operator": "min_ge",
+      "value": 1.0,
+      "unit": "m/s",
+      "responsible_metric": "declared source-velocity magnitude during a candidate freeze",
+      "rationale": "Prevent a truly stationary vehicle from being called a frozen trajectory."
+    },
+    "trajectory.freeze_minimum_duration_ns": {
+      "operator": "min_ge",
+      "value": 500000000.0,
+      "unit": "ns",
+      "responsible_metric": "consolidated duration of source-supported frozen position",
+      "rationale": "Reject isolated quantization repeats while detecting sustained holds."
+    }
+  },
+  "numerical_comparison": {
+    "relative_tolerance": 1e-12,
+    "absolute_tolerance": 1e-12
+  },
+  "event_consolidation": {
+    "temporal_adjacency_ns": 500000000,
+    "paired_step_maximum_duration_ns": 3000000000,
+    "clear_windows_required": 2,
+    "interval_convention": "half_open",
+    "primary_rule_priority": [
+      "timestamp_regression",
+      "duplicate_timestamp",
+      "timestamp_gap",
+      "coordinate_continuity",
+      "position_freeze",
+      "position_jump",
+      "reference_position_residual",
+      "velocity_residual",
+      "maximum_speed",
+      "maximum_acceleration",
+      "maximum_jerk",
+      "maximum_yaw_rate"
+    ]
+  },
+  "budgets": {
+    "maximum_samples": 1000000,
+    "maximum_raw_failures": 100000,
+    "maximum_events": 4096
+  },
+  "qualification": {
+    "evidence_mode": "FROZEN_SYNTHETIC_EXHAUSTIVE_ENGINEERING",
+    "confirmatory_claims_forbidden": true,
+    "clean_duration_per_source_group_ns": 900000000000,
+    "clean_duration_sample_period_ns": 100000000,
+    "clean_duration_scenario": "constant_speed_straight",
+    "fault_qualification_scenario": "constant_speed_straight",
+    "zero_event_rate_upper_bound": "exact_poisson_exposure_95",
+    "partitions": {
+      "development": {
+        "family_set_id": "sensor-map-development-v0",
+        "minimum_source_groups": 8,
+        "claim_status": "DESCRIPTIVE_ONLY"
+      },
+      "threshold_calibration": {
+        "family_set_id": "sensor-map-threshold-v0",
+        "minimum_source_groups": 12,
+        "claim_status": "CALIBRATION_ONLY"
+      }
+    },
+    "authorities": {
+      "split_manifest_file_sha256": "ed028d3a7b4062edca754e095a040843a63b8ca45aeb059018dff0b353021aaf",
+      "fault_matrix_file_sha256": "e565290f8e7da79f44d9bf6a9c33fb85c7a21fa345a1f07c5d01fba83460ed24",
+      "numerical_charter_file_sha256": "c993ee0db9ffec8ad7fa987cd64ab86516405d441e038d4dbfce00fdbaf25aec",
+      "numerical_charter_immutable_sha256": "baf5adfe9fe97b9d4de453adfec359bce0a9ad345f905f6abbe0cd796eaaddeb",
+      "trajectory_gate_file_sha256": "ad61c477e52e7ba7e77e026269feb7da85e4bcfca253d62945050b30e2670f7c",
+      "expected_source_group_ids": {
+        "development": [
+          "sensor-map-dev-001",
+          "sensor-map-dev-002",
+          "sensor-map-dev-003",
+          "sensor-map-dev-004",
+          "sensor-map-dev-005",
+          "sensor-map-dev-006",
+          "sensor-map-dev-007",
+          "sensor-map-dev-008"
+        ],
+        "threshold_calibration": [
+          "sensor-map-cal-001",
+          "sensor-map-cal-002",
+          "sensor-map-cal-003",
+          "sensor-map-cal-004",
+          "sensor-map-cal-005",
+          "sensor-map-cal-006",
+          "sensor-map-cal-007",
+          "sensor-map-cal-008",
+          "sensor-map-cal-009",
+          "sensor-map-cal-010",
+          "sensor-map-cal-011",
+          "sensor-map-cal-012"
+        ]
+      }
+    },
+    "charter_gate_keys": [
+      "structural.event_recall",
+      "structural.event_precision",
+      "content.supported_fault_recall",
+      "content.false_critical_per_clean_sensor_hour",
+      "content.event_boundary_median_stride"
+    ],
+    "required_detectable_content_operators": [
+      "trajectory.position_jump",
+      "trajectory.position_freeze",
+      "trajectory.position_drift"
+    ],
+    "required_nonobservable_control_operator": "trajectory.position_bias",
+    "stationary_false_freeze_count_maximum": 0
+  }
+}

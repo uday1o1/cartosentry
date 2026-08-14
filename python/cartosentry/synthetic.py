@@ -38,6 +38,7 @@ from .synthetic_models import (
     ScenarioFeature,
     SpinningLidarConfig,
     SyntheticFixture,
+    SyntheticPartition,
     SyntheticRig,
     SyntheticScenario,
     SyntheticTransform,
@@ -47,7 +48,7 @@ from .synthetic_models import (
     Vector3,
 )
 
-GENERATOR_VERSION: Final = "1.0.1"
+GENERATOR_VERSION: Final = "1.0.2"
 FIXTURE_SCHEMA_VERSION: Final = "cartosentry.synthetic-fixture.v1"
 FIXTURE_SET_SCHEMA_VERSION: Final = "cartosentry.synthetic-fixture-set.v1"
 CLOCK_ID: Final = "cartosentry-synthetic-clock"
@@ -59,6 +60,11 @@ ELEVATION_ANGLES_RAD: Final = (-0.14, -0.07, 0.02, 0.1)
 MAXIMUM_RANGE_M: Final = 50.0
 _SCENARIOS: Final = tuple(SyntheticScenario)
 MAXIMUM_FIXTURE_SET_MANIFEST_BYTES: Final = 1024 * 1024
+_SENSOR_MAP_FAMILY_SET_IDS: Final[dict[SyntheticPartition, str]] = {
+    "development": "sensor-map-development-v0",
+    "threshold_calibration": "sensor-map-threshold-v0",
+    "policy_tuning": "sensor-map-policy-v0",
+}
 
 
 @dataclass(frozen=True)
@@ -379,6 +385,29 @@ def _pose_at(scenario: SyntheticScenario, time_ns: int) -> _Pose:
     )
 
 
+def analytic_velocity_mps(scenario: SyntheticScenario, time_ns: int) -> Vector3:
+    """Return the independent analytic world-frame velocity observation."""
+
+    seconds = time_ns / 1_000_000_000.0
+    if scenario is SyntheticScenario.CONSTANT_RADIUS_TURN:
+        curve_end = 1.0 + math.pi / 2.0
+        if seconds < 1.0:
+            return (5.0, 0.0, 0.0)
+        if seconds < curve_end:
+            angle = -math.pi / 2.0 + (seconds - 1.0)
+            return _vector(-5.0 * math.sin(angle), 5.0 * math.cos(angle), 0.0)
+        return (0.0, 5.0, 0.0)
+    if scenario is SyntheticScenario.STOP_START:
+        if seconds < 1.5 or seconds >= 2.5:
+            return (4.0, 0.0, 0.0)
+        return (0.0, 0.0, 0.0)
+    if scenario is SyntheticScenario.RAMP:
+        return (5.0, 0.0, 0.5)
+    if scenario is SyntheticScenario.STATIONARY:
+        return (0.0, 0.0, 0.0)
+    return (5.0, 0.0, 0.0)
+
+
 def _feature(scenario: SyntheticScenario) -> ScenarioFeature:
     return {
         SyntheticScenario.STRAIGHT: ScenarioFeature.STRAIGHT,
@@ -566,6 +595,7 @@ def generate_fixture(
     seed: int,
     *,
     azimuth_columns: int = AZIMUTH_COLUMNS,
+    partition: SyntheticPartition = "development",
 ) -> SyntheticFixture:
     """Generate one complete deterministic fixture from semantic inputs."""
 
@@ -589,6 +619,7 @@ def generate_fixture(
                 _pose_at(scenario, time_ns).position_m,
                 _pose_at(scenario, time_ns).yaw_rad,
             ),
+            source_velocity_world_mps=analytic_velocity_mps(scenario, time_ns),
             directed_arc_id=_pose_at(scenario, time_ns).directed_arc_id,
             motion_state=_pose_at(scenario, time_ns).motion_state,
         )
@@ -623,7 +654,7 @@ def generate_fixture(
         "generator_version": GENERATOR_VERSION,
         "seed": seed,
         "synthetic_family_id": family_id,
-        "partition": "development",
+        "partition": partition,
         "scenario": scenario,
         "sample_period_ns": sample_period_ns,
         "world": world,
@@ -669,41 +700,78 @@ def serialize_fixture(fixture: SyntheticFixture) -> bytes:
     return _serialize(fixture)
 
 
-def _development_families(split_manifest_path: Path) -> tuple[tuple[str, int], ...]:
-    split = json.loads(split_manifest_path.read_text(encoding="utf-8"))
+def sensor_map_family_assignments(
+    split_manifest_path: Path,
+    partition: SyntheticPartition,
+) -> tuple[tuple[str, SyntheticScenario, int], ...]:
+    """Resolve one exact ordinary partition from the immutable split manifest."""
+
+    content = read_bounded_regular_bytes(
+        split_manifest_path,
+        maximum_bytes=MAXIMUM_FIXTURE_SET_MANIFEST_BYTES,
+        context="split manifest",
+    )
+    split = decode_bounded_json(
+        content,
+        maximum_bytes=MAXIMUM_FIXTURE_SET_MANIFEST_BYTES,
+        context="split manifest",
+    )
+    if not isinstance(split, dict):
+        raise ValueError("split manifest must be an object")
+    raw_family_sets = split.get("synthetic_family_sets")
+    if not isinstance(raw_family_sets, list) or any(
+        not isinstance(item, dict) for item in raw_family_sets
+    ):
+        raise ValueError("split manifest synthetic_family_sets must be object entries")
+    family_set_id = _SENSOR_MAP_FAMILY_SET_IDS[partition]
     candidates = [
-        item
-        for item in split["synthetic_family_sets"]
-        if item["family_set_id"] == "sensor-map-development-v0"
+        item for item in raw_family_sets if item.get("family_set_id") == family_set_id
     ]
     if len(candidates) != 1:
-        raise ValueError("split manifest must contain one development sensor-map set")
-    family_set = candidates[0]
-    if family_set["partition"] != "development" or family_set["family_count"] != len(
-        _SCENARIOS
-    ):
         raise ValueError(
-            "development sensor-map family set no longer matches V1 scenarios"
+            f"split manifest must contain exactly one {family_set_id} family set"
         )
-    prefix = str(family_set["family_prefix"])
-    seed_start = int(family_set["seed_start"])
+    family_set = candidates[0]
+    if family_set.get("partition") != partition:
+        raise ValueError("sensor-map family set partition does not match its identity")
+    family_count = family_set.get("family_count")
+    prefix = family_set.get("family_prefix")
+    seed_start = family_set.get("seed_start")
+    if (
+        isinstance(family_count, bool)
+        or not isinstance(family_count, int)
+        or not isinstance(prefix, str)
+        or not prefix
+        or isinstance(seed_start, bool)
+        or not isinstance(seed_start, int)
+        or seed_start < 0
+    ):
+        raise ValueError("sensor-map family set fields have invalid types or values")
+    if family_count < len(_SCENARIOS):
+        raise ValueError("sensor-map family set cannot cover every V1 scenario")
     return tuple(
-        (f"{prefix}-{index + 1:03d}", seed_start + index)
-        for index in range(len(_SCENARIOS))
+        (
+            f"{prefix}-{index + 1:03d}",
+            _SCENARIOS[index % len(_SCENARIOS)],
+            seed_start + index,
+        )
+        for index in range(family_count)
     )
 
 
 def render_fixture_set(
     split_manifest_path: Path,
+    *,
+    partition: SyntheticPartition = "development",
 ) -> dict[str, bytes]:
-    """Render all frozen M1.3 development fixtures and their manifest."""
+    """Render the exact split-derived fixtures for one ordinary partition."""
 
     rendered: dict[str, bytes] = {}
     records: list[FixtureFileRecord] = []
-    for scenario, (family_id, seed) in zip(
-        _SCENARIOS, _development_families(split_manifest_path), strict=True
+    for family_id, scenario, seed in sensor_map_family_assignments(
+        split_manifest_path, partition
     ):
-        fixture = generate_fixture(family_id, scenario, seed)
+        fixture = generate_fixture(family_id, scenario, seed, partition=partition)
         relative_path = f"fixtures/{family_id}.json"
         content = _serialize(fixture)
         rendered[relative_path] = content
@@ -720,7 +788,7 @@ def render_fixture_set(
     manifest = FixtureSetManifest(
         schema_version=FIXTURE_SET_SCHEMA_VERSION,
         generator_version=GENERATOR_VERSION,
-        partition="development",
+        partition=partition,
         split_manifest_sha256=hashlib.sha256(
             split_manifest_path.read_bytes()
         ).hexdigest(),
@@ -764,8 +832,9 @@ def materialize_fixture_set(
     split_manifest_path: Path,
     *,
     check: bool = False,
+    partition: SyntheticPartition = "development",
 ) -> dict[str, object]:
-    expected = render_fixture_set(split_manifest_path)
+    expected = render_fixture_set(split_manifest_path, partition=partition)
     stale = sorted(
         relative
         for relative, content in expected.items()
@@ -780,6 +849,7 @@ def materialize_fixture_set(
         "file_count": len(expected),
         "generator_version": GENERATOR_VERSION,
         "output_root": output_root.as_posix(),
+        "partition": partition,
         "stale_files": stale,
     }
 
@@ -891,5 +961,6 @@ __all__ = [
     "parse_fixture_set_manifest_bytes",
     "qualify_fixture_set",
     "render_fixture_set",
+    "sensor_map_family_assignments",
     "serialize_fixture",
 ]

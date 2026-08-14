@@ -44,6 +44,9 @@ from cartosentry.scheduler import qualify_scheduler
 from cartosentry.spikes import qualify_observability
 from cartosentry.synthetic import materialize_fixture_set, qualify_fixture_set
 from cartosentry.trajectory import qualify_reference_trajectory
+from cartosentry.trajectory_integrity_qualification import (
+    qualify_trajectory_integrity,
+)
 
 app = typer.Typer(
     name="cartosentry",
@@ -717,6 +720,97 @@ def qualify_reference_trajectory_command(
         _write_report(report, output)
     except (OSError, ValueError, ValidationError) as error:
         typer.echo(f"Reference trajectory qualification failed: {error}", err=True)
+        raise typer.Exit(code=2) from error
+    if not report["accepted"]:
+        raise typer.Exit(code=1)
+
+
+@app.command("qualify-trajectory-integrity")
+def qualify_trajectory_integrity_command(
+    profile: Annotated[
+        Path,
+        typer.Option(
+            "--profile",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen M3.2 detector profile.",
+        ),
+    ] = Path("profiles/trajectory_integrity_v1.yaml"),
+    trajectory_gate: Annotated[
+        Path,
+        typer.Option(
+            "--trajectory-gate",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Pinned M3.1 continuous-trajectory gate.",
+        ),
+    ] = Path("benchmarks/m3_1_trajectory_gate.yaml"),
+    split_manifest: Annotated[
+        Path,
+        typer.Option(
+            "--split-manifest",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen source-group and partition assignment.",
+        ),
+    ] = Path("benchmarks/split_manifest.yaml"),
+    fault_matrix: Annotated[
+        Path,
+        typer.Option(
+            "--fault-matrix",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen cartosentry-v1-core fault matrix.",
+        ),
+    ] = Path("benchmarks/fault_matrix_v1.yaml"),
+    charter: Annotated[
+        Path,
+        typer.Option(
+            "--charter",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen numerical acceptance charter.",
+        ),
+    ] = Path("benchmarks/numerical_charter.yaml"),
+    output: Annotated[
+        Path | None,
+        typer.Option(
+            "--output",
+            file_okay=True,
+            dir_okay=False,
+            resolve_path=True,
+            help="Write the machine-readable qualification report atomically.",
+        ),
+    ] = None,
+) -> None:
+    """Qualify M3.2 trajectory faults on exact development and calibration groups."""
+
+    try:
+        report = qualify_trajectory_integrity(
+            profile_path=profile,
+            trajectory_gate_path=trajectory_gate,
+            split_manifest_path=split_manifest,
+            fault_matrix_path=fault_matrix,
+            charter_path=charter,
+        )
+        _write_report(report, output)
+    except (OSError, ValueError, ValidationError) as error:
+        typer.echo(f"Trajectory integrity qualification failed: {error}", err=True)
         raise typer.Exit(code=2) from error
     if not report["accepted"]:
         raise typer.Exit(code=1)

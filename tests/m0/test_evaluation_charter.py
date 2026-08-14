@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import copy
+import hashlib
 import json
 import shutil
 import subprocess
@@ -43,7 +44,62 @@ class EvaluationCharterTest(unittest.TestCase):
         second = validate_contract(REPOSITORY_ROOT)
         self.assertEqual(first, second)
         self.assertEqual("VALID", first["state"])
+        self.assertEqual("v1", first["charter_version"])
+        self.assertEqual(
+            {
+                "split_manifest": "v0",
+                "numerical_charter": "v0",
+                "fault_matrix": "v1",
+                "fallback_tree": "v1",
+            },
+            first["component_versions"],
+        )
         self.assertEqual(42, first["sealed_final_synthetic_family_count"])
+
+    def test_unrecorded_frozen_component_change_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            (root / "benchmarks").mkdir()
+            for relative_path in (
+                Path("benchmarks/source_groups.yaml"),
+                Path("benchmarks/data_manifest.yaml"),
+                *FROZEN_PATHS.values(),
+            ):
+                shutil.copy2(REPOSITORY_ROOT / relative_path, root / relative_path)
+            matrix_path = root / FROZEN_PATHS["fault_matrix"]
+            matrix = json.loads(matrix_path.read_text(encoding="utf-8"))
+            matrix["scope"] = "unrecorded mutation"
+            matrix_path.write_text(json.dumps(matrix), encoding="utf-8")
+            with self.assertRaisesRegex(
+                CharterError, "revision component hashes do not match"
+            ):
+                validate_contract(root)
+
+    def test_fallback_fault_scope_cannot_lag_matrix(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            (root / "benchmarks").mkdir()
+            for relative_path in (
+                Path("benchmarks/source_groups.yaml"),
+                Path("benchmarks/data_manifest.yaml"),
+                *FROZEN_PATHS.values(),
+            ):
+                shutil.copy2(REPOSITORY_ROOT / relative_path, root / relative_path)
+            fallback_path = root / FROZEN_PATHS["fallback_tree"]
+            fallback = json.loads(fallback_path.read_text(encoding="utf-8"))
+            primary = fallback["claim_tracks"][0]["branches"][0]
+            primary["supported_fault_families"].remove("trajectory.position_drift")
+            fallback_path.write_text(json.dumps(fallback), encoding="utf-8")
+            revision_path = root / FROZEN_PATHS["charter_revisions"]
+            revision = json.loads(revision_path.read_text(encoding="utf-8"))
+            fallback_sha256 = hashlib.sha256(fallback_path.read_bytes()).hexdigest()
+            revision["current_component_file_sha256"]["fallback_tree"] = fallback_sha256
+            revision["revisions"][-1]["new_component_file_sha256"]["fallback_tree"] = (
+                fallback_sha256
+            )
+            revision_path.write_text(json.dumps(revision), encoding="utf-8")
+            with self.assertRaisesRegex(CharterError, "exact fault allowlist"):
+                validate_contract(root)
 
     def test_derivative_cannot_move_source_partition(self) -> None:
         data = copy.deepcopy(self.data)

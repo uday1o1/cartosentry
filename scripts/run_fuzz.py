@@ -480,7 +480,7 @@ def _fault_manifest_clean_seed() -> bytes:
         source,
         FaultRequest(
             operator_id=FaultOperatorId.TIMESTAMP_DISCONTINUITY,
-            case_id="timestamp-gap-20ms-below",
+            case_id="timestamp-gap-50ms-below",
             seed=1701,
             clean_source_truth_sha256="d" * 64,
         ),

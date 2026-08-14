@@ -19,25 +19,34 @@ The fault identifier follows the frozen matrix contract exactly.
 It hashes matrix ID, operator ID, case ID, source family ID, and source identity SHA-256.
 The seed remains a required manifest field but is not silently added to that frozen identity contract.
 
-## Supported V1 foundation operators
+## Supported V1 operators through trajectory integrity
 
-The M1.4 registry implements the six operators frozen before development:
+The registry implements the nine operators currently frozen in the `cartosentry-v1-core` matrix:
 
 - `trajectory.timestamp_discontinuity`
 - `trajectory.position_jump`
+- `trajectory.position_freeze`
+- `trajectory.position_bias`
+- `trajectory.position_drift`
 - `lidar.point_time_shift`
 - `lidar.ring_loss`
 - `lidar.azimuth_sector_loss`
 - `lidar.calibration_perturbation`
 
-Timestamp discontinuity changes only selected canonical and raw trajectory time values.
-Position jump changes only selected trajectory translations.
+Timestamp discontinuity creates one exact consecutive delta and applies its time step through the remaining support, so it does not manufacture an inverse exit regression.
+Position jump applies a bounded constant translation whose entry and exit are both ground-truth discontinuities.
+Position freeze holds the selected translation while retaining time and paired source-velocity observations.
+Position bias translates the complete trajectory support, which makes it deliberately unobservable without an independent position reference.
+Position drift applies a linearly increasing translation from the selected start through the remaining trajectory support.
+The translation reaches `terminal_translation_m` after `duration_s` and continues at that rate, which avoids an unintended exit discontinuity.
+Position bias applies one of three frozen seed-scaled translations within the case severity while retaining a whole-support constant offset.
 Point-time shift changes only relative point times.
 Ring and sector loss remove only selected lidar points.
 Calibration perturbation changes only the named `T_rig_lidar` matrix.
 
+Every trajectory and timestamp family has below-threshold, near-threshold, and detectable cases whose labels refer to the measured detector quantity.
 The synthetic generator exposes a 32-column lidar control for the frozen 5-degree sector case.
-Its default remains the compact 16-column fixture set, and the committed default fixture bytes are unchanged.
+Its default remains the compact 16-column fixture set.
 
 ## Inject and verify
 

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "fallback_tree_version": "v0",
+  "fallback_tree_version": "v1",
   "freeze_state": "FROZEN_PRE_UNBLINDING",
   "selection_rule": "For each claim track, select the first branch in priority order whose population, support, multiplicity, and numerical gates all pass in the same one-shot execution.",
   "post_result_changes_forbidden": [
@@ -24,6 +24,9 @@
           "supported_fault_families": [
             "trajectory.timestamp_discontinuity",
             "trajectory.position_jump",
+            "trajectory.position_freeze",
+            "trajectory.position_bias",
+            "trajectory.position_drift",
             "lidar.point_time_shift",
             "lidar.ring_loss",
             "lidar.azimuth_sector_loss",
@@ -38,7 +41,7 @@
           ],
           "minimum_support": "12 clusters and 30 injected events per claimed fault and severity stratum; 12 clean clusters and 3 clean sensor-hours",
           "multiplicity": "Holm within trajectory-v1 and lidar-v1 confirmatory families at family-wise alpha 0.05",
-          "claim_wording": "CartoSentry detected the six predeclared V1 trajectory and lidar fault families at supported detectable severities while meeting the frozen clean false-critical bound."
+          "claim_wording": "CartoSentry detected the nine predeclared V1 trajectory and lidar fault families at supported detectable severities while meeting the frozen clean false-critical bound."
         },
         {
           "branch_id": "fault-narrow-structural-v1",
@@ -68,6 +71,9 @@
           "supported_fault_families": [
             "trajectory.timestamp_discontinuity",
             "trajectory.position_jump",
+            "trajectory.position_freeze",
+            "trajectory.position_bias",
+            "trajectory.position_drift",
             "lidar.point_time_shift",
             "lidar.ring_loss",
             "lidar.azimuth_sector_loss",
@@ -79,7 +85,7 @@
           "gate_keys": ["content.supported_fault_recall"],
           "minimum_support": "12 synthetic families and 30 injected events per claimed fault and severity stratum",
           "multiplicity": "Holm within trajectory-v1 and lidar-v1 confirmatory families at family-wise alpha 0.05",
-          "claim_wording": "On the predeclared generated suite, CartoSentry detected the six V1 trajectory and lidar fault families at supported detectable severities."
+          "claim_wording": "On the predeclared generated suite, CartoSentry detected the nine V1 trajectory and lidar fault families at supported detectable severities."
         },
         {
           "branch_id": "fault-descriptive-no-accuracy-claim",

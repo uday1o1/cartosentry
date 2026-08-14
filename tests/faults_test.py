@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from itertools import pairwise
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +14,7 @@ from cartosentry.cli import app
 from cartosentry.faults import (
     FAULT_MATRIX_ID,
     ChangeKind,
+    ExpectedGateOutcome,
     FaultManifest,
     FaultOperatorId,
     FaultRequest,
@@ -38,8 +40,11 @@ SOURCE_PATH = (
 )
 CLEAN_TRUTH_HASH = hashlib.sha256(b"immutable synthetic clean truth\n").hexdigest()
 REPRESENTATIVE_CASES = {
-    FaultOperatorId.TIMESTAMP_DISCONTINUITY: "timestamp-gap-20ms-below",
+    FaultOperatorId.TIMESTAMP_DISCONTINUITY: "timestamp-gap-50ms-below",
     FaultOperatorId.POSITION_JUMP: "position-jump-0p05m-below",
+    FaultOperatorId.POSITION_FREEZE: "position-freeze-0p25s-below",
+    FaultOperatorId.POSITION_BIAS: "position-bias-0p25m-below",
+    FaultOperatorId.POSITION_DRIFT: "position-drift-0p1m-below",
     FaultOperatorId.POINT_TIME_SHIFT: "point-time-10ms-below",
     FaultOperatorId.RING_LOSS: "ring-loss-1-short",
     FaultOperatorId.AZIMUTH_SECTOR_LOSS: "sector-loss-5deg-short",
@@ -50,6 +55,15 @@ ALLOWED_CHANGE_PATTERNS = {
         r"^/trajectory/[0-9]+/time/(value_ns|raw/integer_value)$"
     ),
     FaultOperatorId.POSITION_JUMP: re.compile(
+        r"^/trajectory/[0-9]+/world_from_rig/row_major_4x4/(3|7|11)$"
+    ),
+    FaultOperatorId.POSITION_FREEZE: re.compile(
+        r"^/trajectory/[0-9]+/world_from_rig/row_major_4x4/(3|7|11)$"
+    ),
+    FaultOperatorId.POSITION_BIAS: re.compile(
+        r"^/trajectory/[0-9]+/world_from_rig/row_major_4x4/(3|7|11)$"
+    ),
+    FaultOperatorId.POSITION_DRIFT: re.compile(
         r"^/trajectory/[0-9]+/world_from_rig/row_major_4x4/(3|7|11)$"
     ),
     FaultOperatorId.POINT_TIME_SHIFT: re.compile(
@@ -145,6 +159,18 @@ def test_registry_exactly_covers_frozen_v1_allowlist_and_typed_cases() -> None:
     )
     assert (
         registry.matrix_sha256 == hashlib.sha256(MATRIX_PATH.read_bytes()).hexdigest()
+    )
+    assert (
+        registry.case(
+            FaultOperatorId.POSITION_FREEZE, "position-freeze-0p5s-near"
+        ).expected_gate_outcome
+        is ExpectedGateOutcome.EXPECT_FINDING_WHEN_OBSERVABLE
+    )
+    assert (
+        registry.case(
+            FaultOperatorId.POSITION_DRIFT, "position-drift-0p75m-near"
+        ).expected_gate_outcome
+        is ExpectedGateOutcome.EXPECT_NO_FINDING
     )
 
 
@@ -280,6 +306,155 @@ def test_expected_road_bin_contract_is_preserved_in_manifest() -> None:
     )
     result = inject_fault(source, request, load_fault_registry(MATRIX_PATH))
     assert result.manifest.expected_affected_road_bins == (road_bin_id,)
+
+
+def test_fault_derivative_inherits_threshold_calibration_partition() -> None:
+    fixture = generate_fixture(
+        "sensor-map-cal-001",
+        SyntheticScenario.STRAIGHT,
+        20000,
+        partition="threshold_calibration",
+    )
+    result = inject_fault(
+        serialize_fixture(fixture),
+        _request(FaultOperatorId.POSITION_DRIFT, 17),
+        load_fault_registry(MATRIX_PATH),
+    )
+    assert result.manifest.inherited_partition == "threshold_calibration"
+
+
+def test_timestamp_fault_has_exact_measured_gap_and_no_exit_regression() -> None:
+    source = SOURCE_PATH.read_bytes()
+    result = inject_fault(
+        source,
+        FaultRequest(
+            operator_id=FaultOperatorId.TIMESTAMP_DISCONTINUITY,
+            case_id="timestamp-gap-250ms-detectable",
+            seed=31,
+            clean_source_truth_sha256=CLEAN_TRUTH_HASH,
+        ),
+        load_fault_registry(MATRIX_PATH),
+    )
+    times = [
+        item["time"]["value_ns"]
+        for item in json.loads(result.derivative_bytes)["trajectory"]
+    ]
+    deltas = [right - left for left, right in pairwise(times)]
+    assert deltas.count(250_000_000) == 1
+    assert all(delta > 0 for delta in deltas)
+
+
+def test_whole_support_bias_preserves_internal_position_increments() -> None:
+    source = SOURCE_PATH.read_bytes()
+    result = inject_fault(
+        source,
+        FaultRequest(
+            operator_id=FaultOperatorId.POSITION_BIAS,
+            case_id="position-bias-3m-detectable",
+            seed=31,
+            clean_source_truth_sha256=CLEAN_TRUTH_HASH,
+        ),
+        load_fault_registry(MATRIX_PATH),
+    )
+
+    def increments(content: bytes) -> list[tuple[float, float, float]]:
+        positions = [
+            tuple(
+                item["world_from_rig"]["row_major_4x4"][index] for index in (3, 7, 11)
+            )
+            for item in json.loads(content)["trajectory"]
+        ]
+        return [
+            tuple(b - a for a, b in zip(left, right, strict=True))
+            for left, right in pairwise(positions)
+        ]
+
+    source_increments = increments(source)
+    derivative_increments = increments(result.derivative_bytes)
+    assert len(source_increments) == len(derivative_increments)
+    for source_increment, derivative_increment in zip(
+        source_increments, derivative_increments, strict=True
+    ):
+        assert derivative_increment == pytest.approx(source_increment, abs=1e-12)
+
+
+def test_bias_case_produces_three_semantically_distinct_seeded_offsets() -> None:
+    source = SOURCE_PATH.read_bytes()
+    registry = load_fault_registry(MATRIX_PATH)
+    derivatives = {
+        inject_fault(
+            source,
+            FaultRequest(
+                operator_id=FaultOperatorId.POSITION_BIAS,
+                case_id="position-bias-3m-detectable",
+                seed=seed,
+                clean_source_truth_sha256=CLEAN_TRUTH_HASH,
+            ),
+            registry,
+        ).derivative_bytes
+        for seed in (30, 31, 32)
+    }
+    assert len(derivatives) == 3
+
+
+def test_position_drift_continues_without_an_exit_step() -> None:
+    source = SOURCE_PATH.read_bytes()
+    fixture = json.loads(source)
+    result = inject_fault(
+        source,
+        FaultRequest(
+            operator_id=FaultOperatorId.POSITION_DRIFT,
+            case_id="position-drift-0p1m-below",
+            seed=31,
+            clean_source_truth_sha256=CLEAN_TRUTH_HASH,
+        ),
+        load_fault_registry(MATRIX_PATH),
+    )
+    changed_indices = {
+        int(change.json_pointer.split("/")[2])
+        for change in result.manifest.changed_values
+    }
+    assert max(changed_indices) == len(fixture["trajectory"]) - 1
+    assert result.manifest.source_interval.end.value_ns == (
+        fixture["trajectory"][-1]["time"]["value_ns"] + fixture["sample_period_ns"]
+    )
+
+
+@pytest.mark.parametrize(
+    ("operator_id", "case_id"),
+    [
+        (FaultOperatorId.POSITION_FREEZE, "position-freeze-1s-detectable"),
+        (FaultOperatorId.POSITION_BIAS, "position-bias-3m-detectable"),
+        (FaultOperatorId.POSITION_DRIFT, "position-drift-2m-detectable"),
+    ],
+)
+def test_trajectory_fault_interval_and_mutation_are_half_open(
+    operator_id: FaultOperatorId,
+    case_id: str,
+) -> None:
+    source = SOURCE_PATH.read_bytes()
+    fixture = json.loads(source)
+    result = inject_fault(
+        source,
+        FaultRequest(
+            operator_id=operator_id,
+            case_id=case_id,
+            seed=91,
+            clean_source_truth_sha256=CLEAN_TRUTH_HASH,
+        ),
+        load_fault_registry(MATRIX_PATH),
+    )
+    start = result.manifest.source_interval.start.value_ns
+    end = result.manifest.source_interval.end.value_ns
+    changed_indices = {
+        int(change.json_pointer.split("/")[2])
+        for change in result.manifest.changed_values
+    }
+    changed_times = {
+        fixture["trajectory"][index]["time"]["value_ns"] for index in changed_indices
+    }
+    assert changed_times
+    assert all(start <= time_ns < end for time_ns in changed_times)
 
 
 def test_unknown_or_follow_on_operator_fails_registry_validation(

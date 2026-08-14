@@ -1,8 +1,16 @@
 {
   "schema_version": 1,
   "fault_matrix_id": "cartosentry-v1-core",
-  "matrix_version": "v0",
+  "matrix_version": "v1",
   "scope": "V1 trajectory and lidar contracts only",
+  "severity_gate_outcomes": {
+    "below_threshold": "EXPECT_NO_FINDING",
+    "near_threshold": "EXPECT_NO_FINDING",
+    "detectable": "EXPECT_FINDING_WHEN_OBSERVABLE"
+  },
+  "case_gate_outcome_overrides": {
+    "trajectory.position_freeze/position-freeze-0p5s-near": "EXPECT_FINDING_WHEN_OBSERVABLE"
+  },
   "fault_id_contract": {
     "algorithm": "sha256",
     "canonical_fields": [
@@ -17,6 +25,9 @@
   "v1_operator_allowlist": [
     "trajectory.timestamp_discontinuity",
     "trajectory.position_jump",
+    "trajectory.position_freeze",
+    "trajectory.position_bias",
+    "trajectory.position_drift",
     "lidar.point_time_shift",
     "lidar.ring_loss",
     "lidar.azimuth_sector_loss",
@@ -26,22 +37,22 @@
     {
       "operator_id": "trajectory.timestamp_discontinuity",
       "contract_field": "trajectory sample timestamp",
-      "ground_truth": "half-open interval beginning at the first shifted sample",
+      "ground_truth": "one discontinuity boundary followed by a persistent timestamp step with no exit regression",
       "cases": [
         {
-          "case_id": "timestamp-gap-20ms-below",
+          "case_id": "timestamp-gap-50ms-below",
           "severity": "below_threshold",
-          "parameters": {"gap_ns": 20000000, "affected_samples": 1}
+          "parameters": {"consecutive_delta_ns": 50000000}
         },
         {
-          "case_id": "timestamp-gap-50ms-near",
+          "case_id": "timestamp-gap-100ms-near",
           "severity": "near_threshold",
-          "parameters": {"gap_ns": 50000000, "affected_samples": 1}
+          "parameters": {"consecutive_delta_ns": 100000000}
         },
         {
           "case_id": "timestamp-gap-250ms-detectable",
           "severity": "detectable",
-          "parameters": {"gap_ns": 250000000, "affected_samples": 5}
+          "parameters": {"consecutive_delta_ns": 250000000}
         }
       ]
     },
@@ -63,7 +74,73 @@
         {
           "case_id": "position-jump-2m-detectable",
           "severity": "detectable",
-          "parameters": {"translation_m": [2.0, 0.0, 0.0], "duration_s": 5.0}
+          "parameters": {"translation_m": [2.0, 0.0, 0.0], "duration_s": 2.0}
+        }
+      ]
+    },
+    {
+      "operator_id": "trajectory.position_freeze",
+      "contract_field": "T_enu_ref_applanix translation with source time retained",
+      "ground_truth": "half-open interval whose position is held at its first sample",
+      "cases": [
+        {
+          "case_id": "position-freeze-0p25s-below",
+          "severity": "below_threshold",
+          "parameters": {"duration_s": 0.25}
+        },
+        {
+          "case_id": "position-freeze-0p5s-near",
+          "severity": "near_threshold",
+          "parameters": {"duration_s": 0.5}
+        },
+        {
+          "case_id": "position-freeze-1s-detectable",
+          "severity": "detectable",
+          "parameters": {"duration_s": 1.0}
+        }
+      ]
+    },
+    {
+      "operator_id": "trajectory.position_bias",
+      "contract_field": "T_enu_ref_applanix translation",
+      "ground_truth": "whole-support constant seed-scaled translation that is unobservable without independent reference support",
+      "cases": [
+        {
+          "case_id": "position-bias-0p25m-below",
+          "severity": "below_threshold",
+          "parameters": {"translation_m": [0.25, 0.0, 0.0], "seed_scale_decrement_fraction": 0.01}
+        },
+        {
+          "case_id": "position-bias-1p5m-near",
+          "severity": "near_threshold",
+          "parameters": {"translation_m": [1.5, 0.0, 0.0], "seed_scale_decrement_fraction": 0.01}
+        },
+        {
+          "case_id": "position-bias-3m-detectable",
+          "severity": "detectable",
+          "parameters": {"translation_m": [3.0, 0.0, 0.0], "seed_scale_decrement_fraction": 0.01}
+        }
+      ]
+    },
+    {
+      "operator_id": "trajectory.position_drift",
+      "contract_field": "T_enu_ref_applanix translation",
+      "ground_truth": "linearly increasing translation from the selected start through the remaining half-open trajectory support, reaching terminal_translation_m after duration_s",
+      "cases": [
+        {
+          "case_id": "position-drift-0p1m-below",
+          "severity": "below_threshold",
+          "parameters": {"terminal_translation_m": [0.1, 0.0, 0.0], "duration_s": 1.0}
+        },
+        {
+          "case_id": "position-drift-0p75m-near",
+          "severity": "near_threshold",
+          "parameters": {"terminal_translation_m": [0.75, 0.0, 0.0], "duration_s": 1.0}
+        },
+        {
+          "case_id": "position-drift-2m-detectable",
+          "severity": "detectable",
+          "parameters": {"terminal_translation_m": [2.0, 0.0, 0.0], "duration_s": 1.0}
         }
       ]
     },

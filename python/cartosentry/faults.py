@@ -8,6 +8,7 @@ import math
 import os
 import shutil
 import tempfile
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
@@ -16,20 +17,20 @@ from typing import Annotated, Literal, Self, cast
 from pydantic import Field, StringConstraints, model_validator
 
 from .artifacts import SourceInterval
-from .contracts import ContractModel, Sha256
+from .contracts import ContractModel, Duration, Sha256, TimePoint
 from .identifiers import assert_portable, canonical_sha256, make_fault_id
 from .manifest_boundaries import (
     MAXIMUM_ARTIFACT_JSON_BYTES,
     decode_bounded_json,
     read_bounded_json,
 )
-from .synthetic_models import SyntheticFixture
+from .synthetic_models import SyntheticFixture, SyntheticPartition
 
 FAULT_MATRIX_ID: Literal["cartosentry-v1-core"] = "cartosentry-v1-core"
 FAULT_MANIFEST_SCHEMA: Literal["cartosentry.fault-manifest.v1"] = (
     "cartosentry.fault-manifest.v1"
 )
-OPERATOR_VERSION: Literal["1.0.0"] = "1.0.0"
+OPERATOR_VERSION: Literal["1.1.0"] = "1.1.0"
 MAXIMUM_FAULT_MATRIX_BYTES = 1024 * 1024
 
 Identifier = Annotated[
@@ -50,6 +51,9 @@ Vector3 = tuple[float, float, float]
 class FaultOperatorId(StrEnum):
     TIMESTAMP_DISCONTINUITY = "trajectory.timestamp_discontinuity"
     POSITION_JUMP = "trajectory.position_jump"
+    POSITION_FREEZE = "trajectory.position_freeze"
+    POSITION_BIAS = "trajectory.position_bias"
+    POSITION_DRIFT = "trajectory.position_drift"
     POINT_TIME_SHIFT = "lidar.point_time_shift"
     RING_LOSS = "lidar.ring_loss"
     AZIMUTH_SECTOR_LOSS = "lidar.azimuth_sector_loss"
@@ -62,6 +66,11 @@ class FaultSeverity(StrEnum):
     DETECTABLE = "detectable"
 
 
+class ExpectedGateOutcome(StrEnum):
+    EXPECT_NO_FINDING = "EXPECT_NO_FINDING"
+    EXPECT_FINDING_WHEN_OBSERVABLE = "EXPECT_FINDING_WHEN_OBSERVABLE"
+
+
 class ChangeKind(StrEnum):
     MODIFIED = "MODIFIED"
     REMOVED = "REMOVED"
@@ -69,8 +78,7 @@ class ChangeKind(StrEnum):
 
 class TimestampDiscontinuityParameters(ContractModel):
     operator_id: Literal[FaultOperatorId.TIMESTAMP_DISCONTINUITY]
-    gap_ns: PositiveInt
-    affected_samples: PositiveInt
+    consecutive_delta_ns: PositiveInt
 
 
 class PositionJumpParameters(ContractModel):
@@ -82,6 +90,35 @@ class PositionJumpParameters(ContractModel):
     def validate_translation(self) -> Self:
         if not any(value != 0.0 for value in self.translation_m):
             raise ValueError("position jump translation must be nonzero")
+        return self
+
+
+class PositionFreezeParameters(ContractModel):
+    operator_id: Literal[FaultOperatorId.POSITION_FREEZE]
+    duration_s: PositiveFloat
+
+
+class PositionBiasParameters(ContractModel):
+    operator_id: Literal[FaultOperatorId.POSITION_BIAS]
+    translation_m: Vector3
+    seed_scale_decrement_fraction: Annotated[float, Field(ge=0.0, lt=0.5)]
+
+    @model_validator(mode="after")
+    def validate_translation(self) -> Self:
+        if not any(value != 0.0 for value in self.translation_m):
+            raise ValueError("position bias translation must be nonzero")
+        return self
+
+
+class PositionDriftParameters(ContractModel):
+    operator_id: Literal[FaultOperatorId.POSITION_DRIFT]
+    terminal_translation_m: Vector3
+    duration_s: PositiveFloat
+
+    @model_validator(mode="after")
+    def validate_translation(self) -> Self:
+        if not any(value != 0.0 for value in self.terminal_translation_m):
+            raise ValueError("position drift translation must be nonzero")
         return self
 
 
@@ -127,6 +164,9 @@ class CalibrationPerturbationParameters(ContractModel):
 type FaultParameters = Annotated[
     TimestampDiscontinuityParameters
     | PositionJumpParameters
+    | PositionFreezeParameters
+    | PositionBiasParameters
+    | PositionDriftParameters
     | PointTimeShiftParameters
     | RingLossParameters
     | AzimuthSectorLossParameters
@@ -182,7 +222,7 @@ class FaultManifest(ContractModel):
     fault_matrix_id: Literal["cartosentry-v1-core"]
     fault_matrix_sha256: Sha256
     operator_id: FaultOperatorId
-    operator_version: Literal["1.0.0"]
+    operator_version: Literal["1.1.0"]
     case_id: Identifier
     severity: FaultSeverity
     seed: NonnegativeInt
@@ -190,7 +230,7 @@ class FaultManifest(ContractModel):
     source_identity_sha256: Sha256
     source_family_id: Identifier
     source_group_id: Identifier
-    inherited_partition: Literal["development"]
+    inherited_partition: SyntheticPartition
     clean_source_truth_sha256: Sha256
     target_streams: tuple[Identifier, ...]
     target_fields: tuple[PortableKey, ...]
@@ -254,6 +294,7 @@ class RegisteredFaultCase:
     operator_id: FaultOperatorId
     case_id: str
     severity: FaultSeverity
+    expected_gate_outcome: ExpectedGateOutcome
     parameters: FaultParameters
 
 
@@ -285,6 +326,12 @@ def _typed_parameters(operator_id: FaultOperatorId, raw: object) -> FaultParamet
         return TimestampDiscontinuityParameters.model_validate_json(serialized)
     if operator_id is FaultOperatorId.POSITION_JUMP:
         return PositionJumpParameters.model_validate_json(serialized)
+    if operator_id is FaultOperatorId.POSITION_FREEZE:
+        return PositionFreezeParameters.model_validate_json(serialized)
+    if operator_id is FaultOperatorId.POSITION_BIAS:
+        return PositionBiasParameters.model_validate_json(serialized)
+    if operator_id is FaultOperatorId.POSITION_DRIFT:
+        return PositionDriftParameters.model_validate_json(serialized)
     if operator_id is FaultOperatorId.POINT_TIME_SHIFT:
         return PointTimeShiftParameters.model_validate_json(serialized)
     if operator_id is FaultOperatorId.RING_LOSS:
@@ -306,6 +353,26 @@ def load_fault_registry(matrix_path: Path) -> FaultRegistry:
         raise ValueError("fault matrix must be an object")
     if matrix.get("fault_matrix_id") != FAULT_MATRIX_ID:
         raise ValueError("fault matrix identifier is not cartosentry-v1-core")
+    expected_outcomes = matrix.get("severity_gate_outcomes")
+    frozen_outcomes = {
+        FaultSeverity.BELOW_THRESHOLD.value: (
+            ExpectedGateOutcome.EXPECT_NO_FINDING.value
+        ),
+        FaultSeverity.NEAR_THRESHOLD.value: ExpectedGateOutcome.EXPECT_NO_FINDING.value,
+        FaultSeverity.DETECTABLE.value: (
+            ExpectedGateOutcome.EXPECT_FINDING_WHEN_OBSERVABLE.value
+        ),
+    }
+    if expected_outcomes != frozen_outcomes:
+        raise ValueError("fault matrix severity gate outcomes are not frozen exactly")
+    outcome_overrides = matrix.get("case_gate_outcome_overrides")
+    frozen_outcome_overrides = {
+        "trajectory.position_freeze/position-freeze-0p5s-near": (
+            ExpectedGateOutcome.EXPECT_FINDING_WHEN_OBSERVABLE.value
+        )
+    }
+    if outcome_overrides != frozen_outcome_overrides:
+        raise ValueError("fault matrix case gate outcome overrides are not exact")
     implemented = {item.value for item in FaultOperatorId}
     allowlist = matrix.get("v1_operator_allowlist")
     if not isinstance(allowlist, list) or set(allowlist) != implemented:
@@ -348,6 +415,12 @@ def load_fault_registry(matrix_path: Path) -> FaultRegistry:
                 operator_id=operator_id,
                 case_id=case_id,
                 severity=severity,
+                expected_gate_outcome=ExpectedGateOutcome(
+                    frozen_outcome_overrides.get(
+                        f"{operator_id.value}/{case_id}",
+                        frozen_outcomes[severity.value],
+                    )
+                ),
                 parameters=parameters,
             )
     if seen_operators != set(FaultOperatorId):
@@ -381,7 +454,7 @@ def _duration_samples(duration_s: float, sample_period_ns: int) -> int:
     if duration_ns <= 0 or not math.isclose(
         duration_s * 1_000_000_000, duration_ns, abs_tol=1e-6
     ):
-        raise ValueError("position-jump duration must resolve to integer nanoseconds")
+        raise ValueError("trajectory duration must resolve to integer nanoseconds")
     return max(1, math.ceil(duration_ns / sample_period_ns))
 
 
@@ -404,6 +477,25 @@ def _time_interval_for_trajectory(
     )
 
 
+def _shifted_time_point(source: TimePoint, delta_ns: int) -> TimePoint:
+    shifted = source.shifted_value_ns(Duration(value_ns=delta_ns))
+    raw = source.raw.model_copy(update={"integer_value": str(shifted)})
+    return TimePoint(
+        value_ns=shifted,
+        epoch=source.epoch,
+        clock_id=source.clock_id,
+        reference=source.reference,
+        raw=raw,
+    )
+
+
+def _full_trajectory_interval(fixture: SyntheticFixture) -> SourceInterval:
+    return SourceInterval(
+        start=fixture.trajectory[0].time,
+        end=_shifted_time_point(fixture.trajectory[-1].time, fixture.sample_period_ns),
+    )
+
+
 def _time_interval_for_frames(
     fixture: SyntheticFixture, frames: range
 ) -> SourceInterval:
@@ -419,17 +511,25 @@ def _apply_timestamp_discontinuity(
     parameters: TimestampDiscontinuityParameters,
     seed: int,
 ) -> tuple[SourceInterval, tuple[str, ...], tuple[str, ...]]:
-    available = len(fixture.trajectory) - parameters.affected_samples - 1
+    available = len(fixture.trajectory) - 2
     if available <= 0:
-        raise ValueError("timestamp fault exceeds the available trajectory samples")
+        raise ValueError("timestamp fault needs at least three trajectory samples")
     start = 1 + _selection(seed, "trajectory.timestamp_discontinuity", available)
-    interval = _time_interval_for_trajectory(
-        fixture, start, parameters.affected_samples
+    source_delta = (
+        fixture.trajectory[start].time.value_ns
+        - fixture.trajectory[start - 1].time.value_ns
+    )
+    shift_ns = parameters.consecutive_delta_ns - source_delta
+    if shift_ns == 0:
+        raise ValueError("timestamp discontinuity must change the source cadence")
+    interval = SourceInterval(
+        start=fixture.trajectory[start - 1].time,
+        end=_shifted_time_point(fixture.trajectory[start].time, shift_ns),
     )
     trajectory = cast(list[dict[str, object]], payload["trajectory"])
-    for index in range(start, start + parameters.affected_samples):
+    for index in range(start, len(trajectory)):
         time = cast(dict[str, object], trajectory[index]["time"])
-        shifted = cast(int, time["value_ns"]) + parameters.gap_ns
+        shifted = cast(int, time["value_ns"]) + shift_ns
         time["value_ns"] = shifted
         raw = cast(dict[str, object], time["raw"])
         raw["integer_value"] = str(shifted)
@@ -446,7 +546,7 @@ def _apply_position_jump(
     available = len(fixture.trajectory) - count - 1
     if available <= 0:
         raise ValueError("position fault exceeds the available trajectory samples")
-    start = _selection(seed, "trajectory.position_jump", available + 1)
+    start = 1 + _selection(seed, "trajectory.position_jump", available)
     interval = _time_interval_for_trajectory(fixture, start, count)
     trajectory = cast(list[dict[str, object]], payload["trajectory"])
     for index in range(start, start + count):
@@ -457,6 +557,102 @@ def _apply_position_jump(
         ):
             matrix[matrix_index] = round(matrix[matrix_index] + delta, 12)
     return interval, ("synthetic-trajectory",), ("trajectory.position",)
+
+
+def _trajectory_position_target(
+    fixture: SyntheticFixture,
+    duration_s: float,
+    seed: int,
+    label: str,
+) -> tuple[int, int, SourceInterval]:
+    count = _duration_samples(duration_s, fixture.sample_period_ns)
+    available = len(fixture.trajectory) - count - 1
+    if available <= 0:
+        raise ValueError("position fault exceeds the available trajectory samples")
+    start = 1 + _selection(seed, label, available)
+    return start, count, _time_interval_for_trajectory(fixture, start, count)
+
+
+def _translate_trajectory_positions(
+    payload: dict[str, object],
+    start: int,
+    count: int,
+    translation_at_offset: Callable[[int], Vector3],
+) -> None:
+    trajectory = cast(list[dict[str, object]], payload["trajectory"])
+    for offset, index in enumerate(range(start, start + count)):
+        translation = translation_at_offset(offset)
+        transform = cast(dict[str, object], trajectory[index]["world_from_rig"])
+        matrix = cast(list[float], transform["row_major_4x4"])
+        for matrix_index, delta in zip((3, 7, 11), translation, strict=True):
+            matrix[matrix_index] = round(matrix[matrix_index] + delta, 12)
+
+
+def _apply_position_freeze(
+    payload: dict[str, object],
+    fixture: SyntheticFixture,
+    parameters: PositionFreezeParameters,
+    seed: int,
+) -> tuple[SourceInterval, tuple[str, ...], tuple[str, ...]]:
+    start, count, interval = _trajectory_position_target(
+        fixture, parameters.duration_s, seed, "trajectory.position_freeze"
+    )
+    trajectory = cast(list[dict[str, object]], payload["trajectory"])
+    source_matrix = cast(
+        list[float],
+        cast(dict[str, object], trajectory[start]["world_from_rig"])["row_major_4x4"],
+    )
+    frozen_position = (source_matrix[3], source_matrix[7], source_matrix[11])
+    for index in range(start + 1, start + count):
+        transform = cast(dict[str, object], trajectory[index]["world_from_rig"])
+        matrix = cast(list[float], transform["row_major_4x4"])
+        matrix[3], matrix[7], matrix[11] = frozen_position
+    return interval, ("synthetic-trajectory",), ("trajectory.position",)
+
+
+def _apply_position_bias(
+    payload: dict[str, object],
+    fixture: SyntheticFixture,
+    parameters: PositionBiasParameters,
+    seed: int,
+) -> tuple[SourceInterval, tuple[str, ...], tuple[str, ...]]:
+    start = 0
+    count = len(fixture.trajectory)
+    interval = _full_trajectory_interval(fixture)
+    scale = 1.0 - (seed % 3) * parameters.seed_scale_decrement_fraction
+    effective_translation = cast(
+        Vector3, tuple(value * scale for value in parameters.translation_m)
+    )
+    _translate_trajectory_positions(
+        payload, start, count, lambda _offset: effective_translation
+    )
+    return interval, ("synthetic-trajectory",), ("trajectory.position",)
+
+
+def _apply_position_drift(
+    payload: dict[str, object],
+    fixture: SyntheticFixture,
+    parameters: PositionDriftParameters,
+    seed: int,
+) -> tuple[SourceInterval, tuple[str, ...], tuple[str, ...]]:
+    start, count, interval = _trajectory_position_target(
+        fixture, parameters.duration_s, seed, "trajectory.position_drift"
+    )
+
+    def translation(offset: int) -> Vector3:
+        fraction = (offset + 1) / count
+        return cast(
+            Vector3,
+            tuple(value * fraction for value in parameters.terminal_translation_m),
+        )
+
+    suffix_count = len(fixture.trajectory) - start
+    _translate_trajectory_positions(payload, start, suffix_count, translation)
+    suffix_interval = SourceInterval(
+        start=interval.start,
+        end=_full_trajectory_interval(fixture).end,
+    )
+    return suffix_interval, ("synthetic-trajectory",), ("trajectory.position",)
 
 
 def _apply_point_time_shift(
@@ -674,6 +870,12 @@ def _apply_registered_case(
         return _apply_timestamp_discontinuity(payload, fixture, parameters, seed)
     if isinstance(parameters, PositionJumpParameters):
         return _apply_position_jump(payload, fixture, parameters, seed)
+    if isinstance(parameters, PositionFreezeParameters):
+        return _apply_position_freeze(payload, fixture, parameters, seed)
+    if isinstance(parameters, PositionBiasParameters):
+        return _apply_position_bias(payload, fixture, parameters, seed)
+    if isinstance(parameters, PositionDriftParameters):
+        return _apply_position_drift(payload, fixture, parameters, seed)
     if isinstance(parameters, PointTimeShiftParameters):
         return _apply_point_time_shift(payload, fixture, parameters, seed)
     if isinstance(parameters, RingLossParameters):
@@ -686,6 +888,9 @@ def _apply_registered_case(
 _CAPABILITIES: dict[FaultOperatorId, tuple[str, ...]] = {
     FaultOperatorId.TIMESTAMP_DISCONTINUITY: ("trajectory-timestamp-integrity",),
     FaultOperatorId.POSITION_JUMP: ("trajectory-position-integrity",),
+    FaultOperatorId.POSITION_FREEZE: ("trajectory-position-integrity",),
+    FaultOperatorId.POSITION_BIAS: ("trajectory-position-integrity",),
+    FaultOperatorId.POSITION_DRIFT: ("trajectory-position-integrity",),
     FaultOperatorId.POINT_TIME_SHIFT: ("lidar-point-time-integrity",),
     FaultOperatorId.RING_LOSS: ("lidar-coverage-integrity",),
     FaultOperatorId.AZIMUTH_SECTOR_LOSS: ("lidar-coverage-integrity",),
@@ -741,7 +946,7 @@ def inject_fault(
         source_identity_sha256=source_hash,
         source_family_id=fixture.synthetic_family_id,
         source_group_id=fixture.synthetic_family_id,
-        inherited_partition="development",
+        inherited_partition=fixture.partition,
         clean_source_truth_sha256=request.clean_source_truth_sha256,
         target_streams=target_streams,
         target_fields=target_fields,
@@ -847,6 +1052,7 @@ __all__ = [
     "AzimuthSectorLossParameters",
     "CalibrationPerturbationParameters",
     "ChangedValue",
+    "ExpectedGateOutcome",
     "FaultManifest",
     "FaultOperatorId",
     "FaultRegistry",
@@ -854,6 +1060,9 @@ __all__ = [
     "FaultResult",
     "FaultSeverity",
     "PointTimeShiftParameters",
+    "PositionBiasParameters",
+    "PositionDriftParameters",
+    "PositionFreezeParameters",
     "PositionJumpParameters",
     "RingLossParameters",
     "TimestampDiscontinuityParameters",

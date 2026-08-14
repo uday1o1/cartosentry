@@ -30,7 +30,14 @@ FROZEN_PATHS = {
     "numerical_charter": Path("benchmarks/numerical_charter.yaml"),
     "fault_matrix": Path("benchmarks/fault_matrix_v1.yaml"),
     "fallback_tree": Path("benchmarks/fallback_tree.yaml"),
+    "charter_revisions": Path("benchmarks/charter_revisions.yaml"),
 }
+CHARTER_COMPONENT_NAMES = (
+    "split_manifest",
+    "numerical_charter",
+    "fault_matrix",
+    "fallback_tree",
+)
 
 
 class CharterError(ValueError):
@@ -374,9 +381,11 @@ def _validate_fault_matrix(matrix: dict[str, Any]) -> None:
         _fail(f"follow-on fault operator unexpectedly allowed: {operator_id}")
 
 
-def _validate_fallback_tree(tree: dict[str, Any], charter: dict[str, Any]) -> None:
-    if tree.get("schema_version") != 1 or tree.get("fallback_tree_version") != "v0":
-        _fail("fallback tree must be schema 1 and version v0")
+def _validate_fallback_tree(
+    tree: dict[str, Any], charter: dict[str, Any], matrix: dict[str, Any]
+) -> None:
+    if tree.get("schema_version") != 1 or tree.get("fallback_tree_version") != "v1":
+        _fail("fallback tree must be schema 1 and version v1")
     gate_keys = set(cast(dict[str, Any], charter.get("gates")))
     branch_ids: set[str] = set()
     required_fields = {
@@ -431,6 +440,135 @@ def _validate_fallback_tree(tree: dict[str, Any], charter: dict[str, Any]) -> No
                 _require_string(branch.get(field), f"{branch_id}.{field}")
         if priorities != list(range(1, len(branches) + 1)):
             _fail(f"fallback priorities for {track_id} must be contiguous and ordered")
+    fault_tracks = [
+        cast(dict[str, Any], track)
+        for track in tracks
+        if cast(dict[str, Any], track).get("track_id") == "v1-supported-fault-detection"
+    ]
+    if len(fault_tracks) != 1:
+        _fail("fallback tree must contain one V1 fault-detection track")
+    fault_branches = {
+        cast(str, branch.get("branch_id")): branch
+        for branch in cast(list[dict[str, Any]], fault_tracks[0]["branches"])
+    }
+    matrix_allowlist = set(cast(list[str], matrix["v1_operator_allowlist"]))
+    for branch_id in ("fault-primary-all-v1", "fault-narrow-generated-only-v1"):
+        fault_branch = fault_branches.get(branch_id)
+        if (
+            fault_branch is None
+            or set(cast(list[str], fault_branch.get("supported_fault_families", [])))
+            != matrix_allowlist
+        ):
+            _fail(f"fallback branch {branch_id} must match the exact fault allowlist")
+
+
+def _aggregate_component_sha256(component_hashes: dict[str, str]) -> str:
+    return _canonical_sha256(component_hashes)
+
+
+def _validate_charter_revisions(
+    revisions: dict[str, Any],
+    *,
+    root: Path,
+    split: dict[str, Any],
+    charter: dict[str, Any],
+    matrix: dict[str, Any],
+    fallback: dict[str, Any],
+) -> None:
+    if revisions.get("schema_version") != 1:
+        _fail("charter revision history schema_version must be 1")
+    if revisions.get("charter_id") != "cartosentry-v1-evaluation":
+        _fail("charter revision history identifier is invalid")
+    if revisions.get("freeze_state") != "FROZEN_PRE_UNBLINDING":
+        _fail("charter revision history must remain frozen before unblinding")
+    component_versions = {
+        "split_manifest": split.get("split_version"),
+        "numerical_charter": charter.get("charter_version"),
+        "fault_matrix": matrix.get("matrix_version"),
+        "fallback_tree": fallback.get("fallback_tree_version"),
+    }
+    if revisions.get("current_component_versions") != component_versions:
+        _fail("charter revision component versions do not match frozen inputs")
+    component_hashes = {
+        name: _file_sha256(root / FROZEN_PATHS[name])
+        for name in CHARTER_COMPONENT_NAMES
+    }
+    if revisions.get("current_component_file_sha256") != component_hashes:
+        _fail("charter revision component hashes do not match frozen inputs")
+    aggregate_hash = _aggregate_component_sha256(component_hashes)
+    if revisions.get("current_aggregate_sha256") != aggregate_hash:
+        _fail("current aggregate charter hash is invalid")
+    history = _require_list(revisions.get("revisions"), "charter revisions")
+    if not history:
+        _fail("charter revision history must record every post-v0 revision")
+    previous_new_hashes: dict[str, str] | None = None
+    for index, raw_revision in enumerate(history, start=1):
+        if not isinstance(raw_revision, dict):
+            _fail("charter revision must be a mapping")
+        revision = cast(dict[str, Any], raw_revision)
+        version = f"v{index}"
+        predecessor_version = f"v{index - 1}"
+        if revision.get("version") != version:
+            _fail("charter revision versions must be contiguous")
+        if revision.get("predecessor_version") != predecessor_version:
+            _fail(f"charter revision {version} predecessor is invalid")
+        for field in (
+            "recorded_at_utc",
+            "rationale",
+            "expected_risk",
+            "predecessor_aggregate_sha256",
+            "new_aggregate_sha256",
+        ):
+            _require_string(revision.get(field), f"{version}.{field}")
+        if revision.get("unblinding_state") != "PRE_UNBLINDING":
+            _fail(f"charter revision {version} was not recorded pre-unblinding")
+        affected = _require_list(
+            revision.get("affected_detectors"), f"{version}.affected_detectors"
+        )
+        if not affected or any(
+            not isinstance(item, str) or not item for item in affected
+        ):
+            _fail(f"charter revision {version} affected detectors are invalid")
+        partitions = _require_list(
+            revision.get("data_partitions"), f"{version}.data_partitions"
+        )
+        if not partitions or not set(cast(list[str], partitions)).issubset(
+            set(ORDINARY_PARTITIONS)
+        ):
+            _fail(f"charter revision {version} data partitions are invalid")
+        predecessor_hashes = revision.get("predecessor_component_file_sha256")
+        new_hashes = revision.get("new_component_file_sha256")
+        if not isinstance(predecessor_hashes, dict) or set(predecessor_hashes) != set(
+            CHARTER_COMPONENT_NAMES
+        ):
+            _fail(f"charter revision {version} predecessor hashes are invalid")
+        if not isinstance(new_hashes, dict) or set(new_hashes) != set(
+            CHARTER_COMPONENT_NAMES
+        ):
+            _fail(f"charter revision {version} new hashes are invalid")
+        predecessor_hash_mapping = cast(dict[str, str], predecessor_hashes)
+        new_hash_mapping = cast(dict[str, str], new_hashes)
+        if revision["predecessor_aggregate_sha256"] != _aggregate_component_sha256(
+            predecessor_hash_mapping
+        ):
+            _fail(f"charter revision {version} predecessor aggregate hash is invalid")
+        if revision["new_aggregate_sha256"] != _aggregate_component_sha256(
+            new_hash_mapping
+        ):
+            _fail(f"charter revision {version} new aggregate hash is invalid")
+        if (
+            previous_new_hashes is not None
+            and predecessor_hash_mapping != previous_new_hashes
+        ):
+            _fail(f"charter revision {version} does not continue the hash chain")
+        previous_new_hashes = new_hash_mapping
+    latest = cast(dict[str, Any], history[-1])
+    if revisions.get("current_version") != latest.get("version"):
+        _fail("current charter version does not match the latest revision")
+    if latest.get("new_component_file_sha256") != component_hashes:
+        _fail("latest charter revision does not bind the frozen inputs")
+    if latest.get("new_aggregate_sha256") != aggregate_hash:
+        _fail("latest charter revision does not bind the aggregate charter")
 
 
 def validate_contract(root: Path = REPOSITORY_ROOT) -> dict[str, Any]:
@@ -440,16 +578,26 @@ def validate_contract(root: Path = REPOSITORY_ROOT) -> dict[str, Any]:
     charter = _load_mapping(root / FROZEN_PATHS["numerical_charter"])
     matrix = _load_mapping(root / FROZEN_PATHS["fault_matrix"])
     fallback = _load_mapping(root / FROZEN_PATHS["fallback_tree"])
+    revisions = _load_mapping(root / FROZEN_PATHS["charter_revisions"])
     _validate_split(split, root, source_groups, data)
     _validate_numerical_charter(charter)
     _validate_fault_matrix(matrix)
-    _validate_fallback_tree(fallback, charter)
+    _validate_fallback_tree(fallback, charter, matrix)
+    _validate_charter_revisions(
+        revisions,
+        root=root,
+        split=split,
+        charter=charter,
+        matrix=matrix,
+        fallback=fallback,
+    )
     hashes = {name: _file_sha256(root / path) for name, path in FROZEN_PATHS.items()}
     return {
         "schema_version": 1,
         "state": "VALID",
-        "charter_version": charter["charter_version"],
-        "charter_immutable_sha256": charter["immutable_sha256"],
+        "charter_version": revisions["current_version"],
+        "charter_immutable_sha256": revisions["current_aggregate_sha256"],
+        "component_versions": revisions["current_component_versions"],
         "file_sha256": hashes,
         "ordinary_synthetic_family_count": len(
             _expanded_synthetic_families(split, include_final=False)
