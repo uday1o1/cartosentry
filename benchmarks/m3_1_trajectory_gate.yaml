@@ -1,0 +1,124 @@
+{
+  "schema_version": 1,
+  "gate_version": "m3.1-trajectory-v1",
+  "freeze_state": "FROZEN_BEFORE_M3_1_IMPLEMENTATION",
+  "hash_contract": "SHA-256 of canonical UTF-8 JSON with immutable_sha256 omitted",
+  "immutable_sha256": "7f8a68faddc0afd2f59f59968b9af7e04cfbfbb012759564c6a61a37416e9370",
+  "parameters": {
+    "maximum_support_gap_ns": 100000000,
+    "derivative_half_window_samples": 4,
+    "derivative_polynomial_degree": 3,
+    "least_squares_rcond": 1e-12,
+    "huber_delta": 1.5,
+    "robust_maximum_iterations": 12,
+    "robust_convergence_tolerance": 1e-12,
+    "stationary_speed_threshold_mps": 0.05,
+    "stationary_minimum_duration_ns": 500000000,
+    "analytic_transition_exclusion_ns": 250000000
+  },
+  "required_scenarios": [
+    "straight",
+    "constant_radius_turn",
+    "stop_start",
+    "stationary",
+    "timestamp_gap"
+  ],
+  "gates": {
+    "interpolation.position_max_error_m": {
+      "operator": "max_le",
+      "value": 0.002,
+      "unit": "m",
+      "decision_bound": "deterministic_exhaustive",
+      "responsible_metric": "maximum local-world midpoint translation error over every supported source pair",
+      "rationale": "Keep interpolation approximation error within two millimeters on analytic paths."
+    },
+    "interpolation.orientation_max_error_rad": {
+      "operator": "max_le",
+      "value": 1e-09,
+      "unit": "rad",
+      "decision_bound": "deterministic_exhaustive",
+      "responsible_metric": "maximum stable relative-quaternion error from independent shortest-path slerp over every supported source pair",
+      "rationale": "Require the checked orientation interpolator to agree with independent float64 slerp to one nanoradian."
+    },
+    "derivative.velocity_max_error_mps": {
+      "operator": "max_le",
+      "value": 0.005,
+      "unit": "m/s",
+      "decision_bound": "deterministic_exhaustive",
+      "responsible_metric": "maximum Euclidean velocity error outside declared analytic derivative discontinuities",
+      "rationale": "Resolve centimeter-per-second-scale trajectory changes with margin."
+    },
+    "derivative.acceleration_max_error_mps2": {
+      "operator": "max_le",
+      "value": 0.02,
+      "unit": "m/s^2",
+      "decision_bound": "deterministic_exhaustive",
+      "responsible_metric": "maximum Euclidean acceleration error outside declared analytic derivative discontinuities",
+      "rationale": "Preserve physically useful acceleration evidence on the analytic turn and constant-motion controls."
+    },
+    "derivative.jerk_max_error_mps3": {
+      "operator": "max_le",
+      "value": 0.1,
+      "unit": "m/s^3",
+      "decision_bound": "deterministic_exhaustive",
+      "responsible_metric": "maximum Euclidean jerk error outside declared analytic derivative discontinuities",
+      "rationale": "Keep third-derivative error below the scale used by later integrity detection."
+    },
+    "derivative.heading_max_error_rad": {
+      "operator": "max_le",
+      "value": 1e-09,
+      "unit": "rad",
+      "decision_bound": "deterministic_exhaustive",
+      "responsible_metric": "maximum wrapped heading error outside declared analytic derivative discontinuities",
+      "rationale": "Verify heading unwrap and local fitting without a visible angular bias."
+    },
+    "derivative.yaw_rate_max_error_radps": {
+      "operator": "max_le",
+      "value": 0.001,
+      "unit": "rad/s",
+      "decision_bound": "deterministic_exhaustive",
+      "responsible_metric": "maximum yaw-rate error outside declared analytic derivative discontinuities",
+      "rationale": "Retain milliradian-per-second sensitivity on the constant-radius turn."
+    },
+    "derivative.curvature_max_error_per_m": {
+      "operator": "max_le",
+      "value": 0.0005,
+      "unit": "1/m",
+      "decision_bound": "deterministic_exhaustive",
+      "responsible_metric": "maximum planar curvature error outside declared analytic derivative discontinuities",
+      "rationale": "Keep curvature error small relative to the 0.2 per-meter analytic turn."
+    },
+    "derivative.robust_outlier_velocity_max_error_mps": {
+      "operator": "max_le",
+      "value": 0.05,
+      "unit": "m/s",
+      "decision_bound": "deterministic_exhaustive",
+      "responsible_metric": "velocity error at a seeded five-meter isolated position outlier",
+      "rationale": "Require robust reweighting to contain one extreme local position sample."
+    },
+    "stationary.required_true_fraction": {
+      "operator": "fraction_ge",
+      "value": 1.0,
+      "unit": "fraction",
+      "decision_bound": "deterministic_exhaustive",
+      "responsible_metric": "fraction of eligible clean and seeded-outlier stationary probes classified stationary",
+      "rationale": "Every declared stationary control must remain stationary, including the robust outlier control."
+    },
+    "stationary.required_moving_fraction": {
+      "operator": "fraction_ge",
+      "value": 1.0,
+      "unit": "fraction",
+      "decision_bound": "deterministic_exhaustive",
+      "responsible_metric": "fraction of eligible analytic moving probes classified moving",
+      "rationale": "Every declared moving control must remain moving."
+    },
+    "support.required_unsupported_fraction": {
+      "operator": "fraction_ge",
+      "value": 1.0,
+      "unit": "fraction",
+      "decision_bound": "deterministic_exhaustive",
+      "responsible_metric": "fraction of gap and extrapolation probes returning their exact expected unsupported reason",
+      "rationale": "Never interpolate across a long gap or extrapolate beyond source support."
+    }
+  }
+}

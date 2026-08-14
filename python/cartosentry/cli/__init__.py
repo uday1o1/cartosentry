@@ -43,6 +43,7 @@ from cartosentry.recovery import qualify_run_recovery, resume_registered_run
 from cartosentry.scheduler import qualify_scheduler
 from cartosentry.spikes import qualify_observability
 from cartosentry.synthetic import materialize_fixture_set, qualify_fixture_set
+from cartosentry.trajectory import qualify_reference_trajectory
 
 app = typer.Typer(
     name="cartosentry",
@@ -679,6 +680,43 @@ def qualify_synthetic_fixtures_command(
         _write_report(report, None)
     except (OSError, ValueError, ValidationError) as error:
         typer.echo(f"Synthetic fixture qualification failed: {error}", err=True)
+        raise typer.Exit(code=2) from error
+    if not report["accepted"]:
+        raise typer.Exit(code=1)
+
+
+@app.command("qualify-reference-trajectory")
+def qualify_reference_trajectory_command(
+    gate: Annotated[
+        Path,
+        typer.Option(
+            "--gate",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen deterministic M3.1 trajectory acceptance gate.",
+        ),
+    ] = Path("benchmarks/m3_1_trajectory_gate.yaml"),
+    output: Annotated[
+        Path | None,
+        typer.Option(
+            "--output",
+            file_okay=True,
+            dir_okay=False,
+            resolve_path=True,
+            help="Write the deterministic qualification report atomically.",
+        ),
+    ] = None,
+) -> None:
+    """Qualify interpolation, derivatives, stationarity, and gap handling."""
+
+    try:
+        report = qualify_reference_trajectory(gate)
+        _write_report(report, output)
+    except (OSError, ValueError, ValidationError) as error:
+        typer.echo(f"Reference trajectory qualification failed: {error}", err=True)
         raise typer.Exit(code=2) from error
     if not report["accepted"]:
         raise typer.Exit(code=1)
