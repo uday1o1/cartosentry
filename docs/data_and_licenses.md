@@ -108,14 +108,14 @@ An empty `gpu-perf` selection is not performance evidence and cannot pass a hard
 The manifest and partition contract can be checked without downloading payloads.
 
 ```console
-python3 scripts/verify_public_data.py --manifest-only
+uv run python scripts/verify_public_data.py --manifest-only
 ```
 
 The public smoke tier can be downloaded and then verified without a browser.
 
 ```console
-python3 scripts/download_public_data.py --tier public-smoke
-python3 scripts/verify_public_data.py --tier public-smoke
+uv run python scripts/download_public_data.py --tier public-smoke
+uv run python scripts/verify_public_data.py --tier public-smoke
 ```
 
 The downloader writes through a process-unique partial file, synchronizes it, checks its exact size and SHA-256 identity, and only then atomically installs it.

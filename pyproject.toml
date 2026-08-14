@@ -1,0 +1,80 @@
+[build-system]
+requires = [
+  "scikit-build-core==1.0.3",
+  "pybind11==3.1.0",
+]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "cartosentry"
+version = "0.1.0"
+description = "Evidence-backed mapping-readiness analysis and recollection planning."
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+license = "Apache-2.0"
+authors = [
+  { name = "CartoSentry contributors" },
+]
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Programming Language :: C++",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.12",
+  "Typing :: Typed",
+]
+dependencies = [
+  "Jinja2==3.1.6",
+  "numpy==2.5.2",
+  "plotly==6.9.0",
+  "pyarrow==25.0.1",
+  "pydantic==2.13.4",
+  "PyYAML==6.0.3",
+  "scipy==1.18.0",
+  "shapely==2.1.2",
+  "typer==0.27.1",
+]
+
+[dependency-groups]
+dev = [
+  "cmake==4.4.2",
+  "hypothesis==6.165.5",
+  "mypy==2.3.0",
+  "ninja==1.13.0",
+  "pybind11==3.1.0",
+  "pytest==9.1.1",
+  "ruff==0.16.3",
+  "scikit-build-core==1.0.3",
+]
+
+[tool.scikit-build]
+minimum-version = "build-system.requires"
+build-dir = "build/{wheel_tag}"
+cmake.version = ">=3.28"
+ninja.version = ">=1.11"
+wheel.packages = ["python/cartosentry"]
+wheel.reproducible = true
+sdist.reproducible = true
+strict-config = true
+
+[tool.scikit-build.cmake.define]
+BUILD_TESTING = "OFF"
+CARTOSENTRY_BUILD_COMPATIBILITY_PROBE = "OFF"
+
+[tool.pytest.ini_options]
+addopts = "-ra --strict-config --strict-markers"
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+extend-exclude = [".venv", "build", "build-*", "dist"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "RUF", "SIM", "UP"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+files = ["python", "scripts"]
+exclude = ["scripts/check_public_safety.py"]

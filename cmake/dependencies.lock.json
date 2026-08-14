@@ -1,0 +1,193 @@
+{
+  "schema_version": 1,
+  "resolved_at_utc": "2026-08-14T01:28:00Z",
+  "policy": {
+    "immutable_release_identity_required": true,
+    "git_dependencies_require_full_commit": true,
+    "dependency_upgrades_require_focused_commit": true
+  },
+  "dependencies": {
+    "apache-arrow": {
+      "version": "25.0.1",
+      "source_url": "https://github.com/apache/arrow",
+      "source_ref": "apache-arrow-25.0.1",
+      "source_commit": "beccec0d0c451b7aa3e4530416ac431b3c035c69",
+      "license": "Apache-2.0",
+      "role": "columnar metrics and Parquet"
+    },
+    "catch2": {
+      "version": "3.15.3",
+      "source_url": "https://github.com/catchorg/Catch2",
+      "source_ref": "v3.15.3",
+      "source_commit": "8b08d4d79514f45f7e4ce2a607ac9c94e920d1bb",
+      "archive_url": "https://github.com/catchorg/Catch2/archive/8b08d4d79514f45f7e4ce2a607ac9c94e920d1bb.tar.gz",
+      "archive_sha256": "6789b4711430fe4fba8b5efe609038bf52c81c0cbdcdedf9b5d116794dfd5f2e",
+      "archive_bytes": 1209216,
+      "license": "BSL-1.0",
+      "role": "C++ tests"
+    },
+    "cli11": {
+      "version": "2.7.2",
+      "source_url": "https://github.com/CLIUtils/CLI11",
+      "source_ref": "v2.7.2",
+      "source_commit": "cbd58a3696887b34c70949aef21a71735a0c2ad5",
+      "license": "BSD-3-Clause",
+      "role": "native diagnostic executables"
+    },
+    "curl": {
+      "version": "8.21.0",
+      "source_url": "https://github.com/curl/curl",
+      "source_ref": "curl-8_21_0",
+      "source_commit": "68720b4837284335b2d63cb358f8f6ce65f5bc55",
+      "license": "curl",
+      "role": "optional S3-compatible transport"
+    },
+    "eigen": {
+      "version": "3.4.0",
+      "source_url": "https://gitlab.com/libeigen/eigen",
+      "source_ref": "3.4.0",
+      "source_commit": "3147391d946bb4b6c68edd901f2add6ac1f31f8c",
+      "archive_url": "https://gitlab.com/libeigen/eigen/-/archive/3147391d946bb4b6c68edd901f2add6ac1f31f8c/eigen-3147391d946bb4b6c68edd901f2add6ac1f31f8c.tar.gz",
+      "archive_sha256": "0c8c490764f9c2a793133491adca0cd073b73e0bde965c68cbe58d91b5ed4261",
+      "archive_bytes": 2710482,
+      "license": "MPL-2.0",
+      "role": "linear algebra and SE(3) storage"
+    },
+    "fmt": {
+      "version": "12.2.0",
+      "source_url": "https://github.com/fmtlib/fmt",
+      "source_ref": "12.2.0",
+      "source_commit": "1be298e1bd68957e4cd352e1f676f00e07dcfb57",
+      "archive_url": "https://github.com/fmtlib/fmt/archive/1be298e1bd68957e4cd352e1f676f00e07dcfb57.tar.gz",
+      "archive_sha256": "d041f836d9b2a3c1c0fe3cce81ffe6a4a257028faa2f4af0dd20d7e58b493766",
+      "archive_bytes": 738793,
+      "license": "MIT",
+      "role": "formatting through project wrappers"
+    },
+    "geographiclib": {
+      "version": "2.7",
+      "source_url": "https://github.com/geographiclib/geographiclib",
+      "source_ref": "v2.7",
+      "source_commit": "15cddd7eed9f7f61ead6dba2229d45b271dbdeda",
+      "archive_url": "https://github.com/geographiclib/geographiclib/archive/15cddd7eed9f7f61ead6dba2229d45b271dbdeda.tar.gz",
+      "archive_sha256": "ca5da87cbd8d0f00f14b1bfb49fde37974aacc8c5320cfb27a62ef0e18417a64",
+      "archive_bytes": 1569480,
+      "license": "MIT",
+      "role": "WGS84 and local Cartesian conversion"
+    },
+    "libosmium": {
+      "version": "2.23.1",
+      "source_url": "https://github.com/osmcode/libosmium",
+      "source_ref": "v2.23.1",
+      "source_commit": "97dccf105391d410701ae8bd52170dc0ee041373",
+      "license": "BSL-1.0",
+      "role": "streaming OpenStreetMap parsing"
+    },
+    "nanoflann": {
+      "version": "1.12.1",
+      "source_url": "https://github.com/jlblancoc/nanoflann",
+      "source_ref": "1.12.1",
+      "source_commit": "7812aa08260b6971af2230b1ac446d54f7939822",
+      "license": "BSD-2-Clause",
+      "role": "local nearest-neighbor indices"
+    },
+    "nlohmann-json": {
+      "version": "3.12.0",
+      "source_url": "https://github.com/nlohmann/json",
+      "source_ref": "v3.12.0",
+      "source_commit": "55f93686c01528224f448c19128836e7df245f72",
+      "archive_url": "https://github.com/nlohmann/json/archive/55f93686c01528224f448c19128836e7df245f72.tar.gz",
+      "archive_sha256": "67f4cdd9ca930c9c1e130af4a437c7fc98fab77a2846fc2d2a14b4943831f8ef",
+      "archive_bytes": 9681256,
+      "license": "MIT",
+      "role": "native JSON"
+    },
+    "opencv": {
+      "version": "5.0.0",
+      "source_url": "https://github.com/opencv/opencv",
+      "source_ref": "5.0.0",
+      "source_commit": "40738fb16ceddb5fb3fea747585f7ce6abb0605b",
+      "archive_url": "https://github.com/opencv/opencv/archive/40738fb16ceddb5fb3fea747585f7ce6abb0605b.tar.gz",
+      "archive_sha256": "23affb17b8f7a46517a62b5e9fa637a8bc660acb5460bef9f130ee939df01ebb",
+      "archive_bytes": 81622927,
+      "license": "Apache-2.0",
+      "role": "image decode, statistics, and evidence rendering"
+    },
+    "protozero": {
+      "version": "1.8.2",
+      "source_url": "https://github.com/mapbox/protozero",
+      "source_ref": "v1.8.2",
+      "source_commit": "af2f6e274e0a873a00e34d8c9ab99fca76898047",
+      "license": "BSD-2-Clause",
+      "role": "libosmium protocol buffer support"
+    },
+    "pybind11": {
+      "version": "3.1.0",
+      "source_url": "https://github.com/pybind/pybind11",
+      "source_ref": "v3.1.0",
+      "source_commit": "97bf890db679505a14dfe547a5e77bb2bd05dc90",
+      "license": "BSD-3-Clause",
+      "role": "narrow Python bindings"
+    },
+    "rapidcheck": {
+      "version": "2026-08-06-snapshot",
+      "source_url": "https://github.com/emil-e/rapidcheck",
+      "source_ref": "master@2026-08-06",
+      "source_commit": "6e8dadfdafa3a74eabb52ead87f8787f72eccd0b",
+      "license": "BSD-2-Clause",
+      "role": "C++ property tests"
+    },
+    "sophus": {
+      "version": "1.0.0",
+      "source_url": "https://github.com/strasdat/Sophus",
+      "source_ref": "v1.0.0",
+      "source_commit": "db218a249202fe63ac13248b5f565b0d385f6640",
+      "archive_url": "https://github.com/strasdat/Sophus/archive/db218a249202fe63ac13248b5f565b0d385f6640.tar.gz",
+      "archive_sha256": "9988d5554af187318791de6f130466b54db4502c2f695c4741eaba0964f45652",
+      "archive_bytes": 35092,
+      "license": "MIT",
+      "role": "checked SO(3) and SE(3) operations"
+    },
+    "spdlog": {
+      "version": "1.17.0",
+      "source_url": "https://github.com/gabime/spdlog",
+      "source_ref": "v1.17.0",
+      "source_commit": "79524ddd08a4ec981b7fea76afd08ee05f83755d",
+      "archive_url": "https://github.com/gabime/spdlog/archive/79524ddd08a4ec981b7fea76afd08ee05f83755d.tar.gz",
+      "archive_sha256": "c6dee844e35a54cc80e3ab76aae2310763e0b49c7397549dfa4d4657d9737138",
+      "archive_bytes": 281845,
+      "license": "MIT",
+      "role": "structured local logging"
+    },
+    "sqlite": {
+      "version": "3.53.4",
+      "source_url": "https://sqlite.org/releaselog/3_53_4.html",
+      "source_ref": "2026-07-24 release",
+      "source_commit": "bf7c7f30031888f4e796e429ab3978879485813aaca6f641c7b33e4e09459bcc",
+      "archive_url": "https://sqlite.org/2026/sqlite-amalgamation-3530400.zip",
+      "archive_sha256": "1e71ddf93849c6a6ecf58b827c0692073d2dd7ee40196158068f7b29f422e87d",
+      "archive_bytes": 2946650,
+      "license": "Public-Domain",
+      "role": "local run-state database"
+    },
+    "yaml-cpp": {
+      "version": "0.9.0",
+      "source_url": "https://github.com/jbeder/yaml-cpp",
+      "source_ref": "yaml-cpp-0.9.0",
+      "source_commit": "56e3bb550c91fd7005566f19c079cb7a503223cf",
+      "archive_url": "https://github.com/jbeder/yaml-cpp/archive/56e3bb550c91fd7005566f19c079cb7a503223cf.tar.gz",
+      "archive_sha256": "b8e01ea231a96d6984b0795f225281d1e9989f40ccd589568a051450f41e9151",
+      "archive_bytes": 1057032,
+      "license": "MIT",
+      "role": "native profile parsing after Python validation"
+    },
+    "zstd": {
+      "version": "1.5.7",
+      "source_url": "https://github.com/facebook/zstd",
+      "source_ref": "v1.5.7",
+      "source_commit": "f8745da6ff1ad1e7bab384bd1f9d742439278e99",
+      "license": "BSD-3-Clause OR GPL-2.0-only",
+      "role": "optional accepted-data shard compression"
+    }
+  }
+}

@@ -1,0 +1,94 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 28,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "BUILD_TESTING": "ON",
+        "CARTOSENTRY_BUILD_PYTHON": "ON",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "Python_EXECUTABLE": "$env{VIRTUAL_ENV}/bin/python",
+        "pybind11_DIR": "$env{VIRTUAL_ENV}/lib/python3.12/site-packages/pybind11/share/cmake/pybind11"
+      }
+    },
+    {
+      "name": "developer",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "release",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "sanitizer",
+      "inherits": "developer",
+      "cacheVariables": {
+        "CARTOSENTRY_ENABLE_SANITIZERS": "ON"
+      }
+    },
+    {
+      "name": "compatibility",
+      "inherits": "developer",
+      "cacheVariables": {
+        "CARTOSENTRY_BUILD_COMPATIBILITY_PROBE": "ON"
+      }
+    },
+    {
+      "name": "coverage",
+      "inherits": "developer",
+      "cacheVariables": {
+        "CARTOSENTRY_ENABLE_COVERAGE": "ON"
+      }
+    },
+    {
+      "name": "cuda",
+      "inherits": "release",
+      "cacheVariables": {
+        "CARTOSENTRY_ENABLE_CUDA": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {"name": "developer", "configurePreset": "developer"},
+    {"name": "release", "configurePreset": "release"},
+    {"name": "sanitizer", "configurePreset": "sanitizer"},
+    {"name": "compatibility", "configurePreset": "compatibility"},
+    {"name": "coverage", "configurePreset": "coverage"}
+  ],
+  "testPresets": [
+    {
+      "name": "developer",
+      "configurePreset": "developer",
+      "output": {"outputOnFailure": true}
+    },
+    {
+      "name": "release",
+      "configurePreset": "release",
+      "output": {"outputOnFailure": true}
+    },
+    {
+      "name": "sanitizer",
+      "configurePreset": "sanitizer",
+      "output": {"outputOnFailure": true}
+    },
+    {
+      "name": "compatibility",
+      "configurePreset": "compatibility",
+      "output": {"outputOnFailure": true}
+    }
+  ]
+}

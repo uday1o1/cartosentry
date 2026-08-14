@@ -5,20 +5,21 @@ from __future__ import annotations
 
 import argparse
 import csv
+import itertools
 import json
 import statistics
 import sys
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 from public_data_manifest import ManifestError, selected_artifacts, validate_contract
 
 
 def _timestamp_extent(
     path: Path, expected_field: str, timestamp_divisor: float = 1.0
-) -> Tuple[float, float]:
-    first: Optional[float] = None
-    last: Optional[float] = None
+) -> tuple[float, float]:
+    first: float | None = None
+    last: float | None = None
     with path.open("r", encoding="utf-8", newline="") as handle:
         reader = csv.DictReader(handle)
         if reader.fieldnames is None or expected_field not in reader.fieldnames:
@@ -40,11 +41,11 @@ def _timestamp_extent(
 
 def _stream_measurement(
     data_root: Path,
-    artifact: Dict[str, Any],
+    artifact: dict[str, Any],
     suffix: str,
     timestamp_field: str,
     timestamp_divisor: float = 1.0,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     matches = [obj for obj in artifact["objects"] if obj["key"].endswith(suffix)]
     if len(matches) != 1:
         raise ManifestError(f"{artifact['id']} does not contain exactly one {suffix}")
@@ -60,12 +61,12 @@ def _stream_measurement(
     }
 
 
-def _lidar_measurement(data_root: Path, artifact: Dict[str, Any]) -> Dict[str, Any]:
+def _lidar_measurement(data_root: Path, artifact: dict[str, Any]) -> dict[str, Any]:
     objects = [obj for obj in artifact["objects"] if "/lidar/" in obj["key"]]
     if len(objects) < 2:
         raise ManifestError(f"{artifact['id']} has insufficient lidar frames")
     timestamps = [int(Path(obj["key"]).stem) / 1_000_000.0 for obj in objects]
-    periods = [later - earlier for earlier, later in zip(timestamps, timestamps[1:])]
+    periods = [later - earlier for earlier, later in itertools.pairwise(timestamps)]
     if any(period <= 0.0 for period in periods):
         raise ManifestError(
             f"{artifact['id']} lidar timestamps are not strictly increasing"
@@ -100,7 +101,7 @@ def main() -> int:
             "public-smoke",
             ["boreas-public-smoke-clear-v1", "boreas-public-smoke-snow-v1"],
         )
-        result: Dict[str, Any] = {"schema_version": 1, "artifacts": {}}
+        result: dict[str, Any] = {"schema_version": 1, "artifacts": {}}
         for artifact in artifacts:
             result["artifacts"][artifact["id"]] = {
                 "gps_post_process": _stream_measurement(

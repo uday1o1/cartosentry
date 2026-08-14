@@ -1,0 +1,14 @@
+.git
+.venv
+build
+build-*
+dist
+data
+runs
+artifacts
+evidence
+benchmark-results
+__pycache__
+*.pyc
+*.log
+.DS_Store

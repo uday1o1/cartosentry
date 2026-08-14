@@ -7,7 +7,7 @@ import argparse
 import hashlib
 import sys
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from public_data_manifest import (
     ManifestError,
@@ -39,7 +39,7 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def _verify_artifact(
-    artifact: Dict[str, Any], input_root: Path, repository_root: Path
+    artifact: dict[str, Any], input_root: Path, repository_root: Path
 ) -> int:
     aggregate = hashlib.sha256()
     verified_bytes = 0
@@ -71,7 +71,8 @@ def _verify_artifact(
     if verified_bytes != artifact["expected_bytes"]:
         raise ManifestError(f"aggregate byte count mismatch for {artifact['id']}")
     print(
-        f"verified {artifact['id']}: {len(artifact['objects'])} objects, {verified_bytes} bytes"
+        f"verified {artifact['id']}: {len(artifact['objects'])} objects, "
+        f"{verified_bytes} bytes"
     )
     return verified_bytes
 

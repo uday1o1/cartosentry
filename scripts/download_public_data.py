@@ -9,8 +9,9 @@ import re
 import sys
 import urllib.parse
 import urllib.request
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Dict, Iterable, Optional
+from typing import Any
 
 from public_data_manifest import (
     ManifestError,
@@ -50,7 +51,7 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def _open_request(
-    artifact: Dict[str, Any], obj: Dict[str, Any], repository_root: Path
+    artifact: dict[str, Any], obj: dict[str, Any], repository_root: Path
 ) -> Any:
     url = object_url(artifact, obj)
     headers = {"User-Agent": USER_AGENT, "Accept-Encoding": "identity"}
@@ -72,23 +73,24 @@ def _open_request(
 
 
 def normalize_overpass_osm_base(payload: bytes, snapshot: str) -> bytes:
-    """Replace only Overpass's live replication-base metadata with the query snapshot."""
+    """Replace only the live replication base with the query snapshot."""
     matches = list(OSM_BASE_RE.finditer(payload))
     if len(matches) != 1:
         raise ManifestError("Overpass response has no unique osm_base metadata")
     response_base = matches[0].group(1).decode("ascii")
     if response_base < snapshot:
         raise ManifestError(
-            f"Overpass response base {response_base} predates requested snapshot {snapshot}"
+            f"Overpass response base {response_base} predates requested "
+            f"snapshot {snapshot}"
         )
     replacement = f'<meta osm_base="{snapshot}"/>'.encode("ascii")
     return OSM_BASE_RE.sub(replacement, payload, count=1)
 
 
 def _check_final_test_authorization(
-    artifacts: Iterable[Dict[str, Any]],
+    artifacts: Iterable[dict[str, Any]],
     allow_final_test: bool,
-    unblinding_record: Optional[Path],
+    unblinding_record: Path | None,
 ) -> None:
     contains_final = any(
         artifact["partition"] == "final_test" for artifact in artifacts
@@ -102,8 +104,8 @@ def _check_final_test_authorization(
 
 
 def _download(
-    artifact: Dict[str, Any],
-    obj: Dict[str, Any],
+    artifact: dict[str, Any],
+    obj: dict[str, Any],
     destination: Path,
     repository_root: Path,
 ) -> str:

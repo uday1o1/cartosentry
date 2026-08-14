@@ -7,8 +7,9 @@ import hashlib
 import json
 import os
 import re
+from collections.abc import Iterable, Sequence
 from pathlib import Path, PurePosixPath
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
+from typing import Any
 from urllib.parse import quote, urlparse
 
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
@@ -42,7 +43,7 @@ class ManifestError(ValueError):
     """Raised when a public-data contract is internally inconsistent."""
 
 
-def load_json_yaml(path: Path) -> Dict[str, Any]:
+def load_json_yaml(path: Path) -> dict[str, Any]:
     """Load a JSON-compatible YAML file without adding a bootstrap dependency."""
     try:
         with path.open("r", encoding="utf-8") as handle:
@@ -75,7 +76,7 @@ def checked_relative_path(root: Path, value: str) -> Path:
     return candidate
 
 
-def object_url(artifact: Dict[str, Any], obj: Dict[str, Any]) -> str:
+def object_url(artifact: dict[str, Any], obj: dict[str, Any]) -> str:
     if "url" in obj:
         url = obj["url"]
     elif artifact["source_name"] == "Boreas":
@@ -83,6 +84,8 @@ def object_url(artifact: Dict[str, Any], obj: Dict[str, Any]) -> str:
         url = f"https://boreas.s3.amazonaws.com/{encoded_key}"
     else:
         raise ManifestError(f"object {obj['key']!r} has no retrieval URL")
+    if not isinstance(url, str):
+        raise ManifestError(f"object URL must be a string: {url!r}")
     parsed = urlparse(url)
     if parsed.scheme != "https" or not parsed.netloc:
         raise ManifestError(f"object URL must be absolute HTTPS: {url!r}")
@@ -108,8 +111,8 @@ def _validate_https_url(value: Any, context: str) -> None:
 
 
 def _group_contract(
-    groups: Dict[str, Any],
-) -> Tuple[Dict[str, str], Dict[str, Set[str]]]:
+    groups: dict[str, Any],
+) -> tuple[dict[str, str], dict[str, set[str]]]:
     if groups.get("schema_version") != 1:
         raise ManifestError("source_groups.yaml schema_version must be 1")
     _validate_utc_timestamp(groups.get("assigned_at_utc"), "source-group assignment")
@@ -124,8 +127,8 @@ def _group_contract(
     if policy != required_policy:
         raise ManifestError("source-group partition policy is incomplete or mutable")
 
-    partitions: Dict[str, str] = {}
-    sequences: Dict[str, Set[str]] = {}
+    partitions: dict[str, str] = {}
+    sequences: dict[str, set[str]] = {}
     for group in groups.get("source_groups", []):
         group_id = group.get("source_group_id")
         partition = group.get("partition")
@@ -155,7 +158,7 @@ def _group_contract(
     return partitions, sequences
 
 
-def validate_contract(manifest_path: Path, source_groups_path: Path) -> Dict[str, Any]:
+def validate_contract(manifest_path: Path, source_groups_path: Path) -> dict[str, Any]:
     manifest = load_json_yaml(manifest_path)
     groups = load_json_yaml(source_groups_path)
     group_partitions, group_sequences = _group_contract(groups)
@@ -180,7 +183,7 @@ def validate_contract(manifest_path: Path, source_groups_path: Path) -> Dict[str
     provenance = manifest.get("provenance_sources")
     if not isinstance(provenance, list) or not provenance:
         raise ManifestError("manifest has no provenance snapshots")
-    snapshot_hashes: Set[str] = set()
+    snapshot_hashes: set[str] = set()
     for record in provenance:
         for field in ("name", "url", "retrieved_at_utc", "expected_bytes", "sha256"):
             if field not in record:
@@ -211,7 +214,7 @@ def validate_contract(manifest_path: Path, source_groups_path: Path) -> Dict[str
     artifacts = manifest.get("artifacts")
     if not isinstance(artifacts, list) or not artifacts:
         raise ManifestError("manifest has no artifacts")
-    artifact_ids: Set[str] = set()
+    artifact_ids: set[str] = set()
     tier_bytes = {tier: 0 for tier in tiers}
     for artifact in artifacts:
         missing = ARTIFACT_REQUIRED_FIELDS.difference(artifact)
@@ -275,8 +278,8 @@ def validate_contract(manifest_path: Path, source_groups_path: Path) -> Dict[str
         objects = artifact["objects"]
         if not isinstance(objects, list) or not objects:
             raise ManifestError(f"{artifact_id} has no source objects")
-        keys: List[str] = []
-        source_keys: List[str] = []
+        keys: list[str] = []
+        source_keys: list[str] = []
         object_bytes = 0
         for obj in objects:
             key = obj.get("key")
@@ -339,10 +342,10 @@ def validate_contract(manifest_path: Path, source_groups_path: Path) -> Dict[str
 
 
 def selected_artifacts(
-    manifest: Dict[str, Any],
-    tier: Optional[str],
+    manifest: dict[str, Any],
+    tier: str | None,
     artifact_ids: Sequence[str],
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     known_ids = {artifact["id"] for artifact in manifest["artifacts"]}
     unknown = set(artifact_ids).difference(known_ids)
     if unknown:
@@ -360,11 +363,11 @@ def selected_artifacts(
 
 
 def selected_objects(
-    artifacts: Iterable[Dict[str, Any]], object_keys: Sequence[str]
-) -> List[Tuple[Dict[str, Any], Dict[str, Any]]]:
+    artifacts: Iterable[dict[str, Any]], object_keys: Sequence[str]
+) -> list[tuple[dict[str, Any], dict[str, Any]]]:
     requested = set(object_keys)
-    result: List[Tuple[Dict[str, Any], Dict[str, Any]]] = []
-    seen: Set[str] = set()
+    result: list[tuple[dict[str, Any], dict[str, Any]]] = []
+    seen: set[str] = set()
     for artifact in artifacts:
         for obj in artifact["objects"]:
             if requested and obj["key"] not in requested:
