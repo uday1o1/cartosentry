@@ -22,6 +22,7 @@ from cartosentry.artifacts import (
     canonicalize_portable_artifact,
     validate_artifact_json,
 )
+from cartosentry.contracts import TimeEpoch, TimePoint, TimeReference
 from cartosentry.faults import (
     FaultOperatorId,
     FaultRequest,
@@ -42,8 +43,23 @@ from cartosentry.manifest_boundaries import (
 from cartosentry.motion_alignment_qualification import qualify_motion_alignment
 from cartosentry.qualification import qualify_contracts
 from cartosentry.recovery import qualify_run_recovery, resume_registered_run
-from cartosentry.road_graph import import_osm_road_graph, load_graph_import_profile
+from cartosentry.road_graph import (
+    DirectedRoadGraph,
+    import_osm_road_graph,
+    load_graph_import_profile,
+    validate_graph_identity,
+)
 from cartosentry.road_graph_qualification import qualify_directed_road_graph
+from cartosentry.road_matching import (
+    CandidateState,
+    RoadCandidate,
+    best_emission_candidate,
+    generate_road_candidates,
+    load_map_matching_profile,
+    make_road_match_observation,
+    score_road_transition,
+    validate_matching_graph_authority,
+)
 from cartosentry.scheduler import qualify_scheduler
 from cartosentry.spikes import qualify_observability
 from cartosentry.synthetic import materialize_fixture_set, qualify_fixture_set
@@ -257,6 +273,316 @@ def qualify_road_graph_command(
         raise typer.Exit(code=2) from error
     if not report["accepted"]:
         raise typer.Exit(code=1)
+
+
+@app.command("score-road-candidates")
+def score_road_candidates_command(
+    graph_path: Annotated[
+        Path,
+        typer.Argument(
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Portable directed road-graph JSON.",
+        ),
+    ],
+    x_m: Annotated[float, typer.Option("--x-m", help="Graph-local east position.")],
+    y_m: Annotated[float, typer.Option("--y-m", help="Graph-local north position.")],
+    time_seconds: Annotated[
+        str,
+        typer.Option(
+            "--time-seconds",
+            help="Plain decimal Unix UTC observation time.",
+        ),
+    ],
+    speed_mps: Annotated[
+        float,
+        typer.Option("--speed-mps", min=0.0, help="Observed horizontal speed."),
+    ],
+    heading_rad: Annotated[
+        float | None,
+        typer.Option(
+            "--heading-rad",
+            min=-3.141592653589793,
+            max=3.141592653589793,
+            help="Optional graph-local heading in radians.",
+        ),
+    ] = None,
+    uncertainty_m: Annotated[
+        float | None,
+        typer.Option(
+            "--uncertainty-m",
+            min=0.000000001,
+            help="Optional trustworthy horizontal one-sigma uncertainty.",
+        ),
+    ] = None,
+    source_observation_id: Annotated[
+        str | None,
+        typer.Option(
+            "--source-observation-id",
+            help="Optional upstream normalized-observation identity.",
+        ),
+    ] = None,
+    profile_path: Annotated[
+        Path,
+        typer.Option(
+            "--profile",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen map-matching parameter charter.",
+        ),
+    ] = Path("profiles/map_matching_v1.yaml"),
+    output: Annotated[
+        Path | None,
+        typer.Option(
+            "--output",
+            file_okay=True,
+            dir_okay=False,
+            resolve_path=True,
+            help="Write deterministic candidate evidence atomically.",
+        ),
+    ] = None,
+) -> None:
+    """Project one local observation onto directed roads and the off-map state."""
+
+    try:
+        graph = DirectedRoadGraph.model_validate_json(_read_artifact(graph_path))
+        validate_graph_identity(graph)
+        profile, profile_file_sha256 = load_map_matching_profile(profile_path)
+        validate_matching_graph_authority(graph, profile)
+        time = TimePoint.from_decimal_seconds(
+            time_seconds,
+            source_key="cli/road-observation",
+            field="time_seconds",
+            epoch=TimeEpoch.UNIX_UTC,
+            clock_id="cli-unix-utc",
+            reference=TimeReference.SAMPLE,
+        )
+        observation = make_road_match_observation(
+            time=time,
+            local_frame_id=graph.local_frame.frame.frame_id,
+            position_local_m=(x_m, y_m),
+            heading_rad=heading_rad,
+            speed_mps=speed_mps,
+            horizontal_uncertainty_m=uncertainty_m,
+            horizontal_uncertainty_basis=(
+                "DECLARED_TRUSTWORTHY" if uncertainty_m is not None else None
+            ),
+            source_observation_id=source_observation_id,
+        )
+        candidates = generate_road_candidates(
+            graph,
+            observation,
+            profile=profile,
+        )
+        best = best_emission_candidate(candidates)
+        _write_report(
+            {
+                "schema_version": "cartosentry.road-candidate-report.v1",
+                "graph_id": graph.graph_id,
+                "profile_file_sha256": profile_file_sha256,
+                "profile_immutable_sha256": profile.immutable_sha256,
+                "observation": observation.model_dump(mode="json"),
+                "candidate_count": len(candidates),
+                "candidates": [item.model_dump(mode="json") for item in candidates],
+                "best_emission_candidate_id": best.candidate_id,
+                "best_emission_state": best.state.value,
+            },
+            output,
+        )
+    except (OSError, ValueError, ValidationError) as error:
+        typer.echo(f"Road-candidate scoring failed: {error}", err=True)
+        raise typer.Exit(code=2) from error
+
+
+def _select_transition_candidate(
+    candidates: tuple[RoadCandidate, ...], selector: str | None
+) -> RoadCandidate:
+    if selector is None:
+        return best_emission_candidate(candidates)
+    if selector == CandidateState.OFF_MAP:
+        return next(item for item in candidates if item.state == CandidateState.OFF_MAP)
+    try:
+        return next(item for item in candidates if item.directed_arc_id == selector)
+    except StopIteration as error:
+        raise ValueError(
+            "requested directed arc is absent from the bounded candidate set"
+        ) from error
+
+
+@app.command("score-road-transition")
+def score_road_transition_command(
+    graph_path: Annotated[
+        Path,
+        typer.Argument(
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Portable directed road-graph JSON.",
+        ),
+    ],
+    from_x_m: Annotated[float, typer.Option("--from-x-m")],
+    from_y_m: Annotated[float, typer.Option("--from-y-m")],
+    from_time_seconds: Annotated[str, typer.Option("--from-time-seconds")],
+    from_speed_mps: Annotated[float, typer.Option("--from-speed-mps", min=0.0)],
+    to_x_m: Annotated[float, typer.Option("--to-x-m")],
+    to_y_m: Annotated[float, typer.Option("--to-y-m")],
+    to_time_seconds: Annotated[str, typer.Option("--to-time-seconds")],
+    to_speed_mps: Annotated[float, typer.Option("--to-speed-mps", min=0.0)],
+    from_heading_rad: Annotated[
+        float | None,
+        typer.Option(
+            "--from-heading-rad",
+            min=-3.141592653589793,
+            max=3.141592653589793,
+        ),
+    ] = None,
+    to_heading_rad: Annotated[
+        float | None,
+        typer.Option(
+            "--to-heading-rad",
+            min=-3.141592653589793,
+            max=3.141592653589793,
+        ),
+    ] = None,
+    from_uncertainty_m: Annotated[
+        float | None, typer.Option("--from-uncertainty-m", min=0.000000001)
+    ] = None,
+    to_uncertainty_m: Annotated[
+        float | None, typer.Option("--to-uncertainty-m", min=0.000000001)
+    ] = None,
+    from_source_observation_id: Annotated[
+        str | None, typer.Option("--from-source-observation-id")
+    ] = None,
+    to_source_observation_id: Annotated[
+        str | None, typer.Option("--to-source-observation-id")
+    ] = None,
+    from_candidate: Annotated[
+        str | None,
+        typer.Option(
+            "--from-candidate",
+            help="Directed arc ID or OFF_MAP; defaults to the best emission.",
+        ),
+    ] = None,
+    to_candidate: Annotated[
+        str | None,
+        typer.Option(
+            "--to-candidate",
+            help="Directed arc ID or OFF_MAP; defaults to the best emission.",
+        ),
+    ] = None,
+    profile_path: Annotated[
+        Path,
+        typer.Option(
+            "--profile",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen map-matching parameter charter.",
+        ),
+    ] = Path("profiles/map_matching_v1.yaml"),
+    output: Annotated[
+        Path | None,
+        typer.Option(
+            "--output",
+            file_okay=True,
+            dir_okay=False,
+            resolve_path=True,
+            help="Write deterministic transition evidence atomically.",
+        ),
+    ] = None,
+) -> None:
+    """Score one explicit transition between bounded road candidates."""
+
+    try:
+        graph = DirectedRoadGraph.model_validate_json(_read_artifact(graph_path))
+        validate_graph_identity(graph)
+        profile, profile_file_sha256 = load_map_matching_profile(profile_path)
+        validate_matching_graph_authority(graph, profile)
+        frame_id = graph.local_frame.frame.frame_id
+        previous_observation = make_road_match_observation(
+            time=TimePoint.from_decimal_seconds(
+                from_time_seconds,
+                source_key="cli/road-transition/from",
+                field="time_seconds",
+                epoch=TimeEpoch.UNIX_UTC,
+                clock_id="cli-unix-utc",
+                reference=TimeReference.SAMPLE,
+            ),
+            local_frame_id=frame_id,
+            position_local_m=(from_x_m, from_y_m),
+            heading_rad=from_heading_rad,
+            speed_mps=from_speed_mps,
+            horizontal_uncertainty_m=from_uncertainty_m,
+            horizontal_uncertainty_basis=(
+                "DECLARED_TRUSTWORTHY" if from_uncertainty_m is not None else None
+            ),
+            source_observation_id=from_source_observation_id,
+        )
+        current_observation = make_road_match_observation(
+            time=TimePoint.from_decimal_seconds(
+                to_time_seconds,
+                source_key="cli/road-transition/to",
+                field="time_seconds",
+                epoch=TimeEpoch.UNIX_UTC,
+                clock_id="cli-unix-utc",
+                reference=TimeReference.SAMPLE,
+            ),
+            local_frame_id=frame_id,
+            position_local_m=(to_x_m, to_y_m),
+            heading_rad=to_heading_rad,
+            speed_mps=to_speed_mps,
+            horizontal_uncertainty_m=to_uncertainty_m,
+            horizontal_uncertainty_basis=(
+                "DECLARED_TRUSTWORTHY" if to_uncertainty_m is not None else None
+            ),
+            source_observation_id=to_source_observation_id,
+        )
+        previous = _select_transition_candidate(
+            generate_road_candidates(graph, previous_observation, profile=profile),
+            from_candidate,
+        )
+        current = _select_transition_candidate(
+            generate_road_candidates(graph, current_observation, profile=profile),
+            to_candidate,
+        )
+        transition = score_road_transition(
+            graph,
+            previous_observation,
+            previous,
+            current_observation,
+            current,
+            profile=profile,
+        )
+        _write_report(
+            {
+                "schema_version": "cartosentry.road-transition-report.v1",
+                "graph_id": graph.graph_id,
+                "profile_file_sha256": profile_file_sha256,
+                "profile_immutable_sha256": profile.immutable_sha256,
+                "previous_observation": previous_observation.model_dump(mode="json"),
+                "previous_candidate": previous.model_dump(mode="json"),
+                "current_observation": current_observation.model_dump(mode="json"),
+                "current_candidate": current.model_dump(mode="json"),
+                "transition": transition.model_dump(mode="json"),
+                "runtime_score_is_negative_infinity": (
+                    not transition.possible and transition.score == float("-inf")
+                ),
+            },
+            output,
+        )
+    except (OSError, StopIteration, ValueError, ValidationError) as error:
+        typer.echo(f"Road-transition scoring failed: {error}", err=True)
+        raise typer.Exit(code=2) from error
 
 
 def _artifact_identifier(value: dict[str, object]) -> str:

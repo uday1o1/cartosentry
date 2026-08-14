@@ -36,6 +36,22 @@ uv run cartosentry qualify-road-graph \
 
 The [directed road-graph import contract](docs/road_graph_import.md) documents conservative access handling, directed topology, graph identity, spatial indexing, source-derived local coordinates, and OpenStreetMap attribution.
 
+One graph-local observation can be projected onto directed road candidates and the explicit off-map state with:
+
+```console
+uv run cartosentry score-road-candidates \
+  output/toronto-glen-shields-directed-graph.json \
+  --x-m 418.30337 \
+  --y-m -1043.484102 \
+  --time-seconds 1630597338.276238200 \
+  --speed-mps 2.0025078746077942 \
+  --heading-rad -0.04396327434802761 \
+  --source-observation-id observation-sha256-b2dbd538c82505c394199acd9f80c0c87e376f231b92fdcefa9216880442069d \
+  --output output/road-candidates.json
+```
+
+The [road-candidate scoring contract](docs/road_matching.md) documents the frozen model charter, uncertainty handling, directed emissions and transitions, impossible-transition semantics, and current limitations.
+
 The current versioned artifact contracts, deterministic identifiers, portable export rules, and validation commands are documented in `docs/artifact_schemas.md`.
 Representative portable artifacts and their JSON Schemas are committed under `schemas`.
 

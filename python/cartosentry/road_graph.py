@@ -1255,6 +1255,7 @@ class RoadGraphSpatialIndex:
     """Immutable deterministic radius index over directed arc geometries."""
 
     def __init__(self, graph: DirectedRoadGraph) -> None:
+        self.graph_id = graph.graph_id
         self.arcs = graph.arcs
         self.geometries = tuple(
             LineString([(point[0], point[1]) for point in arc.geometry_local_m])

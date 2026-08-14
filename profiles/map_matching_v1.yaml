@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "profile_id": "map-matching-v1",
+  "profile_version": "1.0.0",
+  "freeze_state": "FROZEN_BEFORE_M5_2_ACCEPTANCE",
+  "hash_contract": "SHA-256 of canonical UTF-8 JSON with immutable_sha256 omitted",
+  "immutable_sha256": "dc4da969cb9f9d85492be6ed7f44798dd48b6d0c935e656979c67a27b2c3b5f1",
+  "authorities": {
+    "graph_import_profile_file_sha256": "c1e11f4a78bb912d1ee94058bf37b1312062cfbd0fd5c6bf1497f9179cc8e4e0",
+    "graph_import_profile_immutable_sha256": "89f4b306dce91ba9adcfc4da5b651ef1acaa247a33009cc03d96d85d632f20fb",
+    "numerical_charter_file_sha256": "c993ee0db9ffec8ad7fa987cd64ab86516405d441e038d4dbfce00fdbaf25aec"
+  },
+  "parameter_charter": {
+    "candidate": {
+      "minimum_search_radius_m": 5.0,
+      "default_search_radius_m": 15.0,
+      "maximum_search_radius_m": 75.0,
+      "uncertainty_radius_multiplier": 3.0,
+      "maximum_on_road_candidates": 16,
+      "distance_rounding_decimal_places": 6
+    },
+    "emission": {
+      "base_lateral_sigma_m": 4.0,
+      "maximum_lateral_sigma_m": 30.0,
+      "heading_sigma_rad": 0.5235987755982988,
+      "heading_disabled_below_speed_mps": 1.0,
+      "heading_full_weight_speed_mps": 3.0,
+      "off_map_log_likelihood": -5.0,
+      "score_rounding_decimal_places": 12
+    },
+    "transition": {
+      "path_discrepancy_scale_m": 20.0,
+      "maximum_absolute_speed_mps": 60.0,
+      "observed_speed_excess_allowance_mps": 15.0,
+      "speed_excess_penalty_per_mps": 0.25,
+      "turn_penalty": 0.2,
+      "u_turn_penalty": 2.0,
+      "off_map_enter_log_likelihood": -2.5,
+      "off_map_exit_log_likelihood": -2.5,
+      "off_map_stay_log_likelihood": -1.0,
+      "maximum_graph_search_distance_m": 2000.0,
+      "maximum_graph_search_states": 100000,
+      "score_rounding_decimal_places": 12
+    }
+  }
+}
