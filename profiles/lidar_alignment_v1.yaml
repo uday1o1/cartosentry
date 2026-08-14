@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "profile_id": "lidar-alignment-v1",
+  "profile_version": "1.0.0",
+  "freeze_state": "FROZEN_AFTER_THRESHOLD_CALIBRATION_BEFORE_M4_2_ACCEPTANCE",
+  "hash_contract": "SHA-256 of canonical UTF-8 JSON with immutable_sha256 omitted",
+  "immutable_sha256": "e51d033344c3191bd86d6b05a91631cb9b28b25deec8a58919867b6ec7813166",
+  "authorities": {
+    "trajectory_gate_file_sha256": "ad61c477e52e7ba7e77e026269feb7da85e4bcfca253d62945050b30e2670f7c",
+    "trajectory_gate_immutable_sha256": "7f8a68faddc0afd2f59f59968b9af7e04cfbfbb012759564c6a61a37416e9370",
+    "lidar_integrity_profile_file_sha256": "4f0b83080762db586df1921ebfc71fa5bad6a09a19d957710c7048e5a1e1a90e"
+  },
+  "target_frame": "trajectory_local_world",
+  "voxel_size_m": 1.0,
+  "masks": {
+    "near_ego_horizontal_radius_m": 2.5,
+    "near_ego_maximum_absolute_height_m": 3.0,
+    "exclude_declared_dynamic_points": true
+  },
+  "observability": {
+    "minimum_valid_points_per_frame": 24,
+    "minimum_occupied_voxels_per_frame": 12,
+    "minimum_shared_voxels_per_pair": 4,
+    "minimum_translation_m": 0.25,
+    "minimum_rotation_rad": 0.02
+  },
+  "alignment": {
+    "minimum_occupancy_jaccard": 0.75,
+    "maximum_shared_surface_thickness_m": 0.8
+  },
+  "budgets": {
+    "maximum_frames": 10000,
+    "maximum_points_per_frame": 200000,
+    "maximum_voxels_per_frame": 100000,
+    "maximum_pairs": 9999,
+    "maximum_representative_offsets": 16
+  }
+}

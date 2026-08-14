@@ -58,4 +58,4 @@ Ring, sector, and density findings describe observed coverage loss under the sel
 They do not uniquely identify a hardware failure.
 Snow, rain, dust, glass, sparse open space, moving objects, and scene occlusion can change return density and azimuth support.
 The public clear-weather smoke measures execution and memory behavior, not recall, weather robustness, or a false-positive rate.
-Motion compensation and multi-frame alignment are intentionally deferred to M4.2 and must not be inferred from this structural report.
+Motion compensation and multi-frame alignment are reported separately by the authenticated M4.2 workflow documented in `docs/lidar_motion_alignment.md` and must not be inferred from this structural report.

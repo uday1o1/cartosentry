@@ -17,6 +17,12 @@ After materializing the manifest-pinned public development sample, the streaming
 uv run cartosentry qualify-lidar-integrity --public-data-root data/public
 ```
 
+The deterministic analytic motion-compensated LiDAR alignment qualification is available through:
+
+```console
+uv run cartosentry qualify-lidar-alignment
+```
+
 The current versioned artifact contracts, deterministic identifiers, portable export rules, and validation commands are documented in `docs/artifact_schemas.md`.
 Representative portable artifacts and their JSON Schemas are committed under `schemas`.
 

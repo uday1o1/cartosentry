@@ -39,6 +39,7 @@ from cartosentry.manifest_boundaries import (
     MAXIMUM_ARTIFACT_JSON_BYTES,
     read_bounded_regular_bytes,
 )
+from cartosentry.motion_alignment_qualification import qualify_motion_alignment
 from cartosentry.qualification import qualify_contracts
 from cartosentry.recovery import qualify_run_recovery, resume_registered_run
 from cartosentry.scheduler import qualify_scheduler
@@ -930,6 +931,123 @@ def qualify_lidar_integrity_command(
         _write_report(report, output)
     except (OSError, ValueError, ValidationError) as error:
         typer.echo(f"LiDAR integrity qualification failed: {error}", err=True)
+        raise typer.Exit(code=2) from error
+    if not report["accepted"]:
+        raise typer.Exit(code=1)
+
+
+@app.command("qualify-lidar-alignment")
+def qualify_lidar_alignment_command(
+    gate: Annotated[
+        Path,
+        typer.Option(
+            "--gate",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen M4.2 motion-alignment qualification gate.",
+        ),
+    ] = Path("benchmarks/m4_2_alignment_gate.yaml"),
+    profile: Annotated[
+        Path,
+        typer.Option(
+            "--profile",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen motion-alignment profile.",
+        ),
+    ] = Path("profiles/lidar_alignment_v1.yaml"),
+    trajectory_gate: Annotated[
+        Path,
+        typer.Option(
+            "--trajectory-gate",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen M3.1 continuous-trajectory gate.",
+        ),
+    ] = Path("benchmarks/m3_1_trajectory_gate.yaml"),
+    lidar_integrity_gate: Annotated[
+        Path,
+        typer.Option(
+            "--lidar-integrity-gate",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen M4.1 LiDAR integrity gate.",
+        ),
+    ] = Path("benchmarks/m4_1_lidar_gate.yaml"),
+    split_manifest: Annotated[
+        Path,
+        typer.Option(
+            "--split-manifest",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen source-group and partition assignment.",
+        ),
+    ] = Path("benchmarks/split_manifest.yaml"),
+    charter: Annotated[
+        Path,
+        typer.Option(
+            "--charter",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen numerical acceptance charter.",
+        ),
+    ] = Path("benchmarks/numerical_charter.yaml"),
+    fault_matrix: Annotated[
+        Path,
+        typer.Option(
+            "--fault-matrix",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen representative V1 fault matrix authority.",
+        ),
+    ] = Path("benchmarks/fault_matrix_v1.yaml"),
+    output: Annotated[
+        Path | None,
+        typer.Option(
+            "--output",
+            file_okay=True,
+            dir_okay=False,
+            resolve_path=True,
+            help="Write the machine-readable qualification report atomically.",
+        ),
+    ] = None,
+) -> None:
+    """Qualify per-point-time motion-compensated LiDAR alignment."""
+
+    try:
+        report = qualify_motion_alignment(
+            gate_path=gate,
+            profile_path=profile,
+            trajectory_gate_path=trajectory_gate,
+            lidar_integrity_gate_path=lidar_integrity_gate,
+            split_manifest_path=split_manifest,
+            numerical_charter_path=charter,
+            representative_fault_matrix_path=fault_matrix,
+        )
+        _write_report(report, output)
+    except (OSError, ValueError, ValidationError) as error:
+        typer.echo(f"LiDAR alignment qualification failed: {error}", err=True)
         raise typer.Exit(code=2) from error
     if not report["accepted"]:
         raise typer.Exit(code=1)
