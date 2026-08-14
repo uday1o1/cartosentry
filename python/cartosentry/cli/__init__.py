@@ -17,6 +17,14 @@ from cartosentry.artifacts import (
     canonicalize_portable_artifact,
     validate_artifact_json,
 )
+from cartosentry.faults import (
+    FaultOperatorId,
+    FaultRequest,
+    inject_fault,
+    load_fault_registry,
+    materialize_fault_result,
+    verify_fault_result,
+)
 from cartosentry.qualification import qualify_contracts
 from cartosentry.spikes import qualify_observability
 from cartosentry.synthetic import materialize_fixture_set, qualify_fixture_set
@@ -407,6 +415,150 @@ def qualify_synthetic_fixtures_command(
         _write_report(report, None)
     except (OSError, ValueError, ValidationError) as error:
         typer.echo(f"Synthetic fixture qualification failed: {error}", err=True)
+        raise typer.Exit(code=2) from error
+    if not report["accepted"]:
+        raise typer.Exit(code=1)
+
+
+@app.command("inject-synthetic-fault")
+def inject_synthetic_fault_command(
+    source_fixture: Annotated[
+        Path,
+        typer.Argument(
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Canonical clean synthetic fixture JSON.",
+        ),
+    ],
+    output_root: Annotated[
+        Path,
+        typer.Argument(
+            file_okay=False,
+            dir_okay=True,
+            resolve_path=True,
+            help="New directory for derivative.json and manifest.json.",
+        ),
+    ],
+    operator: Annotated[
+        str,
+        typer.Option("--operator", help="Exact cartosentry-v1-core operator ID."),
+    ],
+    case: Annotated[
+        str,
+        typer.Option("--case", help="Exact case ID from the frozen fault matrix."),
+    ],
+    seed: Annotated[
+        int,
+        typer.Option("--seed", min=0, help="Deterministic target-selection seed."),
+    ],
+    clean_source_truth: Annotated[
+        Path,
+        typer.Option(
+            "--clean-source-truth",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Immutable clean-source truth artifact frozen before injection.",
+        ),
+    ],
+    fault_matrix: Annotated[
+        Path,
+        typer.Option(
+            "--fault-matrix",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen V1 operator registry and cases.",
+        ),
+    ] = Path("benchmarks/fault_matrix_v1.yaml"),
+) -> None:
+    """Create one deterministic fault derivative with immutable provenance."""
+
+    try:
+        registry = load_fault_registry(fault_matrix)
+        request = FaultRequest(
+            operator_id=FaultOperatorId(operator),
+            case_id=case,
+            seed=seed,
+            clean_source_truth_sha256=hashlib.sha256(
+                _read_artifact(clean_source_truth).encode()
+            ).hexdigest(),
+        )
+        result = inject_fault(
+            _read_artifact(source_fixture).encode(), request, registry
+        )
+        materialize_fault_result(output_root, result)
+        _write_report(
+            {
+                "accepted": True,
+                "attributed_change_count": len(result.manifest.changed_values),
+                "fault_id": result.manifest.fault_id,
+                "operator_id": result.manifest.operator_id.value,
+                "output_root": output_root.as_posix(),
+            },
+            None,
+        )
+    except (OSError, ValueError, ValidationError) as error:
+        typer.echo(f"Synthetic fault injection failed: {error}", err=True)
+        raise typer.Exit(code=2) from error
+
+
+@app.command("verify-synthetic-fault")
+def verify_synthetic_fault_command(
+    source_fixture: Annotated[
+        Path,
+        typer.Argument(
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Canonical clean synthetic fixture JSON.",
+        ),
+    ],
+    derivative_root: Annotated[
+        Path,
+        typer.Argument(
+            exists=True,
+            file_okay=False,
+            dir_okay=True,
+            readable=True,
+            resolve_path=True,
+            help="Fault output directory to verify independently.",
+        ),
+    ],
+    fault_matrix: Annotated[
+        Path,
+        typer.Option(
+            "--fault-matrix",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen V1 operator registry and cases.",
+        ),
+    ] = Path("benchmarks/fault_matrix_v1.yaml"),
+) -> None:
+    """Reapply and verify a fault derivative and its attribution manifest."""
+
+    try:
+        report = verify_fault_result(
+            _read_artifact(source_fixture).encode(),
+            _read_artifact(derivative_root / "derivative.json").encode(),
+            _read_artifact(derivative_root / "manifest.json").encode(),
+            load_fault_registry(fault_matrix),
+        )
+        _write_report(report, None)
+    except (OSError, ValueError, ValidationError) as error:
+        typer.echo(f"Synthetic fault verification failed: {error}", err=True)
         raise typer.Exit(code=2) from error
     if not report["accepted"]:
         raise typer.Exit(code=1)

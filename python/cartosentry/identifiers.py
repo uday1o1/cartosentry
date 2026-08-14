@@ -139,6 +139,28 @@ def make_finding_id(
     )
 
 
+def make_fault_id(
+    *,
+    fault_matrix_id: str,
+    operator_id: str,
+    case_id: str,
+    source_family_id: str,
+    source_identity_sha256: str,
+) -> str:
+    """Implement the exact frozen V1 fault identifier contract."""
+
+    return _identifier(
+        "fault",
+        {
+            "case_id": case_id,
+            "fault_matrix_id": fault_matrix_id,
+            "operator_id": operator_id,
+            "source_family_id": source_family_id,
+            "source_identity_sha256": source_identity_sha256,
+        },
+    )
+
+
 def make_road_bin_id(
     road_graph_id: str, directed_arc_id: str, longitudinal_bin_index: int
 ) -> str:
@@ -204,6 +226,7 @@ __all__ = [
     "canonical_sha256",
     "make_bundle_id",
     "make_calibration_id",
+    "make_fault_id",
     "make_finding_id",
     "make_frame_id",
     "make_recapture_plan_id",

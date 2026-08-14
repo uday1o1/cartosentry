@@ -421,6 +421,7 @@ def _raycast(
     origin_world: Vector3,
     direction_world: Vector3,
     world: SyntheticWorld,
+    maximum_range_m: float,
 ) -> tuple[float, str] | None:
     candidates: list[tuple[float, str]] = []
     origin_x, origin_y, origin_z = origin_world
@@ -457,7 +458,7 @@ def _raycast(
                 ):
                     candidates.append((distance, landmark.landmark_id))
                     break
-    in_range = [item for item in candidates if item[0] <= MAXIMUM_RANGE_M]
+    in_range = [item for item in candidates if item[0] <= maximum_range_m]
     return min(in_range) if in_range else None
 
 
@@ -467,28 +468,33 @@ def _lidar_scan(
     scan_start_ns: int,
     world: SyntheticWorld,
     rig: SyntheticRig,
+    lidar_config: SpinningLidarConfig,
 ) -> LidarScan:
     start = _time_point(
         scan_start_ns, family_id, "scan_start", TimeReference.SCAN_START
     )
     end = _time_point(
-        scan_start_ns + SCAN_PERIOD_NS, family_id, "scan_end", TimeReference.SCAN_END
+        scan_start_ns + lidar_config.scan_period_ns,
+        family_id,
+        "scan_end",
+        TimeReference.SCAN_END,
     )
-    midpoint_ns = scan_start_ns + SCAN_PERIOD_NS // 2
+    midpoint_ns = scan_start_ns + lidar_config.scan_period_ns // 2
     midpoint = _time_point(
         midpoint_ns, family_id, "scan_midpoint", TimeReference.SCAN_MIDPOINT
     )
     points: list[LidarPoint] = []
-    for column in range(AZIMUTH_COLUMNS):
-        firing_ns = scan_start_ns + column * COLUMN_PERIOD_NS
+    column_period_ns = lidar_config.scan_period_ns // lidar_config.azimuth_columns
+    for column in range(lidar_config.azimuth_columns):
+        firing_ns = scan_start_ns + column * column_period_ns
         pose = _pose_at(scenario, firing_ns)
         world_from_rig = _transform(
             "synthetic_world", "rig", pose.position_m, pose.yaw_rad
         )
         lidar_origin_rig = rig.rig_from_lidar.translation_m
         origin_world = world_from_rig.apply(lidar_origin_rig)
-        azimuth = 2.0 * math.pi * column / AZIMUTH_COLUMNS
-        for ring_id, elevation in enumerate(ELEVATION_ANGLES_RAD):
+        azimuth = 2.0 * math.pi * column / lidar_config.azimuth_columns
+        for ring_id, elevation in enumerate(lidar_config.elevation_angles_rad):
             cosine_elevation = math.cos(elevation)
             direction_lidar = (
                 cosine_elevation * math.cos(azimuth),
@@ -497,7 +503,12 @@ def _lidar_scan(
             )
             direction_rig = rig.rig_from_lidar.apply_direction(direction_lidar)
             direction_world = world_from_rig.apply_direction(direction_rig)
-            hit = _raycast(origin_world, direction_world, world)
+            hit = _raycast(
+                origin_world,
+                direction_world,
+                world,
+                lidar_config.maximum_range_m,
+            )
             if hit is None:
                 continue
             distance, surface_id = hit
@@ -547,6 +558,8 @@ def generate_fixture(
     family_id: str,
     scenario: SyntheticScenario,
     seed: int,
+    *,
+    azimuth_columns: int = AZIMUTH_COLUMNS,
 ) -> SyntheticFixture:
     """Generate one complete deterministic fixture from semantic inputs."""
 
@@ -556,6 +569,9 @@ def generate_fixture(
         landmarks=_landmarks(scenario, seed),
     )
     rig = SyntheticRig(rig_from_lidar=_transform("rig", "lidar", (0.0, 0.0, 1.8), 0.0))
+    if azimuth_columns <= 0 or SCAN_PERIOD_NS % azimuth_columns != 0:
+        raise ValueError("azimuth columns must divide the fixed scan period exactly")
+    sample_period_ns = SCAN_PERIOD_NS // azimuth_columns
     trajectory = tuple(
         TrajectoryPose(
             time=_time_point(
@@ -570,16 +586,16 @@ def generate_fixture(
             directed_arc_id=_pose_at(scenario, time_ns).directed_arc_id,
             motion_state=_pose_at(scenario, time_ns).motion_state,
         )
-        for time_ns in range(0, DURATION_NS + 1, COLUMN_PERIOD_NS)
+        for time_ns in range(0, DURATION_NS + 1, sample_period_ns)
     )
     lidar_config = SpinningLidarConfig(
         scan_period_ns=SCAN_PERIOD_NS,
-        azimuth_columns=AZIMUTH_COLUMNS,
+        azimuth_columns=azimuth_columns,
         elevation_angles_rad=ELEVATION_ANGLES_RAD,
         maximum_range_m=MAXIMUM_RANGE_M,
     )
     scans = tuple(
-        _lidar_scan(family_id, scenario, start_ns, world, rig)
+        _lidar_scan(family_id, scenario, start_ns, world, rig, lidar_config)
         for start_ns in range(0, DURATION_NS, SCAN_PERIOD_NS)
     )
     off_map = (
@@ -603,7 +619,7 @@ def generate_fixture(
         "synthetic_family_id": family_id,
         "partition": "development",
         "scenario": scenario,
-        "sample_period_ns": COLUMN_PERIOD_NS,
+        "sample_period_ns": sample_period_ns,
         "world": world,
         "road_graph": road_graph,
         "rig": rig,
@@ -639,6 +655,12 @@ def _serialize(value: SyntheticFixture | FixtureSetManifest) -> bytes:
         )
         + "\n"
     ).encode("utf-8")
+
+
+def serialize_fixture(fixture: SyntheticFixture) -> bytes:
+    """Serialize one fixture in the canonical byte form accepted by fault injection."""
+
+    return _serialize(fixture)
 
 
 def _development_families(split_manifest_path: Path) -> tuple[tuple[str, int], ...]:
@@ -836,4 +858,5 @@ __all__ = [
     "materialize_fixture_set",
     "qualify_fixture_set",
     "render_fixture_set",
+    "serialize_fixture",
 ]
