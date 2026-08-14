@@ -34,8 +34,10 @@ include(cmake/CartoSentryDependencies.cmake)
 add_library(
   CartoSentryCore STATIC
   cpp/src/boreas_inspector.cpp
+  cpp/src/geometry.cpp
   cpp/src/native_check.cpp
   cpp/src/observability.cpp
+  cpp/src/time.cpp
 )
 add_library(CartoSentry::Core ALIAS CartoSentryCore)
 target_include_directories(
@@ -108,6 +110,7 @@ if(BUILD_TESTING)
   add_executable(
     cartosentry_core_tests
     cpp/tests/boreas_inspector_test.cpp
+    cpp/tests/contracts_test.cpp
     cpp/tests/native_check_test.cpp
     cpp/tests/observability_test.cpp
   )

@@ -1,4 +1,6 @@
 #include "cartosentry/core/native_check.hpp"
+#include "cartosentry/contracts/geometry.hpp"
+#include "cartosentry/contracts/time.hpp"
 #include "cartosentry/ingest/boreas_inspector.hpp"
 #include "cartosentry/spikes/observability.hpp"
 
@@ -12,6 +14,70 @@
 namespace py = pybind11;
 
 namespace {
+
+auto quaternion_to_dict(
+    const cartosentry::contracts::UnitQuaternion &quaternion) -> py::dict {
+  py::dict result;
+  result["w"] = quaternion.w;
+  result["x"] = quaternion.x;
+  result["y"] = quaternion.y;
+  result["z"] = quaternion.z;
+  result["pre_normalization_norm_deviation"] =
+      quaternion.pre_normalization_norm_deviation;
+  return result;
+}
+
+auto make_quaternion(const std::array<double, 4> &values)
+    -> cartosentry::contracts::UnitQuaternion {
+  return cartosentry::contracts::make_unit_quaternion(
+      values[0], values[1], values[2], values[3]);
+}
+
+auto make_transform(const std::string &target_frame,
+                    const std::string &source_frame,
+                    const std::array<double, 3> &translation_m,
+                    const std::array<double, 4> &quaternion_wxyz)
+    -> cartosentry::contracts::RigidTransform {
+  return cartosentry::contracts::make_rigid_transform(
+      target_frame, source_frame, translation_m,
+      make_quaternion(quaternion_wxyz));
+}
+
+auto transform_to_dict(
+    const cartosentry::contracts::RigidTransform &transform) -> py::dict {
+  py::dict result;
+  result["target_frame"] = transform.target_frame;
+  result["source_frame"] = transform.source_frame;
+  result["translation_m"] = transform.translation_m;
+  result["rotation"] = quaternion_to_dict(transform.rotation);
+  return result;
+}
+
+auto global_coordinate_to_dict(
+    const cartosentry::contracts::GlobalCoordinate &coordinate) -> py::dict {
+  py::dict result;
+  result["latitude_deg"] = coordinate.latitude_deg;
+  result["longitude_deg"] = coordinate.longitude_deg;
+  if (coordinate.altitude_m.has_value()) {
+    result["altitude_m"] = *coordinate.altitude_m;
+  } else {
+    result["altitude_m"] = py::none();
+  }
+  result["vertical_datum"] =
+      coordinate.vertical_datum ==
+              cartosentry::contracts::VerticalDatum::wgs84_ellipsoid
+          ? "WGS84_ELLIPSOID"
+          : "UNKNOWN_VERTICAL_DATUM";
+  return result;
+}
+
+auto make_global_coordinate(double latitude_deg, double longitude_deg,
+                            double altitude_m)
+    -> cartosentry::contracts::GlobalCoordinate {
+  return cartosentry::contracts::make_global_coordinate(
+      latitude_deg, longitude_deg, altitude_m,
+      cartosentry::contracts::VerticalDatum::wgs84_ellipsoid);
+}
 
 auto geographic_bounds_to_dict(
     const cartosentry::ingest::GeographicBounds &bounds) -> py::dict {
@@ -269,6 +335,126 @@ PYBIND11_MODULE(_core, module) {
   module.def("native_self_check", &cartosentry::core::native_self_check);
   module.def("checked_translation_norm",
              &cartosentry::core::checked_translation_norm);
+  module.def("decimal_seconds_to_nanoseconds",
+             &cartosentry::contracts::decimal_seconds_to_nanoseconds,
+             py::arg("decimal_lexeme"));
+  module.def(
+      "checked_time_difference_ns",
+      [](std::int64_t end_value_ns, const std::string &end_epoch,
+         const std::string &end_clock_id, std::int64_t start_value_ns,
+         const std::string &start_epoch, const std::string &start_clock_id) {
+        return cartosentry::contracts::checked_difference(
+                   cartosentry::contracts::TimePoint{
+                       end_value_ns,
+                       cartosentry::contracts::parse_time_epoch(end_epoch),
+                       end_clock_id, cartosentry::contracts::TimeReference::unknown},
+                   cartosentry::contracts::TimePoint{
+                       start_value_ns,
+                       cartosentry::contracts::parse_time_epoch(start_epoch),
+                       start_clock_id,
+                       cartosentry::contracts::TimeReference::unknown})
+            .value_ns;
+      },
+      py::arg("end_value_ns"), py::arg("end_epoch"),
+      py::arg("end_clock_id"), py::arg("start_value_ns"),
+      py::arg("start_epoch"), py::arg("start_clock_id"));
+  module.def(
+      "checked_time_add_ns",
+      [](std::int64_t value_ns, const std::string &epoch,
+         const std::string &clock_id, std::int64_t duration_ns) {
+        return cartosentry::contracts::checked_add(
+                   cartosentry::contracts::TimePoint{
+                       value_ns, cartosentry::contracts::parse_time_epoch(epoch),
+                       clock_id, cartosentry::contracts::TimeReference::unknown},
+                   cartosentry::contracts::Duration{duration_ns})
+            .value_ns;
+      },
+      py::arg("value_ns"), py::arg("epoch"), py::arg("clock_id"),
+      py::arg("duration_ns"));
+  module.def("normalize_quaternion",
+             [](const std::array<double, 4> &quaternion_wxyz) {
+               return quaternion_to_dict(make_quaternion(quaternion_wxyz));
+             });
+  module.def("quaternion_from_rotation_matrix",
+             [](const std::array<double, 9> &row_major_values) {
+               return quaternion_to_dict(
+                   cartosentry::contracts::quaternion_from_rotation_matrix(
+                       row_major_values));
+             });
+  module.def(
+      "compose_rigid_transforms",
+      [](const std::string &outer_target_frame,
+         const std::string &outer_source_frame,
+         const std::array<double, 3> &outer_translation_m,
+         const std::array<double, 4> &outer_quaternion_wxyz,
+         const std::string &inner_target_frame,
+         const std::string &inner_source_frame,
+         const std::array<double, 3> &inner_translation_m,
+         const std::array<double, 4> &inner_quaternion_wxyz) {
+        return transform_to_dict(cartosentry::contracts::compose(
+            make_transform(outer_target_frame, outer_source_frame,
+                           outer_translation_m, outer_quaternion_wxyz),
+            make_transform(inner_target_frame, inner_source_frame,
+                           inner_translation_m, inner_quaternion_wxyz)));
+      });
+  module.def(
+      "invert_rigid_transform",
+      [](const std::string &target_frame, const std::string &source_frame,
+         const std::array<double, 3> &translation_m,
+         const std::array<double, 4> &quaternion_wxyz) {
+        return transform_to_dict(cartosentry::contracts::inverse(make_transform(
+            target_frame, source_frame, translation_m, quaternion_wxyz)));
+      });
+  module.def(
+      "interpolate_rigid_transform",
+      [](const std::string &target_frame, const std::string &source_frame,
+         const std::array<double, 3> &begin_translation_m,
+         const std::array<double, 4> &begin_quaternion_wxyz,
+         const std::array<double, 3> &end_translation_m,
+         const std::array<double, 4> &end_quaternion_wxyz, double fraction) {
+        return transform_to_dict(cartosentry::contracts::interpolate(
+            make_transform(target_frame, source_frame, begin_translation_m,
+                           begin_quaternion_wxyz),
+            make_transform(target_frame, source_frame, end_translation_m,
+                           end_quaternion_wxyz),
+            fraction));
+      });
+  module.def(
+      "transform_point",
+      [](const std::string &target_frame, const std::string &source_frame,
+         const std::array<double, 3> &translation_m,
+         const std::array<double, 4> &quaternion_wxyz,
+         const std::array<double, 3> &point_source) {
+        return cartosentry::contracts::transform_point(
+            make_transform(target_frame, source_frame, translation_m,
+                           quaternion_wxyz),
+            point_source);
+      });
+  module.def(
+      "wgs84_to_local",
+      [](double origin_latitude_deg, double origin_longitude_deg,
+         double origin_altitude_m, double latitude_deg, double longitude_deg,
+         double altitude_m, const std::string &local_frame) {
+        const auto local = cartosentry::contracts::global_to_local(
+            make_global_coordinate(origin_latitude_deg, origin_longitude_deg,
+                                   origin_altitude_m),
+            make_global_coordinate(latitude_deg, longitude_deg, altitude_m),
+            local_frame);
+        py::dict result;
+        result["frame"] = local.frame;
+        result["position_m"] = local.position_m;
+        return result;
+      });
+  module.def(
+      "local_to_wgs84",
+      [](double origin_latitude_deg, double origin_longitude_deg,
+         double origin_altitude_m, const std::string &local_frame,
+         const std::array<double, 3> &position_m) {
+        return global_coordinate_to_dict(cartosentry::contracts::local_to_global(
+            make_global_coordinate(origin_latitude_deg, origin_longitude_deg,
+                                   origin_altitude_m),
+            cartosentry::contracts::LocalCoordinate{local_frame, position_m}));
+      });
   module.def("native_build_info", [] {
     const auto info = cartosentry::core::native_build_info();
     py::dict result;

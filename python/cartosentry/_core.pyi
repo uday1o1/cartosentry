@@ -8,6 +8,74 @@ class NativeBuildInfo(TypedDict):
 
 def native_self_check() -> bool: ...
 def checked_translation_norm(translation: tuple[float, float, float]) -> float: ...
+def decimal_seconds_to_nanoseconds(decimal_lexeme: str) -> int: ...
+def checked_time_difference_ns(
+    end_value_ns: int,
+    end_epoch: str,
+    end_clock_id: str,
+    start_value_ns: int,
+    start_epoch: str,
+    start_clock_id: str,
+) -> int: ...
+def checked_time_add_ns(
+    value_ns: int, epoch: str, clock_id: str, duration_ns: int
+) -> int: ...
+def normalize_quaternion(
+    quaternion_wxyz: tuple[float, float, float, float],
+) -> dict[str, Any]: ...
+def quaternion_from_rotation_matrix(
+    row_major_values: tuple[
+        float, float, float, float, float, float, float, float, float
+    ],
+) -> dict[str, Any]: ...
+def compose_rigid_transforms(
+    outer_target_frame: str,
+    outer_source_frame: str,
+    outer_translation_m: tuple[float, float, float],
+    outer_quaternion_wxyz: tuple[float, float, float, float],
+    inner_target_frame: str,
+    inner_source_frame: str,
+    inner_translation_m: tuple[float, float, float],
+    inner_quaternion_wxyz: tuple[float, float, float, float],
+) -> dict[str, Any]: ...
+def invert_rigid_transform(
+    target_frame: str,
+    source_frame: str,
+    translation_m: tuple[float, float, float],
+    quaternion_wxyz: tuple[float, float, float, float],
+) -> dict[str, Any]: ...
+def interpolate_rigid_transform(
+    target_frame: str,
+    source_frame: str,
+    begin_translation_m: tuple[float, float, float],
+    begin_quaternion_wxyz: tuple[float, float, float, float],
+    end_translation_m: tuple[float, float, float],
+    end_quaternion_wxyz: tuple[float, float, float, float],
+    fraction: float,
+) -> dict[str, Any]: ...
+def transform_point(
+    target_frame: str,
+    source_frame: str,
+    translation_m: tuple[float, float, float],
+    quaternion_wxyz: tuple[float, float, float, float],
+    point_source: tuple[float, float, float],
+) -> tuple[float, float, float]: ...
+def wgs84_to_local(
+    origin_latitude_deg: float,
+    origin_longitude_deg: float,
+    origin_altitude_m: float,
+    latitude_deg: float,
+    longitude_deg: float,
+    altitude_m: float,
+    local_frame: str,
+) -> dict[str, Any]: ...
+def local_to_wgs84(
+    origin_latitude_deg: float,
+    origin_longitude_deg: float,
+    origin_altitude_m: float,
+    local_frame: str,
+    position_m: tuple[float, float, float],
+) -> dict[str, Any]: ...
 def native_build_info() -> NativeBuildInfo: ...
 def inspect_boreas_sequence(
     sequence_root: str,

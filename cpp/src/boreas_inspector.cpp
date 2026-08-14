@@ -1,4 +1,5 @@
 #include "cartosentry/ingest/boreas_inspector.hpp"
+#include "cartosentry/contracts/time.hpp"
 
 #include <GeographicLib/Geocentric.hpp>
 #include <GeographicLib/Geodesic.hpp>
@@ -812,92 +813,13 @@ auto peak_rss_bytes() -> std::uint64_t {
 auto parse_decimal_seconds_to_nanoseconds(
     std::string_view lexeme, std::string_view source_key,
     std::size_t row_number, std::string_view field_name) -> std::int64_t {
-  if (lexeme.empty()) {
-    throw format_error(source_key, row_number, field_name,
-                       "decimal seconds required");
+  try {
+    return cartosentry::contracts::decimal_seconds_to_nanoseconds(lexeme);
+  } catch (const std::invalid_argument& error) {
+    throw format_error(source_key, row_number, field_name, error.what());
+  } catch (const std::overflow_error& error) {
+    throw format_error(source_key, row_number, field_name, error.what());
   }
-  bool negative = false;
-  std::size_t cursor = 0U;
-  if (lexeme[cursor] == '+' || lexeme[cursor] == '-') {
-    negative = lexeme[cursor] == '-';
-    ++cursor;
-  }
-  const auto integer_begin = cursor;
-  while (cursor < lexeme.size() && lexeme[cursor] >= '0' &&
-         lexeme[cursor] <= '9') {
-    ++cursor;
-  }
-  if (cursor == integer_begin) {
-    throw format_error(source_key, row_number, field_name,
-                       "decimal seconds required");
-  }
-  const auto seconds = parse_unsigned(
-      lexeme.substr(integer_begin, cursor - integer_begin), source_key,
-      row_number, field_name);
-  std::uint64_t fraction_ns = 0U;
-  std::size_t fraction_digits = 0U;
-  bool round_up = false;
-  if (cursor < lexeme.size()) {
-    if (lexeme[cursor] != '.') {
-      throw format_error(source_key, row_number, field_name,
-                         "plain decimal seconds required");
-    }
-    ++cursor;
-    const auto fraction_begin = cursor;
-    while (cursor < lexeme.size() && lexeme[cursor] >= '0' &&
-           lexeme[cursor] <= '9') {
-      if (fraction_digits < 9U) {
-        fraction_ns = fraction_ns * 10U +
-                      static_cast<std::uint64_t>(lexeme[cursor] - '0');
-      } else if (fraction_digits == 9U) {
-        round_up = lexeme[cursor] >= '5';
-      }
-      ++fraction_digits;
-      ++cursor;
-    }
-    if (cursor == fraction_begin) {
-      throw format_error(source_key, row_number, field_name,
-                         "fractional digits required");
-    }
-  }
-  if (cursor != lexeme.size()) {
-    throw format_error(source_key, row_number, field_name,
-                       "plain decimal seconds required");
-  }
-  for (; fraction_digits < 9U; ++fraction_digits) {
-    fraction_ns *= 10U;
-  }
-  if (round_up) {
-    ++fraction_ns;
-  }
-  std::uint64_t adjusted_seconds = seconds;
-  if (fraction_ns == 1'000'000'000U) {
-    fraction_ns = 0U;
-    if (adjusted_seconds == std::numeric_limits<std::uint64_t>::max()) {
-      throw format_error(source_key, row_number, field_name,
-                         "nanosecond timestamp is out of range");
-    }
-    ++adjusted_seconds;
-  }
-  constexpr std::uint64_t kScale = 1'000'000'000U;
-  const std::uint64_t positive_limit =
-      static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max());
-  const std::uint64_t magnitude_limit =
-      negative ? positive_limit + 1U : positive_limit;
-  if (adjusted_seconds > magnitude_limit / kScale ||
-      (adjusted_seconds == magnitude_limit / kScale &&
-       fraction_ns > magnitude_limit % kScale)) {
-    throw format_error(source_key, row_number, field_name,
-                       "nanosecond timestamp is out of range");
-  }
-  const std::uint64_t magnitude = adjusted_seconds * kScale + fraction_ns;
-  if (!negative) {
-    return static_cast<std::int64_t>(magnitude);
-  }
-  if (magnitude == positive_limit + 1U) {
-    return std::numeric_limits<std::int64_t>::min();
-  }
-  return -static_cast<std::int64_t>(magnitude);
 }
 
 auto inspect_boreas_sequence(

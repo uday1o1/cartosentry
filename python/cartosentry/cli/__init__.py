@@ -12,6 +12,7 @@ import typer
 from pydantic import ValidationError
 
 from cartosentry.adapters import inspect_boreas
+from cartosentry.qualification import qualify_contracts
 from cartosentry.spikes import qualify_observability
 
 app = typer.Typer(
@@ -184,6 +185,43 @@ def qualify_observability_command(
         _write_report(report, output)
     except (OSError, ValueError, ValidationError) as error:
         typer.echo(f"Observability qualification failed: {error}", err=True)
+        raise typer.Exit(code=2) from error
+    if not report["accepted"]:
+        raise typer.Exit(code=1)
+
+
+@app.command("qualify-contracts")
+def qualify_contracts_command(
+    charter: Annotated[
+        Path,
+        typer.Option(
+            "--charter",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen numerical acceptance charter.",
+        ),
+    ] = Path("benchmarks/numerical_charter.yaml"),
+    output: Annotated[
+        Path | None,
+        typer.Option(
+            "--output",
+            file_okay=True,
+            dir_okay=False,
+            resolve_path=True,
+            help="Write the JSON report atomically instead of printing it.",
+        ),
+    ] = None,
+) -> None:
+    """Qualify canonical time, frame, transform, and coordinate contracts."""
+
+    try:
+        report = qualify_contracts(charter)
+        _write_report(report, output)
+    except (OSError, ValueError, ValidationError) as error:
+        typer.echo(f"Contract qualification failed: {error}", err=True)
         raise typer.Exit(code=2) from error
     if not report["accepted"]:
         raise typer.Exit(code=1)
