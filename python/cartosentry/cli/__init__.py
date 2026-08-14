@@ -19,6 +19,7 @@ from cartosentry.artifacts import (
 )
 from cartosentry.qualification import qualify_contracts
 from cartosentry.spikes import qualify_observability
+from cartosentry.synthetic import materialize_fixture_set, qualify_fixture_set
 
 app = typer.Typer(
     name="cartosentry",
@@ -322,6 +323,90 @@ def qualify_contracts_command(
         _write_report(report, output)
     except (OSError, ValueError, ValidationError) as error:
         typer.echo(f"Contract qualification failed: {error}", err=True)
+        raise typer.Exit(code=2) from error
+    if not report["accepted"]:
+        raise typer.Exit(code=1)
+
+
+@app.command("generate-synthetic-fixtures")
+def generate_synthetic_fixtures_command(
+    output_root: Annotated[
+        Path,
+        typer.Argument(
+            file_okay=False,
+            dir_okay=True,
+            resolve_path=True,
+            help="Destination directory for the deterministic fixture set.",
+        ),
+    ],
+    split_manifest: Annotated[
+        Path,
+        typer.Option(
+            "--split-manifest",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen source-group and synthetic-family assignment.",
+        ),
+    ] = Path("benchmarks/split_manifest.yaml"),
+) -> None:
+    """Generate the compact V1 analytic trajectory and lidar fixtures."""
+
+    try:
+        report = materialize_fixture_set(output_root, split_manifest)
+        _write_report(report, None)
+    except (OSError, ValueError, ValidationError) as error:
+        typer.echo(f"Synthetic fixture generation failed: {error}", err=True)
+        raise typer.Exit(code=2) from error
+
+
+@app.command("qualify-synthetic-fixtures")
+def qualify_synthetic_fixtures_command(
+    fixture_root: Annotated[
+        Path,
+        typer.Argument(
+            exists=True,
+            file_okay=False,
+            dir_okay=True,
+            readable=True,
+            resolve_path=True,
+            help="Root containing a generated synthetic fixture set.",
+        ),
+    ],
+    split_manifest: Annotated[
+        Path,
+        typer.Option(
+            "--split-manifest",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen source-group and synthetic-family assignment.",
+        ),
+    ] = Path("benchmarks/split_manifest.yaml"),
+    charter: Annotated[
+        Path,
+        typer.Option(
+            "--charter",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen numerical acceptance charter.",
+        ),
+    ] = Path("benchmarks/numerical_charter.yaml"),
+) -> None:
+    """Qualify synthetic bytes, analytic geometry, and exact point time."""
+
+    try:
+        report = qualify_fixture_set(fixture_root, split_manifest, charter)
+        _write_report(report, None)
+    except (OSError, ValueError, ValidationError) as error:
+        typer.echo(f"Synthetic fixture qualification failed: {error}", err=True)
         raise typer.Exit(code=2) from error
     if not report["accepted"]:
         raise typer.Exit(code=1)

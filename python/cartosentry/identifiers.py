@@ -154,6 +154,10 @@ def make_road_bin_id(
     )
 
 
+def make_road_graph_id(identity: Mapping[str, object]) -> str:
+    return _identifier("road-graph", identity)
+
+
 def make_run_id(
     *,
     sequence_id: str,
@@ -190,6 +194,10 @@ def make_requirement_id(identity: Mapping[str, object]) -> str:
     return _identifier("requirement", identity)
 
 
+def make_synthetic_fixture_id(identity: Mapping[str, object]) -> str:
+    return _identifier("synthetic-fixture", identity)
+
+
 __all__ = [
     "assert_portable",
     "canonical_json_bytes",
@@ -201,7 +209,9 @@ __all__ = [
     "make_recapture_plan_id",
     "make_requirement_id",
     "make_road_bin_id",
+    "make_road_graph_id",
     "make_run_id",
     "make_sequence_id",
     "make_stream_id",
+    "make_synthetic_fixture_id",
 ]
