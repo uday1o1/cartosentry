@@ -61,6 +61,15 @@ uv run cartosentry qualify-road-matching \
 
 The command covers unambiguous directed paths, deliberate ambiguity, off-map behavior across 12 distinct missing-edge topology fixtures, stationary suppression, and cluster-bootstrap acceptance against a separately frozen truth artifact.
 
+Directed road bins, independent-pass identity, modality evidence joins, and fault localization can be qualified without public data with:
+
+```console
+uv run cartosentry qualify-road-bins \
+  --output output/m5-4-road-bins.json
+```
+
+The [directed road-bin contract](docs/road_bins.md) documents fixed arc-length bins, true final partial-bin lengths, confidence-based coverage eligibility, adjacent-window traversal merging, modality support, and the frozen spatial-localization gate.
+
 The current versioned artifact contracts, deterministic identifiers, portable export rules, and validation commands are documented in `docs/artifact_schemas.md`.
 Representative portable artifacts and their JSON Schemas are committed under `schemas`.
 

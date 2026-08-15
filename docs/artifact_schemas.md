@@ -30,6 +30,10 @@ Finding stream identifiers and run configuration hashes are normalized as unorde
 `road_bin_id` binds road-graph identity, directed arc identity, and longitudinal bin index.
 `run_id` binds sequence, road graph, profile, engine version, and relevant configuration hashes.
 
+M5.4 also defines the strict identity-bound `cartosentry.directed-road-coverage.v1` derived evidence ledger in `cartosentry.road_bins`.
+That ledger materializes every directed graph bin and joins traversal, modality, and finding evidence, but it is not yet one of the six top-level run artifacts exported by the public artifact registry.
+Its promotion into the complete run artifact set occurs with the later readiness and end-to-end pipeline milestones.
+
 Identifier inputs reject absolute POSIX paths, Windows paths, file URLs, path traversal, and machine-identity fields.
 Local source roots therefore cannot change a portable identifier accidentally.
 

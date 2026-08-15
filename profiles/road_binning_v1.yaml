@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "profile_id": "road-binning-v1",
+  "profile_version": "1.0.0",
+  "freeze_state": "FROZEN_BEFORE_M5_4_ACCEPTANCE",
+  "hash_contract": "SHA-256 of canonical UTF-8 JSON with immutable_sha256 omitted",
+  "immutable_sha256": "ab6e30104c10d839d1175aecd392f62c8eb583fb2df66c8595473e1d16939fa4",
+  "authorities": {
+    "graph_import_profile_file_sha256": "c1e11f4a78bb912d1ee94058bf37b1312062cfbd0fd5c6bf1497f9179cc8e4e0",
+    "map_decoder_profile_file_sha256": "73ebeb73506a81214eb0f14fb2cbb835c8bef80b4a63e4096402817bafa99a15",
+    "map_decoder_profile_immutable_sha256": "78a1c554c2895748b9bef5810772c7788d36c3f01be47cb00accc9dd4c0e5991",
+    "numerical_charter_file_sha256": "c993ee0db9ffec8ad7fa987cd64ab86516405d441e038d4dbfce00fdbaf25aec"
+  },
+  "parameter_charter": {
+    "bin_length_m": 20.0,
+    "independent_traversal_minimum_gap_ns": 300000000000,
+    "maximum_paths": 4096,
+    "maximum_points_per_path": 100000,
+    "maximum_total_points": 1000000,
+    "maximum_generated_bins": 1000000,
+    "maximum_modality_evidence_intervals": 1000000,
+    "maximum_findings": 100000,
+    "distance_rounding_decimal_places": 6
+  }
+}

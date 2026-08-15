@@ -44,6 +44,7 @@ add_library(
   cpp/src/geometry.cpp
   cpp/src/native_check.cpp
   cpp/src/observability.cpp
+  cpp/src/road_bins.cpp
   cpp/src/road_matching.cpp
   cpp/src/scheduler_qualification.cpp
   cpp/src/time.cpp
@@ -77,6 +78,7 @@ if(CARTOSENTRY_BUILD_PYTHON)
   pybind11_add_module(
     _core MODULE
     cpp/bindings/module.cpp
+    cpp/bindings/road_bins_bindings.cpp
     cpp/bindings/road_matching_bindings.cpp
   )
   target_link_libraries(_core PRIVATE CartoSentry::Core)
@@ -133,6 +135,7 @@ if(BUILD_TESTING)
     cpp/tests/contracts_test.cpp
     cpp/tests/native_check_test.cpp
     cpp/tests/observability_test.cpp
+    cpp/tests/road_bins_test.cpp
     cpp/tests/road_matching_test.cpp
   )
   target_link_libraries(cartosentry_core_tests PRIVATE CartoSentry::Core Catch2::Catch2WithMain)

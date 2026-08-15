@@ -43,6 +43,7 @@ from cartosentry.manifest_boundaries import (
 from cartosentry.motion_alignment_qualification import qualify_motion_alignment
 from cartosentry.qualification import qualify_contracts
 from cartosentry.recovery import qualify_run_recovery, resume_registered_run
+from cartosentry.road_bins_qualification import qualify_directed_road_bins
 from cartosentry.road_decoder_qualification import qualify_synthetic_road_matching
 from cartosentry.road_graph import (
     DirectedRoadGraph,
@@ -389,6 +390,123 @@ def qualify_road_matching_command(
         _write_report(report, output)
     except (OSError, ValueError, ValidationError) as error:
         typer.echo(f"Road-matching qualification failed: {error}", err=True)
+        raise typer.Exit(code=2) from error
+    if not report["accepted"]:
+        raise typer.Exit(code=1)
+
+
+@app.command("qualify-road-bins")
+def qualify_road_bins_command(
+    graph_profile_path: Annotated[
+        Path,
+        typer.Option(
+            "--graph-profile",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen directed-road graph import profile.",
+        ),
+    ] = Path("profiles/graph_import_v1.yaml"),
+    matching_profile_path: Annotated[
+        Path,
+        typer.Option(
+            "--matching-profile",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen road-candidate and transition profile.",
+        ),
+    ] = Path("profiles/map_matching_v1.yaml"),
+    decoder_profile_path: Annotated[
+        Path,
+        typer.Option(
+            "--decoder-profile",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen offline map-decoder profile.",
+        ),
+    ] = Path("profiles/map_decoder_v1.yaml"),
+    binning_profile_path: Annotated[
+        Path,
+        typer.Option(
+            "--binning-profile",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen directed-road bin aggregation profile.",
+        ),
+    ] = Path("profiles/road_binning_v1.yaml"),
+    gate_path: Annotated[
+        Path,
+        typer.Option(
+            "--gate",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen M5.4 directed-road bin acceptance gate.",
+        ),
+    ] = Path("benchmarks/m5_4_road_bins_gate.yaml"),
+    numerical_charter_path: Annotated[
+        Path,
+        typer.Option(
+            "--numerical-charter",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen numerical acceptance authority.",
+        ),
+    ] = Path("benchmarks/numerical_charter.yaml"),
+    fixture_path: Annotated[
+        Path,
+        typer.Option(
+            "--fixture",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen independent road-topology fixture.",
+        ),
+    ] = Path("tests/fixtures/road_graphs/topology_v1.osm"),
+    output: Annotated[
+        Path | None,
+        typer.Option(
+            "--output",
+            file_okay=True,
+            dir_okay=False,
+            resolve_path=True,
+            help="Write the deterministic qualification report atomically.",
+        ),
+    ] = None,
+) -> None:
+    """Qualify directed bins, pass identity, evidence joins, and localization."""
+
+    try:
+        report = qualify_directed_road_bins(
+            graph_profile_path=graph_profile_path,
+            matching_profile_path=matching_profile_path,
+            decoder_profile_path=decoder_profile_path,
+            binning_profile_path=binning_profile_path,
+            gate_path=gate_path,
+            numerical_charter_path=numerical_charter_path,
+            fixture_path=fixture_path,
+        )
+        _write_report(report, output)
+    except (OSError, ValueError, ValidationError) as error:
+        typer.echo(f"Road-bin qualification failed: {error}", err=True)
         raise typer.Exit(code=2) from error
     if not report["accepted"]:
         raise typer.Exit(code=1)
