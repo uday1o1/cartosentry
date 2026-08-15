@@ -70,6 +70,16 @@ uv run cartosentry qualify-road-bins \
 
 The [directed road-bin contract](docs/road_bins.md) documents fixed arc-length bins, true final partial-bin lengths, confidence-based coverage eligibility, adjacent-window traversal merging, modality support, and the frozen spatial-localization gate.
 
+Review-only repeated-trajectory topology disagreement hypotheses can be qualified without public data with:
+
+```console
+uv run cartosentry qualify-topology-hypotheses \
+  --output output/m5-5-topology-hypotheses.json
+```
+
+The [topology-hypothesis contract](docs/topology_hypotheses.md) documents high-quality off-map selection, direction-aware clustering, robust corridor fitting, graph-endpoint comparison, the frozen supported synthetic gates, and the mandatory not-ground-truth label.
+CartoSentry never edits the source road graph automatically.
+
 The current versioned artifact contracts, deterministic identifiers, portable export rules, and validation commands are documented in `docs/artifact_schemas.md`.
 Representative portable artifacts and their JSON Schemas are committed under `schemas`.
 

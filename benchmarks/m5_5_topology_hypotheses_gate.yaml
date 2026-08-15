@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "gate_id": "m5.5-topology-hypotheses-v1",
+  "gate_version": "1.0.0",
+  "freeze_state": "FROZEN_BEFORE_M5_5_ACCEPTANCE",
+  "hash_contract": "SHA-256 of canonical UTF-8 JSON with immutable_sha256 omitted",
+  "immutable_sha256": "6d2ce0b9ebec0febeda498a2013531db7d41de1fc7f278c994beef3c1e49b7fb",
+  "authorities": {
+    "topology_hypothesis_profile_file_sha256": "79202f14439bcc60cb985d903790f4243ff4c308088e6107f5763c5ed3a78084",
+    "topology_hypothesis_profile_immutable_sha256": "fdd67acdbaa5587f4cfa0643b48ed1e380bd9b975fd8bf656dced57ecd546675",
+    "road_binning_profile_file_sha256": "4c5fd9837063b50c44bb4a25b3ee0eede0897b38335a71bd504488c0c70578ba",
+    "numerical_charter_file_sha256": "c993ee0db9ffec8ad7fa987cd64ab86516405d441e038d4dbfce00fdbaf25aec"
+  },
+  "synthetic_population": {
+    "family_count": 12,
+    "independent_traversals_per_scenario": 5,
+    "positive_scenarios_per_family": 3,
+    "expected_positive_hypothesis_count": 36,
+    "mutation_kinds": [
+      "MISSING_CONNECTION",
+      "PERTURBED_GEOMETRY",
+      "ALTERED_CONNECTION"
+    ],
+    "control_kinds": [
+      "PARALLEL_ROAD",
+      "UNCHANGED"
+    ],
+    "scenario_length_m": 100.0,
+    "unchanged_exposure_km_per_family": 4.0,
+    "noise_offsets_m": [-0.4, -0.2, 0.0, 0.2, 0.4]
+  },
+  "thresholds": {
+    "synthetic_precision_minimum": 0.9,
+    "synthetic_recall_minimum": 0.8,
+    "endpoint_error_road_bins_maximum": 1.0,
+    "false_hypotheses_per_unchanged_km_maximum": 0.1
+  },
+  "statistics": {
+    "bootstrap_unit": "synthetic_family_id",
+    "bootstrap_seed": 2026081403,
+    "bootstrap_replicates": 10000,
+    "confidence_level": 0.95,
+    "minimum_independent_clusters": 12,
+    "minimum_expected_positive_hypotheses": 30,
+    "zero_count_rate_bound": "EXACT_ONE_SIDED_POISSON_UPPER"
+  }
+}

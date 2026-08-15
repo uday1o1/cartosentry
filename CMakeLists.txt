@@ -48,6 +48,7 @@ add_library(
   cpp/src/road_matching.cpp
   cpp/src/scheduler_qualification.cpp
   cpp/src/time.cpp
+  cpp/src/topology_hypotheses.cpp
 )
 add_library(CartoSentry::Core ALIAS CartoSentryCore)
 target_include_directories(
@@ -80,6 +81,7 @@ if(CARTOSENTRY_BUILD_PYTHON)
     cpp/bindings/module.cpp
     cpp/bindings/road_bins_bindings.cpp
     cpp/bindings/road_matching_bindings.cpp
+    cpp/bindings/topology_hypotheses_bindings.cpp
   )
   target_link_libraries(_core PRIVATE CartoSentry::Core)
   target_compile_features(_core PRIVATE cxx_std_20)
@@ -137,6 +139,7 @@ if(BUILD_TESTING)
     cpp/tests/observability_test.cpp
     cpp/tests/road_bins_test.cpp
     cpp/tests/road_matching_test.cpp
+    cpp/tests/topology_hypotheses_test.cpp
   )
   target_link_libraries(cartosentry_core_tests PRIVATE CartoSentry::Core Catch2::Catch2WithMain)
   target_compile_features(cartosentry_core_tests PRIVATE cxx_std_20)

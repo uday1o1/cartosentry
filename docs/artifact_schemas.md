@@ -34,6 +34,11 @@ M5.4 also defines the strict identity-bound `cartosentry.directed-road-coverage.
 That ledger materializes every directed graph bin and joins traversal, modality, and finding evidence, but it is not yet one of the six top-level run artifacts exported by the public artifact registry.
 Its promotion into the complete run artifact set occurs with the later readiness and end-to-end pipeline milestones.
 
+M5.5 defines the strict identity-bound `cartosentry.topology-hypothesis-report.v1` derived review artifact in `cartosentry.topology_hypotheses`.
+The report binds selected off-map interval identities, exhaustive rejection counts, deterministic direction-aware clusters, fitted corridors, endpoint comparison evidence, and review-only hypotheses to the source road graph and frozen profile.
+Every surfaced hypothesis is explicitly not ground truth, requires human review, and forbids automatic map editing.
+This derived report is not yet one of the six top-level run artifacts exported by the public artifact registry.
+
 Identifier inputs reject absolute POSIX paths, Windows paths, file URLs, path traversal, and machine-identity fields.
 Local source roots therefore cannot change a portable identifier accidentally.
 

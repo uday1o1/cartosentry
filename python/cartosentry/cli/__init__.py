@@ -67,6 +67,9 @@ from cartosentry.scheduler import qualify_scheduler
 from cartosentry.spikes import qualify_observability
 from cartosentry.synthetic import materialize_fixture_set, qualify_fixture_set
 from cartosentry.temporal_checkpoint import qualify_temporal_checkpoint
+from cartosentry.topology_hypotheses_qualification import (
+    qualify_topology_hypotheses,
+)
 from cartosentry.trajectory import qualify_reference_trajectory
 from cartosentry.trajectory_integrity_qualification import (
     qualify_trajectory_integrity,
@@ -507,6 +510,71 @@ def qualify_road_bins_command(
         _write_report(report, output)
     except (OSError, ValueError, ValidationError) as error:
         typer.echo(f"Road-bin qualification failed: {error}", err=True)
+        raise typer.Exit(code=2) from error
+    if not report["accepted"]:
+        raise typer.Exit(code=1)
+
+
+@app.command("qualify-topology-hypotheses")
+def qualify_topology_hypotheses_command(
+    profile_path: Annotated[
+        Path,
+        typer.Option(
+            "--profile",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen repeated-trajectory topology-hypothesis profile.",
+        ),
+    ] = Path("profiles/topology_hypotheses_v1.yaml"),
+    gate_path: Annotated[
+        Path,
+        typer.Option(
+            "--gate",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen M5.5 supported synthetic acceptance gate.",
+        ),
+    ] = Path("benchmarks/m5_5_topology_hypotheses_gate.yaml"),
+    numerical_charter_path: Annotated[
+        Path,
+        typer.Option(
+            "--numerical-charter",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen numerical acceptance authority.",
+        ),
+    ] = Path("benchmarks/numerical_charter.yaml"),
+    output: Annotated[
+        Path | None,
+        typer.Option(
+            "--output",
+            file_okay=True,
+            dir_okay=False,
+            resolve_path=True,
+            help="Write the deterministic qualification report atomically.",
+        ),
+    ] = None,
+) -> None:
+    """Qualify review-only repeated-trajectory topology hypotheses."""
+
+    try:
+        report = qualify_topology_hypotheses(
+            profile_path=profile_path,
+            gate_path=gate_path,
+            numerical_charter_path=numerical_charter_path,
+        )
+        _write_report(report, output)
+    except (OSError, ValueError, ValidationError) as error:
+        typer.echo(f"Topology-hypothesis qualification failed: {error}", err=True)
         raise typer.Exit(code=2) from error
     if not report["accepted"]:
         raise typer.Exit(code=1)

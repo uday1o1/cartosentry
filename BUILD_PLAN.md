@@ -3071,3 +3071,106 @@ It must keep the numerical charter, data manifest, and milestone status current 
 It must treat failed gates as engineering information and narrow claims rather than hiding failures.
 It must push every verified focused commit before continuing.
 It must stop only for a genuine user-owned blocker such as unavailable legal terms, unavailable required public data, inaccessible required hardware for an optional qualification, or authorization for an external publication action.
+
+## Implementation status and resume handoff
+
+This handoff records the safe milestone boundary requested on 2026-08-14.
+The commit containing this section is the authoritative paused source snapshot.
+
+### Status vocabulary
+
+`ACCEPTED` means the complete milestone gate passed locally, the focused implementation and tests are committed, and the commit is intended to be present on `origin/main`.
+`DEFERRED_BY_USER_REQUEST` means implementation has not started because the user requested a pause at the preceding safe milestone boundary.
+`DEFERRED_FOLLOW_ON` means the plan assigns the work to the post-portfolio follow-on sequence.
+`DEFERRED_HARDWARE` means the optional GPU gate requires the consolidated remote-hardware workflow and has not been claimed from CPU or emulated evidence.
+`BLOCKED` means an external prerequisite prevents otherwise authorized work from continuing.
+
+### Accepted implementation
+
+The following milestones are `ACCEPTED`: M0.1, M0.2, M0.3, M0.3b, M0.4, M0.5, M0.6, M1.1, M1.2, M1.3, M1.4, M2.1, M2.2, M2.3, M2.4, M2.5, M3.1, M3.2, M3.5, M4.1, M4.2, M5.1, M5.2, M5.3, M5.4, and M5.5.
+M3.3, M3.4, M4.3, M4.4, M4.5, M4.6, and M4.7 remain `DEFERRED_FOLLOW_ON` and are not implied by the accepted list.
+M5.5 is a follow-on gate that has passed locally, but that early acceptance does not promote it into the portfolio V1 completion claim or change the remaining sequential resume point at M5.6.
+
+M5.5 implements bounded high-quality off-map interval selection, deterministic direction-aware normalized arc-length resampling, deterministic complete-link clustering, independent-traversal counting, coordinate-wise median corridor fitting, directed graph-endpoint comparison, and review-only missing-connection or geometry-disagreement hypotheses in native C++20.
+The Python boundary adds authenticated profiles and graph views, stable interval, cluster, hypothesis, and report identities, exhaustive selection accounting, strict native-output validation, and the public `qualify-topology-hypotheses` workflow.
+Every surfaced result is labeled `REVIEW_HYPOTHESIS_NOT_GROUND_TRUTH`, requires human review, declares that it is not ground truth, and forbids automatic map editing.
+
+The frozen M5.5 profile file SHA-256 is `79202f14439bcc60cb985d903790f4243ff4c308088e6107f5763c5ed3a78084`.
+The frozen M5.5 gate file SHA-256 is `def97492800a5084e1ae3ed1f23da09473115a535b16cc0768139b3e6cb8139e`.
+The deterministic accepted qualification report SHA-256 is `45c6bfd0b00310dd378ecc19b9aa451c6c5844ae252920f0934338611010eb03` from both the editable-tree CLI and an isolated wheel installation.
+
+The supported synthetic population contains 12 independent families, five independent traversals per scenario, 36 expected positive hypotheses, and 48 unchanged synthetic kilometers.
+Observed precision was 1.0 with a one-sided family-cluster bootstrap 95 percent lower bound of 1.0.
+Observed recall was 1.0 with a one-sided family-cluster bootstrap 95 percent lower bound of 1.0.
+Observed median endpoint error was 0 road-bin lengths with a one-sided family-cluster bootstrap 95 percent upper bound of 0.
+Observed false hypotheses per unchanged kilometer was 0 with an exact one-sided Poisson 95 percent upper bound of `0.0624110890323748`, below the frozen `0.1` gate.
+These results support only the frozen synthetic missing-connection, perturbed-geometry, and altered-connection population with parallel-road and unchanged controls.
+They do not establish real-world map-change accuracy or ground truth.
+
+### Verification evidence at the pause boundary
+
+The full Python suite passed with 351 tests and 43 subtests.
+The developer, optimized release, AddressSanitizer plus UndefinedBehaviorSanitizer, and ThreadSanitizer native suites each passed all 55 tests.
+The focused M5.5 Python suite passed all 11 tests.
+Ruff lint passed.
+Ruff format verification passed for 114 files.
+Mypy strict verification passed for 53 configured source files.
+The source distribution and platform wheel built successfully.
+The isolated wheel installation reproduced the editable-tree public qualification report byte for byte.
+
+The exact verification commands were:
+
+```console
+uv run ruff check .
+uv run ruff format --check .
+uv run mypy
+uv run pytest -q
+uv run cmake --build --preset developer -j2
+uv run ctest --preset developer --output-on-failure
+uv run cmake --fresh --preset release
+uv run cmake --build --preset release -j2
+uv run ctest --preset release --output-on-failure
+uv run cmake --fresh --preset sanitizer
+uv run cmake --build --preset sanitizer -j2
+uv run ctest --preset sanitizer --output-on-failure
+uv run cmake --fresh --preset thread-sanitizer
+uv run cmake --build --preset thread-sanitizer -j2
+uv run ctest --preset thread-sanitizer --output-on-failure
+uv run cartosentry qualify-topology-hypotheses --output /tmp/cartosentry-m5-5-report.json
+uv build
+```
+
+### Deferred and blocked status
+
+M5.6 is the next incomplete sequential milestone and is `DEFERRED_BY_USER_REQUEST`.
+M6.1 through M8.6, M11.1, M11.2, M11.4 through M11.6, and M13.1 through M13.4 are also `DEFERRED_BY_USER_REQUEST` at this pause boundary.
+M9.1 through M10.4 and M11.3 remain `DEFERRED_FOLLOW_ON` under the milestone-order contract.
+M12.1 through M12.5 remain `DEFERRED_HARDWARE` until the repository-owned consolidated GPU workflow is implemented and run on an authorized NVIDIA GPU host.
+No milestone is `BLOCKED` at this pause boundary.
+No missing credential, dataset-license acceptance, unavailable mandatory public data, or destructive-action authorization is currently preventing local continuation.
+No tag, release, deployment, package publication, repository-visibility change, or pull request has been created.
+
+### Precise resume procedure
+
+Resume on the existing private `main` branch with:
+
+```console
+git fetch origin
+git switch main
+git pull --ff-only origin main
+git status --short
+uv sync --frozen
+uv run ruff check .
+uv run ruff format --check .
+uv run mypy
+uv run pytest -q
+uv run cmake --build --preset developer -j2
+uv run ctest --preset developer --output-on-failure
+uv run cartosentry qualify-topology-hypotheses --output /tmp/cartosentry-m5-5-resume-check.json
+shasum -a 256 /tmp/cartosentry-m5-5-resume-check.json
+sed -n '2401,2413p' BUILD_PLAN.md
+```
+
+The resume-check report must hash to `45c6bfd0b00310dd378ecc19b9aa451c6c5844ae252920f0934338611010eb03` before new implementation begins.
+Continue with M5.6 by freezing the public-route review instructions, adjudicating the selected public route without viewing final-test outcomes, recording directed-arc agreement, ambiguity, off-map intervals, and graph-data limitations, and then passing the confident public coverage gate without forcing unresolved samples.
+The required focused M5.6 commit remains `test: qualify public road matching`.

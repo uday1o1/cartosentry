@@ -7,6 +7,7 @@
 #include "cartosentry/spikes/observability.hpp"
 #include "road_bins_bindings.hpp"
 #include "road_matching_bindings.hpp"
+#include "topology_hypotheses_bindings.hpp"
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -364,6 +365,7 @@ PYBIND11_MODULE(_core, module) {
   module.doc() = "Checked native CartoSentry foundation";
   bind_road_matching(module);
   bind_road_bins(module);
+  bind_topology_hypotheses(module);
   py::register_exception<cartosentry::ingest::BoreasFormatError>(
       module, "BoreasFormatError", PyExc_ValueError);
   module.def("native_self_check", &cartosentry::core::native_self_check);
