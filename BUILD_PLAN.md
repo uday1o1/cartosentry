@@ -3075,7 +3075,9 @@ It must stop only for a genuine user-owned blocker such as unavailable legal ter
 ## Implementation status and resume handoff
 
 This handoff records the safe milestone boundary requested on 2026-08-14.
-The commit containing this section is the authoritative paused source snapshot.
+The accepted implementation snapshot ends at commit `f912d043674e61dbb205878eb6c54a459dc6d4e9`.
+The latest stop request arrived before M5.6 implementation began, so no partially implemented milestone is present in this handoff.
+The commit containing this updated section is the authoritative paused source snapshot.
 
 ### Status vocabulary
 
@@ -3147,6 +3149,7 @@ M6.1 through M8.6, M11.1, M11.2, M11.4 through M11.6, and M13.1 through M13.4 ar
 M9.1 through M10.4 and M11.3 remain `DEFERRED_FOLLOW_ON` under the milestone-order contract.
 M12.1 through M12.5 remain `DEFERRED_HARDWARE` until the repository-owned consolidated GPU workflow is implemented and run on an authorized NVIDIA GPU host.
 No milestone is `BLOCKED` at this pause boundary.
+No M5.6 source, test, adjudication, or generated-evidence work has been started.
 No missing credential, dataset-license acceptance, unavailable mandatory public data, or destructive-action authorization is currently preventing local continuation.
 No tag, release, deployment, package publication, repository-visibility change, or pull request has been created.
 
@@ -3159,6 +3162,7 @@ git fetch origin
 git switch main
 git pull --ff-only origin main
 git status --short
+test "$(git rev-parse HEAD)" = "$(git ls-remote origin refs/heads/main | cut -f1)"
 uv sync --frozen
 uv run ruff check .
 uv run ruff format --check .
