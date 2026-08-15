@@ -1,5 +1,7 @@
 # CartoSentry Build Plan
 
+Status: implementation is paused by user request at the verified M5.6 pre-production-qualification boundary recorded in the final handoff section.
+
 ## Document status
 
 This document is the implementation contract for CartoSentry.
@@ -284,6 +286,7 @@ Weather and route slices must be reported separately when support permits them.
 ### Corpus tiers
 
 The `synthetic-ci` tier contains only generated fixtures committed to the repository.
+The identifier is retained as a stable suite name and is executed through repository-owned local commands.
 The `public-smoke` tier contains short selectively downloaded real clips and is used for local integration checks.
 The `public-full` tier contains longer real windows and full pose trajectories and is used for frozen evaluation outside Git.
 The `gpu-perf` tier contains the frozen lidar-heavy workload used only for optional CUDA and Linux performance qualification.
@@ -319,8 +322,8 @@ purpose: adapter-and-detector-smoke
 ```
 
 M0 must replace every `null` required for a frozen artifact.
-CI must fail if a frozen benchmark entry lacks its source, terms, attribution, partition, source group, object identity, or expected hash.
-CI must also fail when an artifact partition differs from its source-group partition or when one source group appears in more than one partition.
+Local manifest validation must fail if a frozen benchmark entry lacks its source, terms, attribution, partition, source group, object identity, or expected hash.
+It must also fail when an artifact partition differs from its source-group partition or when one source group appears in more than one partition.
 
 ### Road graph data
 
@@ -353,7 +356,7 @@ CUDA C++ is optional and must compile only behind `CARTOSENTRY_ENABLE_CUDA`.
 
 CMake is the authoritative C++ build system.
 CMake presets must define developer, release, sanitizer, coverage, and optional CUDA builds.
-Ninja is the preferred generator in CI and documented local commands.
+Ninja is the preferred generator for documented local and clean-environment commands.
 `scikit-build-core` is the Python build backend for the CMake extension.
 `pybind11` exposes narrow batch-oriented C++ interfaces to Python.
 `uv` owns the Python lock, virtual environment, and command execution.
@@ -522,10 +525,6 @@ cartosentry/
   tests/
     e2e/
     golden/
-  .github/workflows/
-    ci.yml
-    nightly.yml
-    release.yml
 ```
 
 Only create files when their milestone begins.
@@ -1454,7 +1453,7 @@ An optional location-redaction feature is out of scope for V1 and must not be im
 
 ### Dependency and supply-chain checks
 
-CI must verify Python lock consistency, scan Python and system dependency advisories, and build from the committed lock.
+Repository-owned local verification must check Python lock consistency, scan Python and system dependency advisories, and build from the committed lock.
 Release artifacts must include an SBOM and checksums.
 Third-party notices must be generated from the actual selected dependency set and reviewed before release.
 
@@ -1737,7 +1736,7 @@ Passing point estimates without the required support and bound is insufficient.
 - Structural corruption and timestamp-fault event recall must be at least `0.95` at supported severities.
 - Structural corruption and timestamp-fault event precision must be at least `0.95` on the frozen fault corpus.
 - A parser must detect every injected truncation that removes bytes from a required record.
-- Parser fuzz targets must complete the frozen CI duration with no crash, sanitizer finding, timeout amplification, or unbounded allocation.
+- Parser fuzz targets must complete the frozen local qualification duration with no crash, sanitizer finding, timeout amplification, or unbounded allocation.
 
 ### Content detector starting values
 
@@ -1850,44 +1849,44 @@ The release build must produce a wheel and source distribution through the confi
 uv build --wheel --sdist
 ```
 
-## CI design
+## Local verification design
 
-### Pull-request CI
+### Foundational verification
 
-Pull-request CI must run formatting, linting, type checking, schema validation, C++ warnings-as-errors, C++ unit tests, Python unit tests, synthetic adapter integration tests, synthetic end-to-end tests, and policy mutation tests.
-The matrix must include macOS ARM64 where the GitHub runner supports it or a documented equivalent local gate, macOS x86-64 if needed, and Linux x86-64.
+The repository-owned local gate must run formatting, linting, type checking, schema validation, C++ warnings-as-errors, C++ unit tests, Python unit tests, synthetic adapter integration tests, synthetic end-to-end tests, and policy mutation tests.
+Documented clean-environment qualification must cover macOS ARM64 and Linux x86-64 when the applicable milestone requires both environments.
 Compiler coverage must include Apple Clang and a supported Linux Clang or GCC.
 
-### Sanitizer CI
+### Sanitizer verification
 
-Linux Clang CI must run AddressSanitizer and UndefinedBehaviorSanitizer.
+Linux Clang qualification must run AddressSanitizer and UndefinedBehaviorSanitizer.
 ThreadSanitizer must run the deterministic scheduler and concurrency tests in a separate job because it cannot be combined with AddressSanitizer.
 Sanitizer jobs must use synthetic fixtures and require no external data.
 
-### Fuzz CI
+### Fuzz verification
 
-Pull requests run a short fixed fuzz smoke corpus.
-Nightly CI runs longer fuzz targets for every custom binary parser and schema boundary.
+The local gate runs a short fixed fuzz smoke corpus.
+The extended suite runs longer fuzz targets for every custom binary parser and schema boundary when explicitly invoked.
 Crashing inputs must become minimized regression fixtures only if their contents are safe to commit.
 
-### Public-data CI
+### Public-data verification
 
-Routine pull-request CI must not download multi-gigabyte public data.
-A manually triggered or scheduled job may use a cache keyed by verified public object hashes.
-Public-data jobs must fail closed if hashes or terms manifest entries do not match.
+Routine local verification must not download multi-gigabyte public data.
+An explicitly invoked public-data qualification may use a cache keyed by verified public object hashes.
+Public-data qualification must fail closed if hashes or terms manifest entries do not match.
 
-### Benchmark CI
+### Benchmark verification
 
 Correctness benchmark results are blocking after their milestone freezes them.
 Performance regressions initially produce reports because shared runners are noisy.
 A dedicated or self-hosted frozen host is required before performance becomes a blocking release gate.
 
-### Release CI
+### Release verification
 
-Release CI must build the documented wheel and source distribution in clean environments, run installation smoke tests, create checksums and an SBOM, and verify that no private paths, source data, tokens, or internal strings appear in the artifacts.
-Release CI must recompute every full-file SHA-256 in the transitive release evidence manifest from bytes rather than trusting development metadata or modification time.
+Release verification must build the documented wheel and source distribution in clean environments, run installation smoke tests, create checksums and an SBOM, and verify that no private paths, source data, tokens, or internal strings appear in the artifacts.
+It must recompute every full-file SHA-256 in the transitive release evidence manifest from bytes rather than trusting development metadata or modification time.
 The evidence manifest must bind the full Git commit hash, complete dependency-lock hashes, complete data and graph hashes, charter and fallback-tree hashes, artifact hashes, toolchain identity, and environment record.
-Publishing to a package index or public GitHub release requires explicit user authorization and is not implied by this plan.
+Publishing to a package index or public release requires explicit user authorization and is not implied by this plan.
 
 ## Local and GPU hardware handoff
 
@@ -3074,7 +3073,7 @@ It must stop only for a genuine user-owned blocker such as unavailable legal ter
 
 ## Implementation status and resume handoff
 
-This handoff records the safe M5.6 post-review boundary requested on 2026-08-14.
+This handoff records the safe M5.6 pre-production-qualification boundary paused by user request on 2026-08-14.
 All accepted milestone gates through M5.5 remain unchanged.
 M5.6 has progressed through a frozen blind adjudication, but the production qualification has not run and the milestone is not accepted.
 Commit `cc3b60e81e6e541ce5352b1e14ed13c989335b2f` is the authoritative pre-adjudication protocol snapshot.
@@ -3084,7 +3083,7 @@ Commit `cc3b60e81e6e541ce5352b1e14ed13c989335b2f` is the authoritative pre-adjud
 `ACCEPTED` means the complete milestone gate passed locally, the focused implementation and tests are committed, and the commit is intended to be present on `origin/main`.
 `IN_PROGRESS` means an ordered milestone work package is implemented and verified, but the complete milestone acceptance gate has not passed.
 `PENDING_SEQUENCE` means the milestone has not started because an earlier sequential gate is still incomplete.
-`DEFERRED_BY_USER_REQUEST` means implementation has not started because the user requested a pause at the preceding safe milestone boundary.
+`PAUSED_BY_USER_REQUEST` means active work intentionally stopped at a verified boundary without changing the evidence-based state of the current milestone.
 `DEFERRED_FOLLOW_ON` means the plan assigns the work to the post-portfolio follow-on sequence.
 `DEFERRED_HARDWARE` means the optional GPU gate requires the consolidated remote-hardware workflow and has not been claimed from CPU or emulated evidence.
 `BLOCKED` means an external prerequisite prevents otherwise authorized work from continuing.
@@ -3138,6 +3137,7 @@ git diff --check
 ### Deferred and blocked status
 
 M5.6 is the next incomplete sequential milestone and is `IN_PROGRESS` at its completed-blind-adjudication, pre-production-qualification boundary.
+The repository is `PAUSED_BY_USER_REQUEST` at that boundary.
 M6.1 through M8.6, M11.1, M11.2, M11.4 through M11.6, and M13.1 through M13.4 are `PENDING_SEQUENCE` until M5.6 is accepted.
 M9.1 through M10.4 and M11.3 remain `DEFERRED_FOLLOW_ON` under the milestone-order contract.
 M12.1 through M12.5 remain `DEFERRED_HARDWARE` until the repository-owned consolidated GPU workflow is implemented and run on an authorized NVIDIA GPU host.
@@ -3152,7 +3152,7 @@ The committed adjudication records 815 `DIRECTED_ARC` decisions over 7,473.99773
 Every non-directed decision carries no expected directed arc.
 The production decoder has not run against the completed adjudication, no public coverage result has been observed, and M5.6 is not accepted.
 No missing credential, dataset-license acceptance, unavailable mandatory public data, or destructive-action authorization is currently preventing local continuation.
-No tag, release, deployment, package publication, repository-visibility change, or pull request has been created.
+No tag, release, deployment, package publication, or repository-visibility change has been created.
 
 ### Precise resume procedure
 

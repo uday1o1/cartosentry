@@ -36,4 +36,4 @@ cartosentry qualify-scheduler scheduler-evidence \
 
 The command refuses an existing output directory.
 Its cancellation attempt retains only clearly named partial files and never creates `completion.json`.
-Linux CI runs the native suite once with AddressSanitizer plus UndefinedBehaviorSanitizer and again in a separate ThreadSanitizer process.
+Linux target qualification runs the native suite once with AddressSanitizer plus UndefinedBehaviorSanitizer and again in a separate ThreadSanitizer process.

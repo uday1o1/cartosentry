@@ -51,7 +51,7 @@ python3 scripts/run_fuzz_container.py \
 ```
 
 The local suite runs every target for 5 seconds.
-The nightly suite runs every target for 60 seconds and is also selected by the scheduled CI workflow.
+The extended suite runs every target for 60 seconds and is selected only through an explicit repository-owned command.
 Both suites use a deterministic seed, a 5-second per-input timeout, a 2 GiB RSS limit, and an isolated crash-artifact directory.
 
 The qualification fails closed unless every target exits successfully, reaches its frozen minimum instrumented-counter and covered-edge thresholds, executes at least one unit, prints final LibFuzzer statistics, and creates no crash artifact.

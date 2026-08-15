@@ -1,6 +1,6 @@
 # CartoSentry
 
-CartoSentry is under active implementation.
+CartoSentry implementation is paused at the verified M5.6 boundary recorded in `BUILD_PLAN.md`.
 The verified public workflow and evidence-backed project description will be completed at the portfolio release-candidate milestone.
 
 The current foundation can be installed and checked with the following commands.
