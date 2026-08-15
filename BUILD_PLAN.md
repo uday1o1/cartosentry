@@ -3074,10 +3074,10 @@ It must stop only for a genuine user-owned blocker such as unavailable legal ter
 
 ## Implementation status and resume handoff
 
-This handoff records the safe milestone boundary requested on 2026-08-14.
-The accepted implementation snapshot ends at commit `f912d043674e61dbb205878eb6c54a459dc6d4e9`.
-Implementation resumed from that snapshot at M5.6.
-The commit containing the frozen blind-review protocol is the authoritative pre-adjudication source snapshot.
+This handoff records the safe M5.6 post-review boundary requested on 2026-08-14.
+All accepted milestone gates through M5.5 remain unchanged.
+M5.6 has progressed through a frozen blind adjudication, but the production qualification has not run and the milestone is not accepted.
+Commit `cc3b60e81e6e541ce5352b1e14ed13c989335b2f` is the authoritative pre-adjudication protocol snapshot.
 
 ### Status vocabulary
 
@@ -3113,40 +3113,31 @@ They do not establish real-world map-change accuracy or ground truth.
 
 ### Verification evidence at the pause boundary
 
-The full Python suite passed with 351 tests and 43 subtests.
-The developer, optimized release, AddressSanitizer plus UndefinedBehaviorSanitizer, and ThreadSanitizer native suites each passed all 55 tests.
-The focused M5.5 Python suite passed all 11 tests.
+The current full Python suite passed with 358 tests and 43 subtests.
+The focused M5.6 suite passed all seven tests, including exact adjudication loading, tamper rejection, forced-unresolved rejection, packet determinism, packet redaction, and public CLI exposure.
 Ruff lint passed.
-Ruff format verification passed for 114 files.
-Mypy strict verification passed for 53 configured source files.
-The source distribution and platform wheel built successfully.
-The isolated wheel installation reproduced the editable-tree public qualification report byte for byte.
+Ruff format verification passed for 117 files.
+Mypy strict verification passed for 54 configured source files.
+The adjudication contains 869 unique source-ordered decisions and its embedded canonical immutable SHA-256 recomputes exactly as `47cc45d667e84e33cdb91bea264301e6c42a56687b471c04f810deac8e77d773`.
+The adjudication file SHA-256 is `2f18f50fd8d66f5ce41804f7ef1e5a461a59344fd6ce20e8109470f18828ea33`.
+The M5.6 changes after the protocol freeze do not modify native code.
+The previously accepted M5.5 boundary remains supported by developer, optimized release, AddressSanitizer plus UndefinedBehaviorSanitizer, and ThreadSanitizer native suites that each passed all 55 tests, a successful source distribution and platform wheel build, and byte-identical editable-tree and isolated-wheel M5.5 qualification reports.
 
-The exact verification commands were:
+The exact current-boundary verification commands were:
 
 ```console
-uv run ruff check .
-uv run ruff format --check .
-uv run mypy
-uv run pytest -q
-uv run cmake --build --preset developer -j2
-uv run ctest --preset developer --output-on-failure
-uv run cmake --fresh --preset release
-uv run cmake --build --preset release -j2
-uv run ctest --preset release --output-on-failure
-uv run cmake --fresh --preset sanitizer
-uv run cmake --build --preset sanitizer -j2
-uv run ctest --preset sanitizer --output-on-failure
-uv run cmake --fresh --preset thread-sanitizer
-uv run cmake --build --preset thread-sanitizer -j2
-uv run ctest --preset thread-sanitizer --output-on-failure
-uv run cartosentry qualify-topology-hypotheses --output /tmp/cartosentry-m5-5-report.json
-uv build
+.venv/bin/ruff check .
+.venv/bin/ruff format --check .
+.venv/bin/mypy
+.venv/bin/pytest -q
+.venv/bin/pytest -q tests/public_road_matching_qualification_test.py
+.venv/bin/python -c 'from pathlib import Path; from cartosentry.public_road_matching_qualification import load_public_route_adjudication; print(load_public_route_adjudication(Path("benchmarks/m5_6_public_route_adjudication.yaml"))[0].immutable_sha256)'
+git diff --check
 ```
 
 ### Deferred and blocked status
 
-M5.6 is the next incomplete sequential milestone and is `IN_PROGRESS` at its pre-adjudication freeze boundary.
+M5.6 is the next incomplete sequential milestone and is `IN_PROGRESS` at its completed-blind-adjudication, pre-production-qualification boundary.
 M6.1 through M8.6, M11.1, M11.2, M11.4 through M11.6, and M13.1 through M13.4 are `PENDING_SEQUENCE` until M5.6 is accepted.
 M9.1 through M10.4 and M11.3 remain `DEFERRED_FOLLOW_ON` under the milestone-order contract.
 M12.1 through M12.5 remain `DEFERRED_HARDWARE` until the repository-owned consolidated GPU workflow is implemented and run on an authorized NVIDIA GPU host.
@@ -3155,7 +3146,11 @@ The M5.6 blind review instructions, self-authenticated gate, deterministic packe
 The regenerated development packet contains 1,075 selected source records, 869 moving review observations, and 7,912.507802064 meters of moving support.
 Its canonical immutable SHA-256 is `ae84815296972a5cda2cfe9368206c037d1cf7a5f95605982376a5d802c1f44a`.
 The packet contains no production decoder output or final-test material and remains ignored derived data.
-Manual review decisions have not started, the adjudication artifact does not yet exist, and M5.6 is not accepted.
+The blind review started at `2026-08-15T01:46:44Z` and completed at `2026-08-15T01:49:55Z` against the frozen packet and protocol commit.
+The implementation owner reviewed the route-level candidate continuity and all uncertain observations without viewing production decoder output or accessing final-test material.
+The committed adjudication records 815 `DIRECTED_ARC` decisions over 7,473.997737213 meters, 48 `AMBIGUOUS` decisions over 401.747813115 meters, six `GRAPH_DATA_LIMITATION` decisions over 36.762251735 meters, and zero `OFF_MAP` or `UNRESOLVED` decisions.
+Every non-directed decision carries no expected directed arc.
+The production decoder has not run against the completed adjudication, no public coverage result has been observed, and M5.6 is not accepted.
 No missing credential, dataset-license acceptance, unavailable mandatory public data, or destructive-action authorization is currently preventing local continuation.
 No tag, release, deployment, package publication, repository-visibility change, or pull request has been created.
 
@@ -3178,12 +3173,14 @@ uv run cmake --build --preset developer -j2
 uv run ctest --preset developer --output-on-failure
 uv run cartosentry prepare-public-road-review --public-data-root data/public --output benchmark-results/m5_6_public_route_review_packet.json
 jq -r .packet_immutable_sha256 benchmark-results/m5_6_public_route_review_packet.json
-git log -1 --format=%H -- benchmarks/m5_6_public_road_matching_gate.yaml docs/public_route_adjudication.md
-sed -n '2401,2410p' BUILD_PLAN.md
+uv run python -c 'from pathlib import Path; from cartosentry.public_road_matching_qualification import load_public_route_adjudication; print(load_public_route_adjudication(Path("benchmarks/m5_6_public_route_adjudication.yaml"))[0].immutable_sha256)'
+uv run cartosentry qualify-public-road-matching --public-data-root data/public --adjudication benchmarks/m5_6_public_route_adjudication.yaml --output benchmark-results/m5_6_public_road_matching.json
+jq '{coverage: .metrics.confident_moving_distance_fraction, threshold: 0.85, accepted: .accepted, gates: .gates}' benchmark-results/m5_6_public_road_matching.json
 ```
 
-The regenerated review packet must report canonical immutable SHA-256 `ae84815296972a5cda2cfe9368206c037d1cf7a5f95605982376a5d802c1f44a` before review resumes.
-Record the full protocol-freeze commit reported by Git in the adjudication authority before opening the blind packet.
-Continue M5.6 by completing every moving-observation decision under `docs/public_route_adjudication.md` without running the production decoder or accessing final-test material.
-Then freeze the adjudication identity in code and run the public qualification gate without forcing unresolved samples.
+The regenerated review packet must report canonical immutable SHA-256 `ae84815296972a5cda2cfe9368206c037d1cf7a5f95605982376a5d802c1f44a` before qualification resumes.
+The loaded adjudication must report canonical immutable SHA-256 `47cc45d667e84e33cdb91bea264301e6c42a56687b471c04f810deac8e77d773` before qualification.
+Run the production qualification once, preserve the generated report, and compare every observed metric with the frozen M5.6 gate without forcing or relabeling any non-directed decision.
+If the confident moving-distance fraction is below `0.85`, do not accept M5.6 and use only the M0 route or graph pivot procedure.
+If every gate passes, add the final public-path and clean-install evidence, update the measured documentation, and accept M5.6.
 The required focused M5.6 commit remains `test: qualify public road matching`.

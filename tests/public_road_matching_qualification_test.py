@@ -9,9 +9,11 @@ from pathlib import Path
 import pytest
 from cartosentry.cli import app
 from cartosentry.public_road_matching_qualification import (
+    ADJUDICATION_IMMUTABLE_SHA256,
     GATE_IMMUTABLE_SHA256,
     ReviewDecision,
     load_public_road_matching_gate,
+    load_public_route_adjudication,
     prepare_public_route_review,
 )
 from pydantic import ValidationError
@@ -20,6 +22,7 @@ from typer.testing import CliRunner
 REPOSITORY_ROOT = Path(__file__).parents[1]
 PUBLIC_DATA_ROOT = REPOSITORY_ROOT / "data/public"
 GATE_PATH = REPOSITORY_ROOT / "benchmarks/m5_6_public_road_matching_gate.yaml"
+ADJUDICATION_PATH = REPOSITORY_ROOT / "benchmarks/m5_6_public_route_adjudication.yaml"
 PROTOCOL_PATH = REPOSITORY_ROOT / "docs/public_route_adjudication.md"
 DATA_MANIFEST_PATH = REPOSITORY_ROOT / "benchmarks/data_manifest.yaml"
 SOURCE_GROUPS_PATH = REPOSITORY_ROOT / "benchmarks/source_groups.yaml"
@@ -79,6 +82,31 @@ def test_pre_review_gate_rejects_tampering(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="immutable hash"):
         load_public_road_matching_gate(path)
+
+
+def test_completed_blind_adjudication_is_self_authenticated() -> None:
+    adjudication, file_sha256 = load_public_route_adjudication(ADJUDICATION_PATH)
+
+    assert adjudication.immutable_sha256 == ADJUDICATION_IMMUTABLE_SHA256
+    assert len(adjudication.decisions) == 869
+    assert file_sha256 == hashlib.sha256(ADJUDICATION_PATH.read_bytes()).hexdigest()
+    assert sum(item.label == "DIRECTED_ARC" for item in adjudication.decisions) == 815
+    assert sum(item.label == "AMBIGUOUS" for item in adjudication.decisions) == 48
+    assert (
+        sum(item.label == "GRAPH_DATA_LIMITATION" for item in adjudication.decisions)
+        == 6
+    )
+
+
+def test_completed_blind_adjudication_rejects_tampering(tmp_path: Path) -> None:
+    altered = json.loads(ADJUDICATION_PATH.read_text(encoding="utf-8"))
+    altered["decisions"][0]["label"] = "UNRESOLVED"
+    altered["decisions"][0]["expected_directed_arc_id"] = None
+    path = tmp_path / "altered-adjudication.json"
+    path.write_text(json.dumps(altered), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="identity is invalid"):
+        load_public_route_adjudication(path)
 
 
 def test_unresolved_decision_cannot_carry_a_forced_arc() -> None:
