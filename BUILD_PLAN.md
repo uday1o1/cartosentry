@@ -3076,12 +3076,14 @@ It must stop only for a genuine user-owned blocker such as unavailable legal ter
 
 This handoff records the safe milestone boundary requested on 2026-08-14.
 The accepted implementation snapshot ends at commit `f912d043674e61dbb205878eb6c54a459dc6d4e9`.
-The latest stop request arrived before M5.6 implementation began, so no partially implemented milestone is present in this handoff.
-The commit containing this updated section is the authoritative paused source snapshot.
+Implementation resumed from that snapshot at M5.6.
+The commit containing the frozen blind-review protocol is the authoritative pre-adjudication source snapshot.
 
 ### Status vocabulary
 
 `ACCEPTED` means the complete milestone gate passed locally, the focused implementation and tests are committed, and the commit is intended to be present on `origin/main`.
+`IN_PROGRESS` means an ordered milestone work package is implemented and verified, but the complete milestone acceptance gate has not passed.
+`PENDING_SEQUENCE` means the milestone has not started because an earlier sequential gate is still incomplete.
 `DEFERRED_BY_USER_REQUEST` means implementation has not started because the user requested a pause at the preceding safe milestone boundary.
 `DEFERRED_FOLLOW_ON` means the plan assigns the work to the post-portfolio follow-on sequence.
 `DEFERRED_HARDWARE` means the optional GPU gate requires the consolidated remote-hardware workflow and has not been claimed from CPU or emulated evidence.
@@ -3144,12 +3146,16 @@ uv build
 
 ### Deferred and blocked status
 
-M5.6 is the next incomplete sequential milestone and is `DEFERRED_BY_USER_REQUEST`.
-M6.1 through M8.6, M11.1, M11.2, M11.4 through M11.6, and M13.1 through M13.4 are also `DEFERRED_BY_USER_REQUEST` at this pause boundary.
+M5.6 is the next incomplete sequential milestone and is `IN_PROGRESS` at its pre-adjudication freeze boundary.
+M6.1 through M8.6, M11.1, M11.2, M11.4 through M11.6, and M13.1 through M13.4 are `PENDING_SEQUENCE` until M5.6 is accepted.
 M9.1 through M10.4 and M11.3 remain `DEFERRED_FOLLOW_ON` under the milestone-order contract.
 M12.1 through M12.5 remain `DEFERRED_HARDWARE` until the repository-owned consolidated GPU workflow is implemented and run on an authorized NVIDIA GPU host.
-No milestone is `BLOCKED` at this pause boundary.
-No M5.6 source, test, adjudication, or generated-evidence work has been started.
+No milestone is `BLOCKED` at this boundary.
+The M5.6 blind review instructions, self-authenticated gate, deterministic packet generator, redacted candidate batch boundary, strict adjudication schema, production qualification boundary, public CLI commands, and focused tests are implemented.
+The regenerated development packet contains 1,075 selected source records, 869 moving review observations, and 7,912.507802064 meters of moving support.
+Its canonical immutable SHA-256 is `ae84815296972a5cda2cfe9368206c037d1cf7a5f95605982376a5d802c1f44a`.
+The packet contains no production decoder output or final-test material and remains ignored derived data.
+Manual review decisions have not started, the adjudication artifact does not yet exist, and M5.6 is not accepted.
 No missing credential, dataset-license acceptance, unavailable mandatory public data, or destructive-action authorization is currently preventing local continuation.
 No tag, release, deployment, package publication, repository-visibility change, or pull request has been created.
 
@@ -3170,11 +3176,14 @@ uv run mypy
 uv run pytest -q
 uv run cmake --build --preset developer -j2
 uv run ctest --preset developer --output-on-failure
-uv run cartosentry qualify-topology-hypotheses --output /tmp/cartosentry-m5-5-resume-check.json
-shasum -a 256 /tmp/cartosentry-m5-5-resume-check.json
-sed -n '2401,2413p' BUILD_PLAN.md
+uv run cartosentry prepare-public-road-review --public-data-root data/public --output benchmark-results/m5_6_public_route_review_packet.json
+jq -r .packet_immutable_sha256 benchmark-results/m5_6_public_route_review_packet.json
+git log -1 --format=%H -- benchmarks/m5_6_public_road_matching_gate.yaml docs/public_route_adjudication.md
+sed -n '2401,2410p' BUILD_PLAN.md
 ```
 
-The resume-check report must hash to `45c6bfd0b00310dd378ecc19b9aa451c6c5844ae252920f0934338611010eb03` before new implementation begins.
-Continue with M5.6 by freezing the public-route review instructions, adjudicating the selected public route without viewing final-test outcomes, recording directed-arc agreement, ambiguity, off-map intervals, and graph-data limitations, and then passing the confident public coverage gate without forcing unresolved samples.
+The regenerated review packet must report canonical immutable SHA-256 `ae84815296972a5cda2cfe9368206c037d1cf7a5f95605982376a5d802c1f44a` before review resumes.
+Record the full protocol-freeze commit reported by Git in the adjudication authority before opening the blind packet.
+Continue M5.6 by completing every moving-observation decision under `docs/public_route_adjudication.md` without running the production decoder or accessing final-test material.
+Then freeze the adjudication identity in code and run the public qualification gate without forcing unresolved samples.
 The required focused M5.6 commit remains `test: qualify public road matching`.

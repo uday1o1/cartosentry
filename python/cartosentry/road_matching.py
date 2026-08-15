@@ -567,6 +567,17 @@ def generate_road_candidates(
     return _generate_road_candidate_batches(graph, (observation,), profile=profile)[0]
 
 
+def generate_road_candidate_batches(
+    graph: DirectedRoadGraph,
+    observations: tuple[RoadMatchObservation, ...],
+    *,
+    profile: MapMatchingProfile,
+) -> tuple[tuple[RoadCandidate, ...], ...]:
+    """Generate candidates for an ordered observation batch through native code."""
+
+    return _generate_road_candidate_batches(graph, observations, profile=profile)
+
+
 def best_emission_candidate(candidates: tuple[RoadCandidate, ...]) -> RoadCandidate:
     """Use the native emission score and identity tie-break decision."""
 
@@ -680,6 +691,7 @@ __all__ = [
     "TransitionRejection",
     "TransitionScore",
     "best_emission_candidate",
+    "generate_road_candidate_batches",
     "generate_road_candidates",
     "load_map_matching_profile",
     "make_road_match_observation",

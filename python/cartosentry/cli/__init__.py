@@ -41,6 +41,10 @@ from cartosentry.manifest_boundaries import (
     read_bounded_regular_bytes,
 )
 from cartosentry.motion_alignment_qualification import qualify_motion_alignment
+from cartosentry.public_road_matching_qualification import (
+    prepare_public_route_review,
+    qualify_public_road_matching,
+)
 from cartosentry.qualification import qualify_contracts
 from cartosentry.recovery import qualify_run_recovery, resume_registered_run
 from cartosentry.road_bins_qualification import qualify_directed_road_bins
@@ -393,6 +397,213 @@ def qualify_road_matching_command(
         _write_report(report, output)
     except (OSError, ValueError, ValidationError) as error:
         typer.echo(f"Road-matching qualification failed: {error}", err=True)
+        raise typer.Exit(code=2) from error
+    if not report["accepted"]:
+        raise typer.Exit(code=1)
+
+
+@app.command("prepare-public-road-review")
+def prepare_public_road_review_command(
+    public_data_root: Annotated[
+        Path,
+        typer.Option(
+            "--public-data-root",
+            exists=True,
+            file_okay=False,
+            dir_okay=True,
+            readable=True,
+            resolve_path=True,
+            help="Root containing the manifest-pinned public objects.",
+        ),
+    ] = Path("data/public"),
+    gate_path: Annotated[
+        Path,
+        typer.Option(
+            "--gate",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen pre-review M5.6 gate and sampling contract.",
+        ),
+    ] = Path("benchmarks/m5_6_public_road_matching_gate.yaml"),
+    protocol_path: Annotated[
+        Path,
+        typer.Option(
+            "--protocol",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Frozen blind manual-review instructions.",
+        ),
+    ] = Path("docs/public_route_adjudication.md"),
+    data_manifest_path: Annotated[
+        Path,
+        typer.Option("--data-manifest", exists=True, dir_okay=False),
+    ] = Path("benchmarks/data_manifest.yaml"),
+    source_groups_path: Annotated[
+        Path,
+        typer.Option("--source-groups", exists=True, dir_okay=False),
+    ] = Path("benchmarks/source_groups.yaml"),
+    split_manifest_path: Annotated[
+        Path,
+        typer.Option("--split-manifest", exists=True, dir_okay=False),
+    ] = Path("benchmarks/split_manifest.yaml"),
+    numerical_charter_path: Annotated[
+        Path,
+        typer.Option("--numerical-charter", exists=True, dir_okay=False),
+    ] = Path("benchmarks/numerical_charter.yaml"),
+    graph_profile_path: Annotated[
+        Path,
+        typer.Option("--graph-profile", exists=True, dir_okay=False),
+    ] = Path("profiles/graph_import_v1.yaml"),
+    matching_profile_path: Annotated[
+        Path,
+        typer.Option("--matching-profile", exists=True, dir_okay=False),
+    ] = Path("profiles/map_matching_v1.yaml"),
+    decoder_profile_path: Annotated[
+        Path,
+        typer.Option("--decoder-profile", exists=True, dir_okay=False),
+    ] = Path("profiles/map_decoder_v1.yaml"),
+    output: Annotated[
+        Path,
+        typer.Option(
+            "--output",
+            file_okay=True,
+            dir_okay=False,
+            resolve_path=True,
+            help="Ignored destination for the blind derived-data review packet.",
+        ),
+    ] = Path("benchmark-results/m5_6_public_route_review_packet.json"),
+) -> None:
+    """Prepare the blind public-route packet without running the decoder."""
+
+    try:
+        packet = prepare_public_route_review(
+            public_data_root=public_data_root,
+            gate_path=gate_path,
+            protocol_path=protocol_path,
+            data_manifest_path=data_manifest_path,
+            source_groups_path=source_groups_path,
+            split_manifest_path=split_manifest_path,
+            numerical_charter_path=numerical_charter_path,
+            graph_profile_path=graph_profile_path,
+            matching_profile_path=matching_profile_path,
+            decoder_profile_path=decoder_profile_path,
+        )
+        _write_report(packet, output)
+        _write_report(
+            {
+                "accepted": True,
+                "output_object_key": output.name,
+                "packet_immutable_sha256": packet["packet_immutable_sha256"],
+                "moving_review_observation_count": packet[
+                    "moving_review_observation_count"
+                ],
+                "production_decoder_output_included": False,
+                "final_test_material_included": False,
+            },
+            None,
+        )
+    except (OSError, ValueError, ValidationError) as error:
+        typer.echo(f"Public road-review preparation failed: {error}", err=True)
+        raise typer.Exit(code=2) from error
+
+
+@app.command("qualify-public-road-matching")
+def qualify_public_road_matching_command(
+    public_data_root: Annotated[
+        Path,
+        typer.Option(
+            "--public-data-root",
+            exists=True,
+            file_okay=False,
+            dir_okay=True,
+            readable=True,
+            resolve_path=True,
+        ),
+    ] = Path("data/public"),
+    adjudication_path: Annotated[
+        Path,
+        typer.Option(
+            "--adjudication",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+            help="Completed frozen blind public-route decisions.",
+        ),
+    ] = Path("benchmarks/m5_6_public_route_adjudication.yaml"),
+    gate_path: Annotated[
+        Path,
+        typer.Option("--gate", exists=True, dir_okay=False),
+    ] = Path("benchmarks/m5_6_public_road_matching_gate.yaml"),
+    protocol_path: Annotated[
+        Path,
+        typer.Option("--protocol", exists=True, dir_okay=False),
+    ] = Path("docs/public_route_adjudication.md"),
+    data_manifest_path: Annotated[
+        Path,
+        typer.Option("--data-manifest", exists=True, dir_okay=False),
+    ] = Path("benchmarks/data_manifest.yaml"),
+    source_groups_path: Annotated[
+        Path,
+        typer.Option("--source-groups", exists=True, dir_okay=False),
+    ] = Path("benchmarks/source_groups.yaml"),
+    split_manifest_path: Annotated[
+        Path,
+        typer.Option("--split-manifest", exists=True, dir_okay=False),
+    ] = Path("benchmarks/split_manifest.yaml"),
+    numerical_charter_path: Annotated[
+        Path,
+        typer.Option("--numerical-charter", exists=True, dir_okay=False),
+    ] = Path("benchmarks/numerical_charter.yaml"),
+    graph_profile_path: Annotated[
+        Path,
+        typer.Option("--graph-profile", exists=True, dir_okay=False),
+    ] = Path("profiles/graph_import_v1.yaml"),
+    matching_profile_path: Annotated[
+        Path,
+        typer.Option("--matching-profile", exists=True, dir_okay=False),
+    ] = Path("profiles/map_matching_v1.yaml"),
+    decoder_profile_path: Annotated[
+        Path,
+        typer.Option("--decoder-profile", exists=True, dir_okay=False),
+    ] = Path("profiles/map_decoder_v1.yaml"),
+    output: Annotated[
+        Path | None,
+        typer.Option(
+            "--output",
+            file_okay=True,
+            dir_okay=False,
+            resolve_path=True,
+            help="Write the deterministic public-route qualification atomically.",
+        ),
+    ] = None,
+) -> None:
+    """Qualify production matching against frozen blind route decisions."""
+
+    try:
+        report = qualify_public_road_matching(
+            public_data_root=public_data_root,
+            gate_path=gate_path,
+            adjudication_path=adjudication_path,
+            protocol_path=protocol_path,
+            data_manifest_path=data_manifest_path,
+            source_groups_path=source_groups_path,
+            split_manifest_path=split_manifest_path,
+            numerical_charter_path=numerical_charter_path,
+            graph_profile_path=graph_profile_path,
+            matching_profile_path=matching_profile_path,
+            decoder_profile_path=decoder_profile_path,
+        )
+        _write_report(report, output)
+    except (OSError, ValueError, ValidationError) as error:
+        typer.echo(f"Public road-matching qualification failed: {error}", err=True)
         raise typer.Exit(code=2) from error
     if not report["accepted"]:
         raise typer.Exit(code=1)

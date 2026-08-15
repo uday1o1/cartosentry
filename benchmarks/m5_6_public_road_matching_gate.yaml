@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "gate_id": "m5.6-public-road-matching-v1",
+  "gate_version": "1.0.0",
+  "freeze_state": "FROZEN_BEFORE_PUBLIC_ROUTE_REVIEW",
+  "hash_contract": "SHA-256 of canonical UTF-8 JSON with immutable_sha256 omitted",
+  "immutable_sha256": "eeea210b92986b55d3a5380d18a36b92df300b5d7cfc9687943bb3f6ac40f598",
+  "authorities": {
+    "protocol_file_sha256": "5917388f12df0c1741b11a39c7571cba18961d5608da41b934a696ebfd2d7058",
+    "data_manifest_file_sha256": "285f92fdf39ae51e6a183ac44bdde2f04f874ac82e5809947bf44e84a2697955",
+    "source_groups_file_sha256": "d00d8dfdae4306b449c49ad13e8e9ee63d41d46ef955bdf73d0c4cfeedceabc2",
+    "split_manifest_file_sha256": "ed028d3a7b4062edca754e095a040843a63b8ca45aeb059018dff0b353021aaf",
+    "numerical_charter_file_sha256": "c993ee0db9ffec8ad7fa987cd64ab86516405d441e038d4dbfce00fdbaf25aec",
+    "graph_import_profile_file_sha256": "c1e11f4a78bb912d1ee94058bf37b1312062cfbd0fd5c6bf1497f9179cc8e4e0",
+    "graph_import_profile_immutable_sha256": "89f4b306dce91ba9adcfc4da5b651ef1acaa247a33009cc03d96d85d632f20fb",
+    "map_matching_profile_file_sha256": "b249c83942244b8a014b0946b7621adda7dd005cfb2757b85658b08243ec0760",
+    "map_matching_profile_immutable_sha256": "dc4da969cb9f9d85492be6ed7f44798dd48b6d0c935e656979c67a27b2c3b5f1",
+    "map_decoder_profile_file_sha256": "73ebeb73506a81214eb0f14fb2cbb835c8bef80b4a63e4096402817bafa99a15",
+    "map_decoder_profile_immutable_sha256": "78a1c554c2895748b9bef5810772c7788d36c3f01be47cb00accc9dd4c0e5991"
+  },
+  "public_source": {
+    "sequence_id": "boreas-2021-09-02-11-42",
+    "source_group_id": "boreas-glen-shields-family-v1",
+    "partition": "development",
+    "trajectory_object_key": "boreas-2021-09-02-11-42/applanix/gps_post_process.csv",
+    "trajectory_source_key": "applanix/gps_post_process.csv",
+    "trajectory_sha256": "7314f391b4bd704c838295633bd2139e24dc6596d256b785b9293851f98de124",
+    "trajectory_bytes": 77453207,
+    "road_graph_object_key": "road_graphs/toronto-glen-shields-v1.osm",
+    "road_graph_sha256": "4218be930d42d4b1fcfcf811f366a8837e4b220ffa7fdbd6415820e3a0527600",
+    "road_graph_bytes": 1414633
+  },
+  "review_sample": {
+    "selection": "EVERY_NTH_SOURCE_RECORD_PLUS_FINAL",
+    "source_record_stride": 200,
+    "include_final_source_record": true,
+    "minimum_moving_speed_mps": 1.0,
+    "distance_coverage_method": "endpoint-half-distance-v1",
+    "distance_coordinate_basis": "SOURCE_APPLANIX_EASTING_NORTHING",
+    "travel_heading_basis": "ATAN2_VELOCITY_NORTH_VELOCITY_EAST",
+    "review_candidate_source": "PRODUCTION_CANDIDATE_GENERATION_WITH_SCORES_REDACTED",
+    "review_candidate_order": "DIRECTED_ARC_ID_ASCENDING",
+    "forbidden_packet_fields": [
+      "emission_log_likelihood",
+      "transition_log_likelihood",
+      "decoder_candidate_id",
+      "decoder_directed_arc_id",
+      "runner_up_candidate_id",
+      "path_separation_log_likelihood",
+      "decoder_confidence",
+      "aggregate_outcome",
+      "final_test_identity"
+    ]
+  },
+  "decision_contract": {
+    "allowed_labels": [
+      "DIRECTED_ARC",
+      "AMBIGUOUS",
+      "OFF_MAP",
+      "GRAPH_DATA_LIMITATION",
+      "UNRESOLVED"
+    ],
+    "only_directed_arc_label_carries_expected_arc": true,
+    "all_moving_observations_require_one_decision": true,
+    "unresolved_decisions_must_remain_without_expected_arc": true
+  },
+  "thresholds": {
+    "confident_moving_distance_fraction_minimum": 0.85
+  },
+  "result_scope": "SINGLE_PINNED_DEVELOPMENT_ROUTE_CASE_STUDY_NOT_CONFIRMATORY"
+}
