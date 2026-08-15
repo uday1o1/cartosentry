@@ -13,3 +13,7 @@
 *.pbf binary
 *.woff binary
 *.woff2 binary
+
+# Preserve the byte-frozen M5.3 authorities, including terminal blank lines.
+benchmarks/m5_3_map_matching_gate.yaml whitespace=-blank-at-eof
+benchmarks/m5_3_map_matching_truth.yaml whitespace=-blank-at-eof
